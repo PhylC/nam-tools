@@ -70,7 +70,15 @@ textarea {
   color: var(--foreground);
   min-height: 46px;
   padding: 0.78rem 0.9rem;
+  font-size: 0.96rem;
+  line-height: 1.3;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a8b1ba;
+  opacity: 1;
 }
 
 textarea {
@@ -113,6 +121,14 @@ textarea:focus {
   align-items: center;
   gap: 0.65rem;
   min-width: max-content;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  height: 44px;
+  max-width: 180px;
+  object-fit: contain;
 }
 
 .brand-mark {
@@ -490,6 +506,11 @@ p {
   margin-bottom: 1rem;
 }
 
+.footer-logo {
+  height: 38px;
+  max-width: 160px;
+}
+
 .footer-bottom {
   display: flex;
   gap: 1rem;
@@ -592,6 +613,41 @@ p {
   font-size: 1.25rem;
 }
 
+.input-section {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.settings-section,
+.quick-settings-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid #c9d8d6;
+  border-radius: 8px;
+  background: #f4fbfa;
+  padding: 0.9rem;
+}
+
+.input-section-header {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.input-section-header h3 {
+  color: var(--foreground);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.input-section-header p,
+.quick-settings-card p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0;
+}
+
 .tab-list {
   display: flex;
   flex-wrap: wrap;
@@ -671,11 +727,14 @@ p {
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 0.9rem;
 }
 
 .field {
+  align-self: stretch;
   display: grid;
+  grid-template-rows: auto auto 1fr;
   gap: 0.45rem;
   color: var(--muted);
   font-size: 0.92rem;
@@ -689,7 +748,37 @@ p {
 .field-label {
   display: inline-flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.field-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #f4f5f6;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  padding: 0.22rem 0.45rem;
+}
+
+.field-required {
+  border-color: #aac6c2;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.field .field-status {
+  color: var(--muted);
+}
+
+.field .field-required {
+  color: var(--accent-dark);
 }
 
 .info-dot {
@@ -745,6 +834,19 @@ p {
   font-size: 0.78rem;
   font-weight: 600;
   line-height: 1.35;
+}
+
+.form-intro,
+.empty-state {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.empty-result {
+  min-height: 150px;
+  align-content: center;
 }
 
 .form-note {
@@ -1087,6 +1189,11 @@ p {
     border-radius: 999px;
     background: #fff;
     padding: 0.48rem 0.7rem;
+  }
+
+  .brand-logo {
+    height: 36px;
+    max-width: 150px;
   }
 
   .grid,

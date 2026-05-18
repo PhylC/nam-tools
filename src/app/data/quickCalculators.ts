@@ -93,8 +93,9 @@ export const quickCalculators: QuickCalculator[] = [
       "You need a quick profit, margin and markup comparison from two numbers.",
     ],
     formula: [
-      "Cash profit = selling price - cost.",
-      "Margin % = cash profit / selling price. Markup % = cash profit / cost.",
+      "Retail selling price excluding tax is calculated from the entered tax basis.",
+      "Cash profit = retail selling price excluding tax - cost.",
+      "Margin % = cash profit / retail selling price excluding tax. Markup % = cash profit / cost.",
     ],
     related: ["actual-retailer-margin-calculator", "retail-selling-price-calculator"],
   },
@@ -152,7 +153,7 @@ export const quickCalculators: QuickCalculator[] = [
     ],
     formula: [
       "SOA % of invoice = SOA per unit / retailer invoice/buy price.",
-      "SOA % of retail = SOA per unit / retail selling price.",
+      "SOA % of retail = SOA per unit / retail selling price excluding tax, with an including-tax comparison shown where relevant.",
     ],
     related: ["required-soa-calculator", "promo-invoice-calculator", "actual-retailer-margin-calculator"],
   },

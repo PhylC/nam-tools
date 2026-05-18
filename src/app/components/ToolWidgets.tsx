@@ -63,14 +63,38 @@ function safePercent(value: number) {
   return Number.isFinite(value) ? percent.format(value) : "n/a";
 }
 
-function InfoLabel({ label, info }: { label: string; info?: string }) {
+function hasValues(values: string[]) {
+  return values.every((value) => value.trim() !== "");
+}
+
+function InfoLabel({
+  label,
+  info,
+  required,
+}: {
+  label: string;
+  info?: string;
+  required?: boolean;
+}) {
+  const status = required ? "Required" : "Optional";
+
   if (!info) {
-    return <>{label}</>;
+    return (
+      <span className="field-label">
+        <span>{label}</span>
+        <span className={required ? "field-status field-required" : "field-status"}>
+          {status}
+        </span>
+      </span>
+    );
   }
 
   return (
     <span className="field-label">
       <span>{label}</span>
+      <span className={required ? "field-status field-required" : "field-status"}>
+        {status}
+      </span>
       <span aria-label={`${label}: ${info}`} className="info-dot" tabIndex={0}>
         i
         <span className="info-tooltip" role="tooltip">
@@ -86,19 +110,25 @@ function NumericInput({
   help,
   value,
   onChange,
+  placeholder,
+  required = true,
   step = "0.01",
 }: {
   label: string;
   help: string;
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
+  required?: boolean;
   step?: string;
 }) {
   return (
-    <Field label={<InfoLabel label={label} info={help} />} help={help}>
+    <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
       <input
         type="number"
         min="0"
+        placeholder={placeholder}
+        required={required}
         step={step}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -113,19 +143,21 @@ function TextInput({
   value,
   onChange,
   multiline,
+  required = true,
 }: {
   label: string;
   help: string;
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
+  required?: boolean;
 }) {
   return (
-    <Field label={<InfoLabel label={label} info={help} />} help={help}>
+    <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
       {multiline ? (
-        <textarea value={value} onChange={(event) => onChange(event.target.value)} />
+        <textarea required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       ) : (
-        <input value={value} onChange={(event) => onChange(event.target.value)} />
+        <input required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </Field>
   );
@@ -137,16 +169,18 @@ function SelectInput({
   value,
   onChange,
   options,
+  required = true,
 }: {
   label: string;
   help: string;
   value: string;
   onChange: (value: string) => void;
   options: { label: string; value: string }[];
+  required?: boolean;
 }) {
   return (
-    <Field label={<InfoLabel label={label} info={help} />} help={help}>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+    <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
+      <select required={required} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -286,6 +320,15 @@ function ProPreview({ features }: { features: string[] }) {
 type DealTab = "promo" | "margin" | "spend" | "investment";
 type VatBasis = "includes" | "excludes";
 
+const taxBasisOptions = [
+  { label: "Includes sales tax / VAT / IVA", value: "includes" },
+  { label: "Excludes sales tax / VAT / IVA", value: "excludes" },
+];
+
+function taxBasisLabel(value: VatBasis) {
+  return value === "includes" ? "Includes sales tax / VAT / IVA" : "Excludes sales tax / VAT / IVA";
+}
+
 const dealTabs: { id: DealTab; label: string }[] = [
   { id: "promo", label: "Supplier profit" },
   { id: "margin", label: "Retailer view" },
@@ -342,29 +385,29 @@ function DealProPreview() {
 export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?: DealTab }) {
   const [activeTab, setActiveTab] = useState<DealTab>(defaultTab);
   const [currencyCode, setCurrencyCode] = useState("GBP");
-  const [baselineUnits, setBaselineUnits] = useState("10000");
-  const [promoUnits, setPromoUnits] = useState("18000");
-  const [srp, setSrp] = useState("2.50");
-  const [promoSrp, setPromoSrp] = useState("2.00");
-  const [cogs, setCogs] = useState("1.10");
-  const [soa, setSoa] = useState("0.35");
-  const [fixedCost, setFixedCost] = useState("2500");
-  const [retailerBuyPrice, setRetailerBuyPrice] = useState("1.75");
+  const [baselineUnits, setBaselineUnits] = useState("");
+  const [promoUnits, setPromoUnits] = useState("");
+  const [srp, setSrp] = useState("");
+  const [promoSrp, setPromoSrp] = useState("");
+  const [cogs, setCogs] = useState("");
+  const [soa, setSoa] = useState("");
+  const [fixedCost, setFixedCost] = useState("");
+  const [retailerBuyPrice, setRetailerBuyPrice] = useState("");
   const [retailerVatBasis, setRetailerVatBasis] = useState<VatBasis>("includes");
-  const [vatRate, setVatRate] = useState("20");
-  const [averageDiscount, setAverageDiscount] = useState("12");
-  const [rebate, setRebate] = useState("3");
-  const [marketingContribution, setMarketingContribution] = useState("2500");
-  const [expectedUplift, setExpectedUplift] = useState("8");
-  const [grossMargin, setGrossMargin] = useState("32");
-  const [requestedInvestment, setRequestedInvestment] = useState("3");
-  const [probability, setProbability] = useState("65");
-  const [cannibalisation, setCannibalisation] = useState("10");
-  const [postPromoDip, setPostPromoDip] = useState("2");
-  const [retailerMarginRequirement, setRetailerMarginRequirement] = useState("25");
-  const [contractMonths, setContractMonths] = useState("12");
-  const [otherDeductions, setOtherDeductions] = useState("1");
-  const [retentionValue, setRetentionValue] = useState("0");
+  const [vatRate, setVatRate] = useState("");
+  const [averageDiscount, setAverageDiscount] = useState("");
+  const [rebate, setRebate] = useState("");
+  const [marketingContribution, setMarketingContribution] = useState("");
+  const [expectedUplift, setExpectedUplift] = useState("");
+  const [grossMargin, setGrossMargin] = useState("");
+  const [requestedInvestment, setRequestedInvestment] = useState("");
+  const [probability, setProbability] = useState("");
+  const [cannibalisation, setCannibalisation] = useState("");
+  const [postPromoDip, setPostPromoDip] = useState("");
+  const [retailerMarginRequirement, setRetailerMarginRequirement] = useState("");
+  const [contractMonths, setContractMonths] = useState("");
+  const [otherDeductions, setOtherDeductions] = useState("");
+  const [retentionValue, setRetentionValue] = useState("");
 
   const currency = useMemo(
     () => ({ format: (value: number) => formatCurrencyValue(value, currencyCode, 0) }),
@@ -378,18 +421,23 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const result = useMemo(() => {
     const baseline = num(baselineUnits);
     const units = num(promoUnits);
-    const srpValue = num(srp);
-    const promoSrpValue = num(promoSrp);
+    const srpEntered = num(srp);
+    const promoSrpEntered = num(promoSrp);
+    const vatRateValue = rate(vatRate);
+    const srpValue =
+      retailerVatBasis === "includes"
+        ? srpEntered / (1 + vatRateValue)
+        : srpEntered;
+    const promoSrpValue =
+      retailerVatBasis === "includes"
+        ? promoSrpEntered / (1 + vatRateValue)
+        : promoSrpEntered;
     const cogsValue = num(cogs);
     const soaPerUnit = num(soa);
     const fixed = num(fixedCost);
     const retailerBuy = num(retailerBuyPrice);
-    const retailerSellOutEntered = promoSrpValue;
-    const vatRateValue = rate(vatRate);
-    const retailerSellOutExVat =
-      retailerVatBasis === "includes"
-        ? retailerSellOutEntered / (1 + vatRateValue)
-        : retailerSellOutEntered;
+    const retailerSellOutEntered = promoSrpEntered;
+    const retailerSellOutExVat = promoSrpValue;
     const incrementalUnits = units - baseline;
     const cannibalisedUnits = Math.max(0, incrementalUnits) * rate(cannibalisation);
     const postPromoDipUnits = units * rate(postPromoDip);
@@ -477,6 +525,8 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       roi,
       breakEvenIncrementalUnits,
       retailerGrossSales,
+      retailBaseEntered: srpEntered,
+      retailBaseExTax: srpValue,
       retailerSellOutEntered,
       retailerSellOutExVat,
       vatRateValue,
@@ -543,9 +593,19 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     retentionValue,
   ]);
 
-  const retailerVatBasisLabel =
-    retailerVatBasis === "includes" ? "Includes sales tax / VAT / IVA" : "Excludes sales tax / VAT / IVA";
-  const retailerVatSummary = `Promotional retail selling price entered: ${money2.format(result.retailerSellOutEntered)} (${retailerVatBasisLabel}); sales tax / VAT / IVA rate: ${safePercent(result.vatRateValue)}; excluding-tax retail selling price used for margin: ${money2.format(result.retailerSellOutExVat)}. Currency is for formatting only. This tool does not convert exchange rates.`;
+  const retailerVatBasisLabel = taxBasisLabel(retailerVatBasis);
+  const retailerVatSummary = `Retail selling price before promotion entered: ${money2.format(result.retailBaseEntered)} (${retailerVatBasisLabel}); excluding-tax value used: ${money2.format(result.retailBaseExTax)}. Promotional retail selling price entered: ${money2.format(result.retailerSellOutEntered)} (${retailerVatBasisLabel}); sales tax / VAT / IVA rate: ${safePercent(result.vatRateValue)}; excluding-tax value used for retailer margin: ${money2.format(result.retailerSellOutExVat)}. Currency is for formatting only. This tool does not convert exchange rates.`;
+  const hasDealInputs = hasValues([
+    baselineUnits,
+    promoUnits,
+    srp,
+    promoSrp,
+    cogs,
+    soa,
+    fixedCost,
+    retailerBuyPrice,
+    vatRate,
+  ]);
 
   const retailerVerdict =
     result.retailerMarginAfterFunding >= rate(retailerMarginRequirement)
@@ -632,55 +692,73 @@ Retention value included: ${currency.format(num(retentionValue))}`,
         <div>
           <span className="pill">60-second inputs</span>
           <h2>Start with the few numbers most NAMs already have.</h2>
+          <p className="form-intro">
+            Required fields are enough for a quick result. Optional fields
+            improve the estimate.
+          </p>
         </div>
         <RetailerPricingCaveat />
-        <div className="form-grid">
-          <SelectInput
-            label="Currency"
-            help="Currency is for formatting only. This tool does not convert exchange rates."
-            value={currencyCode}
-            onChange={setCurrencyCode}
-            options={currencyChoices.map(({ label, value }) => ({ label, value }))}
-          />
-          <NumericInput label="Baseline units before promotion" help="Estimated units sold in the normal comparison period before the promotion." value={baselineUnits} onChange={setBaselineUnits} step="1" />
-          <NumericInput label="Forecast units during promotion" help="Expected units sold during the promotion or deal period." value={promoUnits} onChange={setPromoUnits} step="1" />
-          <NumericInput label="Retail selling price before promotion" help="The normal price paid by the shopper/end customer. Specify sales tax / VAT / IVA basis where relevant." value={srp} onChange={setSrp} />
-          <NumericInput label="Promotional retail selling price" help="The promotional price paid by the shopper/end customer. Pricing is at the sole discretion of the retailer." value={promoSrp} onChange={setPromoSrp} />
-          <NumericInput label="Supplier COGS per unit" help="Your internal cost of goods sold per unit. This is not the retailer invoice price." value={cogs} onChange={setCogs} />
-          <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, scan support or per-unit promotional funding." value={soa} onChange={setSoa} />
-          <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." value={fixedCost} onChange={setFixedCost} />
-          <NumericInput label="Retailer invoice/buy price per unit" help="The price the retailer/customer pays the supplier per unit, before any shopper retail price is applied. This is used for retailer margin estimates." value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
-          <SelectInput
-            label="Retail price tax basis"
-            help="Choose whether the retailer selling price entered is inclusive or exclusive of sales tax / VAT / IVA."
-            value={retailerVatBasis}
-            onChange={(value) => setRetailerVatBasis(value as VatBasis)}
-            options={[
-              { label: "Includes sales tax / VAT / IVA", value: "includes" },
-              { label: "Excludes sales tax / VAT / IVA", value: "excludes" },
-            ]}
-          />
-          <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail selling price to an excluding-tax value for margin estimates." value={vatRate} onChange={setVatRate} />
+        <section className="input-section settings-section" aria-label="Currency and tax settings">
+          <div className="input-section-header">
+            <h3>Currency and tax settings</h3>
+            <p>
+              Use these settings for all retail selling price inputs in this
+              calculator. Retailer margin calculations use the excluding-tax
+              retail price.
+            </p>
+          </div>
+          <div className="form-grid">
+            <SelectInput
+              label="Currency"
+              help="Currency is for formatting only. This tool does not convert exchange rates."
+              value={currencyCode}
+              onChange={setCurrencyCode}
+              options={currencyChoices.map(({ label, value }) => ({ label, value }))}
+            />
+            <SelectInput
+              label="Retail price tax basis"
+              help="Choose whether retail selling prices entered in this calculator include or exclude sales tax / VAT / IVA."
+              value={retailerVatBasis}
+              onChange={(value) => setRetailerVatBasis(value as VatBasis)}
+              options={taxBasisOptions}
+            />
+            <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail selling prices to excluding-tax values for margin estimates." placeholder="e.g. 20" value={vatRate} onChange={setVatRate} />
+          </div>
           <p className="form-note">
             Retailer prices are often discussed including sales tax / VAT / IVA,
             but margin is usually assessed excluding tax. This tool converts the
             entered price where needed.
           </p>
-        </div>
+        </section>
+        <section className="input-section" aria-label="Promotion and price inputs">
+          <div className="input-section-header">
+            <h3>Promotion and price inputs</h3>
+          </div>
+          <div className="form-grid">
+            <NumericInput label="Baseline units before promotion" help="Estimated units sold in the normal comparison period before the promotion." placeholder="e.g. 10,000" value={baselineUnits} onChange={setBaselineUnits} step="1" />
+            <NumericInput label="Forecast units during promotion" help="Expected units sold during the promotion or deal period." placeholder="e.g. 18,000" value={promoUnits} onChange={setPromoUnits} step="1" />
+            <NumericInput label="Retail selling price before promotion" help="The normal shopper/end-customer price. Uses the tax setting above." placeholder="e.g. 2.50" value={srp} onChange={setSrp} />
+            <NumericInput label="Promotional retail selling price" help="The promotional shopper/end-customer price. Uses the tax setting above. Pricing is at the sole discretion of the retailer." placeholder="e.g. 2.00" value={promoSrp} onChange={setPromoSrp} />
+            <NumericInput label="Supplier COGS per unit" help="Your internal cost of goods sold per unit. This is not the retailer invoice price." placeholder="e.g. 1.10" value={cogs} onChange={setCogs} />
+            <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, scan support or per-unit promotional funding." placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
+            <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." placeholder="e.g. 2,500" value={fixedCost} onChange={setFixedCost} />
+            <NumericInput label="Retailer invoice/buy price per unit" help="The price the retailer/customer pays the supplier per unit, before any shopper retail price is applied. This is used for retailer margin estimates." placeholder="e.g. 1.75" value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
+          </div>
+        </section>
         <AdvancedAssumptions>
-          <NumericInput label="Retailer margin target %" help="Target retailer/customer margin for a quick sense-check." value={retailerMarginRequirement} onChange={setRetailerMarginRequirement} />
-          <NumericInput label="Estimated cannibalisation %" help="Sales that may switch from your other products." value={cannibalisation} onChange={setCannibalisation} />
-          <NumericInput label="Estimated post-promo dip %" help="Sales that may be pulled forward from after the event." value={postPromoDip} onChange={setPostPromoDip} />
-          <NumericInput label="Average invoice discount %" help="Average discount or price support applied to invoice sales." value={averageDiscount} onChange={setAverageDiscount} />
-          <NumericInput label="Rebate / overrider %" help="Back-end terms as a percentage of sales." value={rebate} onChange={setRebate} />
-          <NumericInput label="Marketing contribution" help="Retail media, shopper or activation contribution." value={marketingContribution} onChange={setMarketingContribution} />
-          <NumericInput label="Expected sales uplift %" help="Expected uplift from the ask or plan." value={expectedUplift} onChange={setExpectedUplift} />
-          <NumericInput label="Supplier gross margin %" help="Supplier margin to apply to expected uplift." value={grossMargin} onChange={setGrossMargin} />
-          <NumericInput label="Requested investment %" help="Customer ask as a percentage of deal value." value={requestedInvestment} onChange={setRequestedInvestment} />
-          <NumericInput label="Probability of success %" help="Confidence the uplift will happen." value={probability} onChange={setProbability} />
-          <NumericInput label="Contract length in months" help="Period for the investment ask." value={contractMonths} onChange={setContractMonths} step="1" />
-          <NumericInput label="Other deductions %" help="Extra deductions to include in trade spend." value={otherDeductions} onChange={setOtherDeductions} />
-          <NumericInput label="Retention value" help="Optional value of defending current business." value={retentionValue} onChange={setRetentionValue} />
+          <NumericInput label="Retailer margin target %" help="Target retailer/customer margin for a quick sense-check." placeholder="e.g. 25" required={false} value={retailerMarginRequirement} onChange={setRetailerMarginRequirement} />
+          <NumericInput label="Estimated cannibalisation %" help="Sales that may switch from your other products." placeholder="e.g. 10" required={false} value={cannibalisation} onChange={setCannibalisation} />
+          <NumericInput label="Estimated post-promo dip %" help="Sales that may be pulled forward from after the event." placeholder="e.g. 2" required={false} value={postPromoDip} onChange={setPostPromoDip} />
+          <NumericInput label="Average invoice discount %" help="Average discount or price support applied to invoice sales." placeholder="e.g. 12" required={false} value={averageDiscount} onChange={setAverageDiscount} />
+          <NumericInput label="Rebate / overrider %" help="Back-end terms as a percentage of sales." placeholder="e.g. 3" required={false} value={rebate} onChange={setRebate} />
+          <NumericInput label="Marketing contribution" help="Retail media, shopper or activation contribution." placeholder="e.g. 2,500" required={false} value={marketingContribution} onChange={setMarketingContribution} />
+          <NumericInput label="Expected sales uplift %" help="Expected uplift from the ask or plan." placeholder="e.g. 8" required={false} value={expectedUplift} onChange={setExpectedUplift} />
+          <NumericInput label="Supplier gross margin %" help="Supplier margin to apply to expected uplift." placeholder="e.g. 32" required={false} value={grossMargin} onChange={setGrossMargin} />
+          <NumericInput label="Requested investment %" help="Customer ask as a percentage of deal value." placeholder="e.g. 3" required={false} value={requestedInvestment} onChange={setRequestedInvestment} />
+          <NumericInput label="Probability of success %" help="Confidence the uplift will happen." placeholder="e.g. 65" required={false} value={probability} onChange={setProbability} />
+          <NumericInput label="Contract length in months" help="Period for the investment ask." placeholder="e.g. 12" required={false} value={contractMonths} onChange={setContractMonths} step="1" />
+          <NumericInput label="Other deductions %" help="Extra deductions to include in trade spend." placeholder="e.g. 1" required={false} value={otherDeductions} onChange={setOtherDeductions} />
+          <NumericInput label="Retention value" help="Optional value of defending current business." placeholder="e.g. 0" required={false} value={retentionValue} onChange={setRetentionValue} />
         </AdvancedAssumptions>
         <details className="advanced-box input-definitions">
           <summary>Input definitions</summary>
@@ -717,6 +795,7 @@ Retention value included: ${currency.format(num(retentionValue))}`,
           ))}
         </div>
 
+        {hasDealInputs ? (
         <div className="result-box" role="tabpanel">
           <div className="output-header">
             <div>
@@ -750,7 +829,9 @@ Retention value included: ${currency.format(num(retentionValue))}`,
                     { label: "Fixed supplier support", value: currency.format(result.fixed) },
                     { label: "Incremental GP before SOA / supplier support", value: currency.format(result.incrementalGpBeforeInvestment), tone: result.incrementalGpBeforeInvestment >= 0 ? "good" : "bad" },
                     { label: "Retailer estimated profit after support", value: currency.format(result.retailerEstimatedProfitAfterFunding) },
-                    { label: "Excluding-tax selling price used", value: money2.format(result.retailerSellOutExVat) },
+                    { label: "Promotional retail selling price entered", value: money2.format(result.retailerSellOutEntered) },
+                    { label: "Retail price tax basis", value: retailerVatBasisLabel },
+                    { label: "Promotional retail price excluding tax", value: money2.format(result.retailerSellOutExVat) },
                   ]}
                 />
               </CalculationDetail>
@@ -772,9 +853,11 @@ Retention value included: ${currency.format(num(retentionValue))}`,
                 <ResultGrid
                   items={[
                     { label: "Promotional retail selling price entered", value: money2.format(result.retailerSellOutEntered) },
+                    { label: "Retail selling price before promotion entered", value: money2.format(result.retailBaseEntered) },
                     { label: "Retail price tax basis", value: retailerVatBasisLabel },
                     { label: "Sales tax / VAT / IVA rate", value: safePercent(result.vatRateValue) },
-                    { label: "Excluding-tax selling price used", value: money2.format(result.retailerSellOutExVat) },
+                    { label: "Retail selling price before promotion excluding tax", value: money2.format(result.retailBaseExTax) },
+                    { label: "Promotional retail price excluding tax", value: money2.format(result.retailerSellOutExVat) },
                     { label: "Retailer gross sales excluding tax", value: currency.format(result.retailerGrossSales) },
                     { label: "Retailer invoice/buy value", value: currency.format(result.retailerCostOfGoods) },
                     { label: "Retailer profit before support", value: currency.format(result.retailerGpBeforeFunding), tone: result.retailerGpBeforeFunding >= 0 ? "good" : "bad" },
@@ -835,6 +918,15 @@ Retention value included: ${currency.format(num(retentionValue))}`,
             </>
           )}
         </div>
+        ) : (
+        <div className="result-box empty-result" role="tabpanel">
+          <div>
+            <span className="pill">Free result</span>
+            <h2>{dealTabTitle(activeTab)}</h2>
+          </div>
+          <p className="empty-state">Enter the required fields to see your result.</p>
+        </div>
+        )}
       </section>
 
       <DealProPreview />
@@ -861,6 +953,8 @@ export function TermsInvestmentCalculator() {
 function vatAdjustedPrice(price: number, basis: VatBasis, vat: number) {
   const exVat = basis === "includes" ? price / (1 + vat) : price;
   return {
+    entered: price,
+    basis,
     exVat,
     incVat: basis === "includes" ? price : price * (1 + vat),
     vatAmount: basis === "includes" ? price - exVat : price * vat,
@@ -875,6 +969,7 @@ function QuickCalculatorCard({
   summary,
   results,
   explanation,
+  isReady,
 }: {
   id?: string;
   title: string;
@@ -883,6 +978,7 @@ function QuickCalculatorCard({
   summary: string;
   results: { label: string; value: string; tone?: "good" | "bad" | "neutral" }[];
   explanation?: React.ReactNode;
+  isReady: boolean;
 }) {
   return (
     <article className="card quick-calculator-card" id={id}>
@@ -893,13 +989,19 @@ function QuickCalculatorCard({
       </div>
       <div className="form-grid">{children}</div>
       <div className="result-box">
-        <div className="output-header">
-          <h3>Answer</h3>
-          <CopyButton text={summary} label="Copy result" />
-        </div>
-        <ResultGrid items={results} />
-        <RetailerPricingCaveat />
-        {explanation}
+        {isReady ? (
+          <>
+            <div className="output-header">
+              <h3>Answer</h3>
+              <CopyButton text={summary} label="Copy result" />
+            </div>
+            <ResultGrid items={results} />
+            <RetailerPricingCaveat />
+            {explanation}
+          </>
+        ) : (
+          <p className="empty-state">Enter the required fields to see your result.</p>
+        )}
       </div>
     </article>
   );
@@ -907,15 +1009,15 @@ function QuickCalculatorCard({
 
 export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId } = {}) {
   const [currencyCode, setCurrencyCode] = useState("GBP");
-  const [soaInvoice, setSoaInvoice] = useState("1.75");
-  const [soaRetail, setSoaRetail] = useState("2.00");
-  const [soaVatBasis, setSoaVatBasis] = useState<VatBasis>("includes");
-  const [soaVat, setSoaVat] = useState("20");
-  const [soaMargin, setSoaMargin] = useState("25");
-  const [soaFixed, setSoaFixed] = useState("0");
+  const [quickRetailTaxBasis, setQuickRetailTaxBasis] = useState<VatBasis>("includes");
+  const [quickTaxRate, setQuickTaxRate] = useState("");
+  const [soaInvoice, setSoaInvoice] = useState("");
+  const [soaRetail, setSoaRetail] = useState("");
+  const [soaMargin, setSoaMargin] = useState("");
+  const [soaFixed, setSoaFixed] = useState("");
 
   const requiredSoa = useMemo(() => {
-    const retail = vatAdjustedPrice(num(soaRetail), soaVatBasis, rate(soaVat));
+    const retail = vatAdjustedPrice(num(soaRetail), quickRetailTaxBasis, rate(quickTaxRate));
     const requiredCost = retail.exVat * (1 - rate(soaMargin));
     const support = num(soaInvoice) - requiredCost;
     const promoInvoice = num(soaInvoice) - support;
@@ -927,31 +1029,27 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       supportInvoiceRate: num(soaInvoice) > 0 ? support / num(soaInvoice) : 0,
       supportRetailRate: retail.exVat > 0 ? support / retail.exVat : 0,
     };
-  }, [soaInvoice, soaRetail, soaVatBasis, soaVat, soaMargin]);
+  }, [soaInvoice, soaRetail, quickRetailTaxBasis, quickTaxRate, soaMargin]);
 
-  const [rspInvoice, setRspInvoice] = useState("1.75");
-  const [rspMargin, setRspMargin] = useState("25");
-  const [rspVat, setRspVat] = useState("20");
-  const [rspShowInc, setRspShowInc] = useState("yes");
+  const [rspInvoice, setRspInvoice] = useState("");
+  const [rspMargin, setRspMargin] = useState("");
 
   const retailFromInvoice = useMemo(() => {
     const exVat = num(rspInvoice) / Math.max(1 - rate(rspMargin), 0.01);
-    const incVat = exVat * (1 + rate(rspVat));
+    const incVat = exVat * (1 + rate(quickTaxRate));
     return { exVat, incVat, cashMargin: exVat - num(rspInvoice), margin: exVat > 0 ? (exVat - num(rspInvoice)) / exVat : 0 };
-  }, [rspInvoice, rspMargin, rspVat]);
+  }, [rspInvoice, rspMargin, quickTaxRate]);
 
-  const [actualInvoice, setActualInvoice] = useState("1.75");
+  const [actualInvoice, setActualInvoice] = useState("");
   const [actualMode, setActualMode] = useState("soa");
-  const [actualSupport, setActualSupport] = useState("0.35");
-  const [actualPromoInvoice, setActualPromoInvoice] = useState("1.40");
-  const [actualRetail, setActualRetail] = useState("2.00");
-  const [actualVatBasis, setActualVatBasis] = useState<VatBasis>("includes");
-  const [actualVat, setActualVat] = useState("20");
-  const [actualFixed, setActualFixed] = useState("0");
-  const [actualUnits, setActualUnits] = useState("0");
+  const [actualSupport, setActualSupport] = useState("");
+  const [actualPromoInvoice, setActualPromoInvoice] = useState("");
+  const [actualRetail, setActualRetail] = useState("");
+  const [actualFixed, setActualFixed] = useState("");
+  const [actualUnits, setActualUnits] = useState("");
 
   const actualMargin = useMemo(() => {
-    const retail = vatAdjustedPrice(num(actualRetail), actualVatBasis, rate(actualVat));
+    const retail = vatAdjustedPrice(num(actualRetail), quickRetailTaxBasis, rate(quickTaxRate));
     const effectiveCost = actualMode === "soa" ? num(actualInvoice) - num(actualSupport) : num(actualPromoInvoice);
     const perUnitSupport = actualMode === "soa" ? num(actualSupport) : num(actualInvoice) - num(actualPromoInvoice);
     const cashMargin = retail.exVat - effectiveCost;
@@ -964,38 +1062,34 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       totalRetailerProfit: units > 0 ? cashMargin * units + num(actualFixed) : 0,
       totalSupport: units > 0 ? perUnitSupport * units + num(actualFixed) : 0,
     };
-  }, [actualInvoice, actualMode, actualSupport, actualPromoInvoice, actualRetail, actualVatBasis, actualVat, actualFixed, actualUnits]);
+  }, [actualInvoice, actualMode, actualSupport, actualPromoInvoice, actualRetail, quickRetailTaxBasis, quickTaxRate, actualFixed, actualUnits]);
 
-  const [invoiceRetail, setInvoiceRetail] = useState("2.00");
-  const [invoiceVatBasis, setInvoiceVatBasis] = useState<VatBasis>("includes");
-  const [invoiceVat, setInvoiceVat] = useState("20");
-  const [invoiceMargin, setInvoiceMargin] = useState("25");
+  const [invoiceRetail, setInvoiceRetail] = useState("");
+  const [invoiceMargin, setInvoiceMargin] = useState("");
 
   const impliedInvoice = useMemo(() => {
-    const retail = vatAdjustedPrice(num(invoiceRetail), invoiceVatBasis, rate(invoiceVat));
+    const retail = vatAdjustedPrice(num(invoiceRetail), quickRetailTaxBasis, rate(quickTaxRate));
     const invoice = retail.exVat * (1 - rate(invoiceMargin));
     return { retail, invoice, cashMargin: retail.exVat - invoice };
-  }, [invoiceRetail, invoiceVatBasis, invoiceVat, invoiceMargin]);
+  }, [invoiceRetail, quickRetailTaxBasis, quickTaxRate, invoiceMargin]);
 
-  const [supportValue, setSupportValue] = useState("0.35");
-  const [supportInvoice, setSupportInvoice] = useState("1.75");
-  const [supportRetail, setSupportRetail] = useState("2.00");
-  const [supportVatBasis, setSupportVatBasis] = useState<VatBasis>("includes");
-  const [supportVat, setSupportVat] = useState("20");
+  const [supportValue, setSupportValue] = useState("");
+  const [supportInvoice, setSupportInvoice] = useState("");
+  const [supportRetail, setSupportRetail] = useState("");
 
   const supportPercent = useMemo(() => {
-    const retail = vatAdjustedPrice(num(supportRetail), supportVatBasis, rate(supportVat));
+    const retail = vatAdjustedPrice(num(supportRetail), quickRetailTaxBasis, rate(quickTaxRate));
     return {
       retail,
       invoiceRate: num(supportInvoice) > 0 ? num(supportValue) / num(supportInvoice) : 0,
       exVatRate: retail.exVat > 0 ? num(supportValue) / retail.exVat : 0,
       incVatRate: retail.incVat > 0 ? num(supportValue) / retail.incVat : 0,
     };
-  }, [supportValue, supportInvoice, supportRetail, supportVatBasis, supportVat]);
+  }, [supportValue, supportInvoice, supportRetail, quickRetailTaxBasis, quickTaxRate]);
 
-  const [promoInvoiceCurrent, setPromoInvoiceCurrent] = useState("1.75");
-  const [promoInvoiceSupport, setPromoInvoiceSupport] = useState("0.35");
-  const [promoInvoiceUnits, setPromoInvoiceUnits] = useState("0");
+  const [promoInvoiceCurrent, setPromoInvoiceCurrent] = useState("");
+  const [promoInvoiceSupport, setPromoInvoiceSupport] = useState("");
+  const [promoInvoiceUnits, setPromoInvoiceUnits] = useState("");
 
   const promoInvoice = useMemo(() => {
     const effective = num(promoInvoiceCurrent) - num(promoInvoiceSupport);
@@ -1006,21 +1100,21 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     };
   }, [promoInvoiceCurrent, promoInvoiceSupport, promoInvoiceUnits]);
 
-  const [converterPrice, setConverterPrice] = useState("2.00");
-  const [converterBasis, setConverterBasis] = useState<VatBasis>("includes");
-  const [converterVat, setConverterVat] = useState("20");
-  const convertedVat = useMemo(() => vatAdjustedPrice(num(converterPrice), converterBasis, rate(converterVat)), [converterPrice, converterBasis, converterVat]);
+  const [converterPrice, setConverterPrice] = useState("");
+  const convertedVat = useMemo(() => vatAdjustedPrice(num(converterPrice), quickRetailTaxBasis, rate(quickTaxRate)), [converterPrice, quickRetailTaxBasis, quickTaxRate]);
 
-  const [markupCost, setMarkupCost] = useState("1.75");
-  const [markupRetail, setMarkupRetail] = useState("2.50");
+  const [markupCost, setMarkupCost] = useState("");
+  const [markupRetail, setMarkupRetail] = useState("");
   const markup = useMemo(() => {
-    const profit = num(markupRetail) - num(markupCost);
+    const retail = vatAdjustedPrice(num(markupRetail), quickRetailTaxBasis, rate(quickTaxRate));
+    const profit = retail.exVat - num(markupCost);
     return {
+      retail,
       profit,
-      margin: num(markupRetail) > 0 ? profit / num(markupRetail) : 0,
+      margin: retail.exVat > 0 ? profit / retail.exVat : 0,
       markup: num(markupCost) > 0 ? profit / num(markupCost) : 0,
     };
-  }, [markupCost, markupRetail]);
+  }, [markupCost, markupRetail, quickRetailTaxBasis, quickTaxRate]);
 
   const currency = useMemo(
     () => ({ format: (value: number) => formatCurrencyValue(value, currencyCode, 0) }),
@@ -1031,19 +1125,46 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     [currencyCode],
   );
 
-  const vatOptions = [
-    { label: "Includes sales tax / VAT / IVA", value: "includes" },
-    { label: "Excludes sales tax / VAT / IVA", value: "excludes" },
-  ];
+  const quickTaxBasisLabel = taxBasisLabel(quickRetailTaxBasis);
+  const quickTaxSummary = `Retail price tax basis: ${quickTaxBasisLabel}. Sales tax / VAT / IVA rate: ${safePercent(rate(quickTaxRate))}.`;
   const shouldShow = (id: QuickCalculatorId) => !only || only === id;
+  const showsRetailTaxSettings = !only || only !== "promo-invoice-calculator";
+  const hasQuickTax = hasValues([quickTaxRate]);
+  const ready = {
+    requiredSoa: hasValues([soaInvoice, soaRetail, soaMargin]) && hasQuickTax,
+    retailFromInvoice: hasValues([rspInvoice, rspMargin]) && hasQuickTax,
+    actualMargin:
+      hasValues([
+        actualInvoice,
+        actualMode === "soa" ? actualSupport : actualPromoInvoice,
+        actualRetail,
+      ]) && hasQuickTax,
+    impliedInvoice: hasValues([invoiceRetail, invoiceMargin]) && hasQuickTax,
+    supportPercent: hasValues([supportValue, supportInvoice, supportRetail]) && hasQuickTax,
+    promoInvoice: hasValues([promoInvoiceCurrent, promoInvoiceSupport]),
+    convertedVat: hasValues([converterPrice]) && hasQuickTax,
+    markup: hasValues([markupCost, markupRetail]) && hasQuickTax,
+  };
 
   return (
     <div className="quick-calculator-list">
       <section className="card quick-settings-card">
         <div>
           <span className="pill">Settings</span>
-          <h2>Formatting</h2>
-          <p>Choose the currency symbol used in calculator outputs.</p>
+          <h2>{showsRetailTaxSettings ? "Currency and tax settings" : "Currency settings"}</h2>
+          {showsRetailTaxSettings ? (
+            <p>
+              Use these settings for all retail selling price inputs in this
+              calculator. Retailer margin calculations use the excluding-tax
+              retail price.
+            </p>
+          ) : (
+            <p>Choose the currency symbol used in calculator outputs.</p>
+          )}
+          <p className="form-intro">
+            Required fields are enough for a quick result. Optional fields
+            improve the estimate.
+          </p>
         </div>
         <div className="form-grid">
           <SelectInput
@@ -1053,16 +1174,44 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
             onChange={setCurrencyCode}
             options={currencyChoices.map(({ label, value }) => ({ label, value }))}
           />
+          {showsRetailTaxSettings ? (
+            <>
+              <SelectInput
+                label="Retail price tax basis"
+                help="Choose whether retail selling prices entered in this calculator include or exclude sales tax / VAT / IVA."
+                value={quickRetailTaxBasis}
+                onChange={(value) => setQuickRetailTaxBasis(value as VatBasis)}
+                options={taxBasisOptions}
+              />
+              <NumericInput
+                label="Sales tax / VAT / IVA rate %"
+                help="Used to convert retail prices to excluding-tax values for margin estimates."
+                placeholder="e.g. 20"
+                value={quickTaxRate}
+                onChange={setQuickTaxRate}
+              />
+            </>
+          ) : null}
         </div>
+        {showsRetailTaxSettings ? (
+          <p className="form-note">
+            Retailer prices are often discussed including sales tax / VAT / IVA,
+            but margin is usually assessed excluding tax. This tool converts the
+            entered price where needed.
+          </p>
+        ) : null}
       </section>
       {shouldShow("required-soa-calculator") ? (
       <QuickCalculatorCard
         id="required-soa-calculator"
+        isReady={ready.requiredSoa}
         title="Required SOA Calculator"
-        question="I have current invoice price, SRP, promo SRP and target retailer margin. What SOA or promo invoice is needed?"
-        summary={`Required SOA: ${money2.format(requiredSoa.support)} per unit. Promo invoice: ${money2.format(requiredSoa.promoInvoice)}. Promo retail price excluding tax: ${money2.format(requiredSoa.retail.exVat)}. Pricing is at the sole discretion of the retailer. Currency is for formatting only; this tool does not convert exchange rates.`}
+        question="I have current invoice price, promotional retail selling price and target retailer margin. What SOA or promo invoice is needed?"
+        summary={`Required SOA: ${money2.format(requiredSoa.support)} per unit. Promo invoice: ${money2.format(requiredSoa.promoInvoice)}. Entered promotional retail selling price: ${money2.format(requiredSoa.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(requiredSoa.retail.exVat)}. Pricing is at the sole discretion of the retailer. Currency is for formatting only; this tool does not convert exchange rates.`}
         results={[
-          { label: "Promo retail price excluding tax", value: money2.format(requiredSoa.retail.exVat) },
+          { label: "Entered retail price", value: money2.format(requiredSoa.retail.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail price excluding tax", value: money2.format(requiredSoa.retail.exVat) },
           { label: "Required retailer cost price", value: money2.format(requiredSoa.requiredCost) },
           { label: "Required SOA per unit", value: money2.format(requiredSoa.support), tone: requiredSoa.support >= 0 ? "neutral" : "bad" },
           { label: "New effective promo invoice price", value: money2.format(requiredSoa.promoInvoice) },
@@ -1070,43 +1219,44 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "SOA % of promo retail price", value: safePercent(requiredSoa.supportRetailRate) },
         ]}
       >
-        <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." value={soaInvoice} onChange={setSoaInvoice} />
-        <NumericInput label="Promotional retail selling price" help="Promo price paid by the shopper/end customer." value={soaRetail} onChange={setSoaRetail} />
-        <SelectInput label="Retail price tax basis" help="Choose whether the promo retail price includes or excludes sales tax / VAT / IVA." value={soaVatBasis} onChange={(value) => setSoaVatBasis(value as VatBasis)} options={vatOptions} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail price to excluding tax." value={soaVat} onChange={setSoaVat} />
-        <NumericInput label="Target retailer margin %" help="Retailer/customer target margin on excluding-tax retail selling price." value={soaMargin} onChange={setSoaMargin} />
-        <NumericInput label="Optional fixed supplier support" help="Fixed support to remember separately. Not included in per-unit SOA." value={soaFixed} onChange={setSoaFixed} />
+        <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={soaInvoice} onChange={setSoaInvoice} />
+        <NumericInput label="Promotional retail selling price" help="Promo price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={soaRetail} onChange={setSoaRetail} />
+        <NumericInput label="Target retailer margin %" help="Retailer/customer target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={soaMargin} onChange={setSoaMargin} />
+        <NumericInput label="Optional fixed supplier support" help="Fixed support to remember separately. Not included in per-unit SOA." placeholder="e.g. 0" required={false} value={soaFixed} onChange={setSoaFixed} />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("retail-selling-price-calculator") ? (
       <QuickCalculatorCard
         id="retail-selling-price-calculator"
+        isReady={ready.retailFromInvoice}
         title="Retail Selling Price from Invoice + Margin"
         question="Estimate retail/sale price from invoice price and target retailer margin."
         summary={`Estimated retail/sale price excluding sales tax / VAT / IVA: ${money2.format(retailFromInvoice.exVat)}. Estimated retail/sale price including sales tax / VAT / IVA: ${money2.format(retailFromInvoice.incVat)}. Margin: ${safePercent(retailFromInvoice.margin)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Estimated retail/sale price excluding sales tax / VAT / IVA", value: money2.format(retailFromInvoice.exVat) },
           { label: "Estimated retail/sale price including sales tax / VAT / IVA", value: money2.format(retailFromInvoice.incVat) },
+          { label: "Sales tax / VAT / IVA rate", value: safePercent(rate(quickTaxRate)) },
           { label: "Cash margin per unit", value: money2.format(retailFromInvoice.cashMargin) },
           { label: "Margin %", value: safePercent(retailFromInvoice.margin) },
         ]}
       >
-        <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." value={rspInvoice} onChange={setRspInvoice} />
-        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail selling price." value={rspMargin} onChange={setRspMargin} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to show the including-tax retail price." value={rspVat} onChange={setRspVat} />
-        <SelectInput label="Show retail price including tax?" help="Choose whether to emphasise the shopper-facing price including sales tax / VAT / IVA." value={rspShowInc} onChange={setRspShowInc} options={[{ label: "Yes", value: "yes" }, { label: "No", value: "no" }]} />
+        <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={rspInvoice} onChange={setRspInvoice} />
+        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={rspMargin} onChange={setRspMargin} />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("actual-retailer-margin-calculator") ? (
       <QuickCalculatorCard
         id="actual-retailer-margin-calculator"
+        isReady={ready.actualMargin}
         title="Actual Retailer Margin Calculator"
         question="I know the invoice price, SOA/promo invoice and promo retail price. What margin is the retailer actually making?"
-        summary={`Retailer margin: ${safePercent(actualMargin.margin)}. Effective retailer cost: ${money2.format(actualMargin.effectiveCost)}. Retailer cash margin/unit: ${money2.format(actualMargin.cashMargin)}.`}
+        summary={`Retailer margin: ${safePercent(actualMargin.margin)}. Effective retailer cost: ${money2.format(actualMargin.effectiveCost)}. Retailer cash margin/unit: ${money2.format(actualMargin.cashMargin)}. Entered promotional retail selling price: ${money2.format(actualMargin.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(actualMargin.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
-          { label: "Promo retail price excluding tax", value: money2.format(actualMargin.retail.exVat) },
+          { label: "Entered retail price", value: money2.format(actualMargin.retail.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail price excluding tax", value: money2.format(actualMargin.retail.exVat) },
           { label: "Effective retailer cost price", value: money2.format(actualMargin.effectiveCost) },
           { label: "Retailer cash margin per unit", value: money2.format(actualMargin.cashMargin), tone: actualMargin.cashMargin >= 0 ? "good" : "bad" },
           { label: "Retailer margin %", value: safePercent(actualMargin.margin), tone: actualMargin.margin >= 0 ? "good" : "bad" },
@@ -1114,60 +1264,62 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Total supplier support", value: num(actualUnits) > 0 ? currency.format(actualMargin.totalSupport) : "Enter units" },
         ]}
       >
-        <NumericInput label="Normal retailer invoice/buy price" help="Normal price the retailer pays the supplier per unit." value={actualInvoice} onChange={setActualInvoice} />
+        <NumericInput label="Normal retailer invoice/buy price" help="Normal price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={actualInvoice} onChange={setActualInvoice} />
         <SelectInput label="Support input mode" help="Use SOA per unit or enter the final promo invoice price." value={actualMode} onChange={setActualMode} options={[{ label: "SOA / supplier support", value: "soa" }, { label: "Promo invoice price", value: "promoInvoice" }]} />
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." value={actualSupport} onChange={setActualSupport} />
-        <NumericInput label="Promo invoice price" help="Effective invoice/buy price during the promotion." value={actualPromoInvoice} onChange={setActualPromoInvoice} />
-        <NumericInput label="Promo retail selling price" help="Promo price paid by the shopper/end customer." value={actualRetail} onChange={setActualRetail} />
-        <SelectInput label="Retail price tax basis" help="Choose whether the promo retail price includes or excludes sales tax / VAT / IVA." value={actualVatBasis} onChange={(value) => setActualVatBasis(value as VatBasis)} options={vatOptions} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail price to excluding tax." value={actualVat} onChange={setActualVat} />
-        <NumericInput label="Fixed support" help="Optional fixed supplier support." value={actualFixed} onChange={setActualFixed} />
-        <NumericInput label="Units" help="Optional units for total profit/support." value={actualUnits} onChange={setActualUnits} step="1" />
+        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" required={actualMode === "soa"} value={actualSupport} onChange={setActualSupport} />
+        <NumericInput label="Promo invoice price" help="Effective invoice/buy price during the promotion." placeholder="e.g. 1.40" required={actualMode === "promoInvoice"} value={actualPromoInvoice} onChange={setActualPromoInvoice} />
+        <NumericInput label="Promotional retail selling price" help="Promo price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={actualRetail} onChange={setActualRetail} />
+        <NumericInput label="Fixed support" help="Optional fixed supplier support." placeholder="e.g. 0" required={false} value={actualFixed} onChange={setActualFixed} />
+        <NumericInput label="Units" help="Optional units for total profit/support." placeholder="e.g. 10,000" required={false} value={actualUnits} onChange={setActualUnits} step="1" />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("invoice-price-calculator") ? (
       <QuickCalculatorCard
         id="invoice-price-calculator"
+        isReady={ready.impliedInvoice}
         title="Invoice Price from Retail Price + Margin"
         question="Calculate the implied retailer invoice/buy price from retail price and target margin."
-        summary={`Implied retailer invoice/buy price: ${money2.format(impliedInvoice.invoice)}. Retail price excluding tax: ${money2.format(impliedInvoice.retail.exVat)}.`}
+        summary={`Implied retailer invoice/buy price: ${money2.format(impliedInvoice.invoice)}. Entered retail selling price: ${money2.format(impliedInvoice.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(impliedInvoice.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
+          { label: "Entered retail price", value: money2.format(impliedInvoice.retail.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(impliedInvoice.retail.exVat) },
           { label: "Implied retailer invoice/buy price", value: money2.format(impliedInvoice.invoice) },
           { label: "Retailer cash margin per unit", value: money2.format(impliedInvoice.cashMargin) },
         ]}
       >
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer." value={invoiceRetail} onChange={setInvoiceRetail} />
-        <SelectInput label="Retail price tax basis" help="Choose whether the retail selling price includes or excludes sales tax / VAT / IVA." value={invoiceVatBasis} onChange={(value) => setInvoiceVatBasis(value as VatBasis)} options={vatOptions} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail price to excluding tax." value={invoiceVat} onChange={setInvoiceVat} />
-        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail price." value={invoiceMargin} onChange={setInvoiceMargin} />
+        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={invoiceRetail} onChange={setInvoiceRetail} />
+        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail price." placeholder="e.g. 25" value={invoiceMargin} onChange={setInvoiceMargin} />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("soa-support-percent-calculator") ? (
       <QuickCalculatorCard
         id="soa-support-percent-calculator"
+        isReady={ready.supportPercent}
         title="SOA % / Support % Calculator"
         question="What percentage support am I giving?"
-        summary={`SOA as % of invoice: ${safePercent(supportPercent.invoiceRate)}. SOA as % of retail price excluding tax: ${safePercent(supportPercent.exVatRate)}.`}
+        summary={`SOA as % of invoice: ${safePercent(supportPercent.invoiceRate)}. SOA as % of retail price excluding tax: ${safePercent(supportPercent.exVatRate)}. Entered retail selling price: ${money2.format(supportPercent.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(supportPercent.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
+          { label: "Entered retail price", value: money2.format(supportPercent.retail.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail price excluding tax", value: money2.format(supportPercent.retail.exVat) },
           { label: "SOA as % of invoice price", value: safePercent(supportPercent.invoiceRate) },
           { label: "SOA as % of retail price excluding tax", value: safePercent(supportPercent.exVatRate) },
           { label: "SOA as % of retail price including tax", value: safePercent(supportPercent.incVatRate) },
         ]}
       >
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." value={supportValue} onChange={setSupportValue} />
-        <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." value={supportInvoice} onChange={setSupportInvoice} />
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer." value={supportRetail} onChange={setSupportRetail} />
-        <SelectInput label="Retail price tax basis" help="Choose whether the retail selling price includes or excludes sales tax / VAT / IVA." value={supportVatBasis} onChange={(value) => setSupportVatBasis(value as VatBasis)} options={vatOptions} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail price to excluding tax." value={supportVat} onChange={setSupportVat} />
+        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" value={supportValue} onChange={setSupportValue} />
+        <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={supportInvoice} onChange={setSupportInvoice} />
+        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={supportRetail} onChange={setSupportRetail} />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("promo-invoice-calculator") ? (
       <QuickCalculatorCard
         id="promo-invoice-calculator"
+        isReady={ready.promoInvoice}
         title="Promo Invoice Calculator"
         question="If I give a per-unit SOA, what is the promo invoice price?"
         summary={`Effective promo invoice price: ${money2.format(promoInvoice.effective)}. Support % of invoice: ${safePercent(promoInvoice.supportRate)}.`}
@@ -1177,45 +1329,50 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Support % of invoice", value: safePercent(promoInvoice.supportRate) },
         ]}
       >
-        <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." value={promoInvoiceCurrent} onChange={setPromoInvoiceCurrent} />
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." value={promoInvoiceSupport} onChange={setPromoInvoiceSupport} />
-        <NumericInput label="Units" help="Optional units for total supplier support." value={promoInvoiceUnits} onChange={setPromoInvoiceUnits} step="1" />
+        <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={promoInvoiceCurrent} onChange={setPromoInvoiceCurrent} />
+        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" value={promoInvoiceSupport} onChange={setPromoInvoiceSupport} />
+        <NumericInput label="Units" help="Optional units for total supplier support." placeholder="e.g. 10,000" required={false} value={promoInvoiceUnits} onChange={setPromoInvoiceUnits} step="1" />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("sales-tax-vat-iva-retail-price-converter") ? (
       <QuickCalculatorCard
         id="sales-tax-vat-iva-retail-price-converter"
+        isReady={ready.convertedVat}
         title="Sales Tax / VAT / IVA Retail Price Converter"
         question="Convert retail price including tax to excluding tax, or excluding tax to including tax."
-        summary={`Retail price excluding tax: ${money2.format(convertedVat.exVat)}. Sales tax / VAT / IVA amount: ${money2.format(convertedVat.vatAmount)}. Retail price including tax: ${money2.format(convertedVat.incVat)}.`}
+        summary={`Entered retail selling price: ${money2.format(convertedVat.entered)}. ${quickTaxSummary} Retail price excluding tax: ${money2.format(convertedVat.exVat)}. Sales tax / VAT / IVA amount: ${money2.format(convertedVat.vatAmount)}. Retail price including tax: ${money2.format(convertedVat.incVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
+          { label: "Entered retail price", value: money2.format(convertedVat.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(convertedVat.exVat) },
           { label: "Sales tax / VAT / IVA amount", value: money2.format(convertedVat.vatAmount) },
           { label: "Retail price including tax", value: money2.format(convertedVat.incVat) },
         ]}
       >
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer." value={converterPrice} onChange={setConverterPrice} />
-        <SelectInput label="Retail price tax basis" help="Choose whether the entered retail price includes or excludes sales tax / VAT / IVA." value={converterBasis} onChange={(value) => setConverterBasis(value as VatBasis)} options={vatOptions} />
-        <NumericInput label="Sales tax / VAT / IVA rate %" help="Sales tax / VAT / IVA rate used to convert the retail price." value={converterVat} onChange={setConverterVat} />
+        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={converterPrice} onChange={setConverterPrice} />
       </QuickCalculatorCard>
       ) : null}
 
       {shouldShow("markup-vs-margin-helper") ? (
       <QuickCalculatorCard
         id="markup-vs-margin-helper"
+        isReady={ready.markup}
         title="Markup vs Margin Helper"
         question="What is the difference between markup and margin on this deal?"
-        summary={`Cash profit: ${money2.format(markup.profit)}. Margin: ${safePercent(markup.margin)}. Markup: ${safePercent(markup.markup)}.`}
+        summary={`Cash profit: ${money2.format(markup.profit)}. Margin: ${safePercent(markup.margin)}. Markup: ${safePercent(markup.markup)}. Entered retail selling price: ${money2.format(markup.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(markup.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
+          { label: "Entered retail price", value: money2.format(markup.retail.entered) },
+          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail price excluding tax", value: money2.format(markup.retail.exVat) },
           { label: "Cash profit", value: money2.format(markup.profit), tone: markup.profit >= 0 ? "good" : "bad" },
           { label: "Margin %", value: safePercent(markup.margin), tone: markup.margin >= 0 ? "good" : "bad" },
           { label: "Markup %", value: safePercent(markup.markup), tone: markup.markup >= 0 ? "good" : "bad" },
         ]}
-        explanation={<p className="tab-summary">Margin is profit as a percentage of selling price. Markup is profit as a percentage of cost.</p>}
+        explanation={<p className="tab-summary">Margin is profit as a percentage of retail selling price excluding tax. Markup is profit as a percentage of cost.</p>}
       >
-        <NumericInput label="Cost / invoice price" help="Cost or invoice/buy price used as the base." value={markupCost} onChange={setMarkupCost} />
-        <NumericInput label="Retail selling price excluding tax" help="Selling price excluding sales tax / VAT / IVA." value={markupRetail} onChange={setMarkupRetail} />
+        <NumericInput label="Cost / invoice price" help="Cost or invoice/buy price used as the base." placeholder="e.g. 1.75" value={markupCost} onChange={setMarkupCost} />
+        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.50" value={markupRetail} onChange={setMarkupRetail} />
       </QuickCalculatorCard>
       ) : null}
     </div>

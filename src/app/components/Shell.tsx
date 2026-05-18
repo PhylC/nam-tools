@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { relatedTools, tools } from "../data/tools";
 
 const footerLinks = [
@@ -16,11 +17,14 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <header className="site-header">
         <div className="shell header-inner">
           <Link className="brand" href="/" aria-label="NAM Tools home">
-            <span className="brand-mark">NT</span>
-            <span>
-              <strong>NAM Tools</strong>
-              <small>Commercial planning tools</small>
-            </span>
+            <Image
+              alt="APT Account Planning Tools logo"
+              className="brand-logo"
+              height={48}
+              priority
+              src="/images/branding/logo-full.png"
+              width={119}
+            />
           </Link>
           <nav className="main-nav" aria-label="Main navigation">
             <Link href="/calculators">Calculators</Link>
@@ -40,11 +44,13 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         <div className="shell footer-grid">
           <div>
             <Link className="brand footer-brand" href="/">
-              <span className="brand-mark">NT</span>
-              <span>
-                <strong>NAM Tools</strong>
-                <small>Built for retail suppliers</small>
-              </span>
+              <Image
+                alt="APT Account Planning Tools logo"
+                className="brand-logo footer-logo"
+                height={42}
+                src="/images/branding/logo-full.png"
+                width={104}
+              />
             </Link>
             <p>
               Practical commercial tools for account managers preparing plans,
@@ -328,10 +334,18 @@ const resultHelpByLabel: Record<string, string> = {
     "Difference between the estimated supported margin and the retailer margin target entered.",
   "Retail price excluding tax":
     "Retail selling price excluding sales tax / VAT / IVA, usually used for margin estimates.",
+  "Entered retail price":
+    "The shopper/end-customer retail price entered before tax-basis conversion.",
   "Promo retail price excluding tax":
     "Retail selling price converted to exclude sales tax / VAT / IVA where needed.",
+  "Promotional retail price excluding tax":
+    "Promotional retail selling price converted to exclude sales tax / VAT / IVA where needed.",
   "Promotional retail selling price entered":
     "The retail selling price entered before any tax-basis conversion is applied.",
+  "Retail selling price before promotion entered":
+    "The normal shopper/end-customer retail price entered before tax-basis conversion.",
+  "Retail selling price before promotion excluding tax":
+    "The normal retail selling price converted to exclude sales tax / VAT / IVA where needed.",
   "Excluding-tax selling price used":
     "Retail selling price converted to exclude sales tax / VAT / IVA where needed.",
   "Retailer gross sales excluding tax":
