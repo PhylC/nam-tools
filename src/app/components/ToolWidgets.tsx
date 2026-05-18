@@ -318,6 +318,8 @@ function ProPreview({ features }: { features: string[] }) {
 }
 
 type DealTab = "promo" | "margin" | "spend" | "investment";
+type DealMode = "invoice" | "profit" | "retailer";
+type SupportMethod = "soa" | "promoInvoice";
 type VatBasis = "includes" | "excludes";
 
 const taxBasisOptions = [
@@ -330,10 +332,10 @@ function taxBasisLabel(value: VatBasis) {
 }
 
 const dealTabs: { id: DealTab; label: string }[] = [
-  { id: "promo", label: "Supplier profit" },
+  { id: "promo", label: "Quick invoice view" },
+  { id: "investment", label: "Supplier profit view" },
   { id: "margin", label: "Retailer view" },
-  { id: "spend", label: "Trade spend" },
-  { id: "investment", label: "Investment ask" },
+  { id: "spend", label: "Trade spend / investment" },
 ];
 
 function dealTabTitle(tab: DealTab) {
@@ -384,6 +386,8 @@ function DealProPreview() {
 
 export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?: DealTab }) {
   const [activeTab, setActiveTab] = useState<DealTab>(defaultTab);
+  const [dealMode, setDealMode] = useState<DealMode>("invoice");
+  const [supportMethod, setSupportMethod] = useState<SupportMethod>("promoInvoice");
   const [currencyCode, setCurrencyCode] = useState("GBP");
   const [baselineUnits, setBaselineUnits] = useState("");
   const [promoUnits, setPromoUnits] = useState("");
@@ -391,6 +395,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const [promoSrp, setPromoSrp] = useState("");
   const [cogs, setCogs] = useState("");
   const [soa, setSoa] = useState("");
+  const [promoInvoicePrice, setPromoInvoicePrice] = useState("");
   const [fixedCost, setFixedCost] = useState("");
   const [retailerBuyPrice, setRetailerBuyPrice] = useState("");
   const [retailerVatBasis, setRetailerVatBasis] = useState<VatBasis>("includes");
@@ -418,6 +423,17 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     [currencyCode],
   );
 
+  function chooseDealMode(nextMode: DealMode) {
+    setDealMode(nextMode);
+    if (nextMode === "retailer") {
+      setSupportMethod("soa");
+      setActiveTab("margin");
+      return;
+    }
+    setSupportMethod("promoInvoice");
+    setActiveTab(nextMode === "profit" ? "investment" : "promo");
+  }
+
   const result = useMemo(() => {
     const baseline = num(baselineUnits);
     const units = num(promoUnits);
@@ -433,49 +449,57 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
         ? promoSrpEntered / (1 + vatRateValue)
         : promoSrpEntered;
     const cogsValue = num(cogs);
-    const soaPerUnit = num(soa);
     const fixed = num(fixedCost);
     const retailerBuy = num(retailerBuyPrice);
+    const enteredSoa = num(soa);
+    const enteredPromoInvoice = num(promoInvoicePrice);
+    const soaPerUnit =
+      supportMethod === "soa" ? enteredSoa : retailerBuy - enteredPromoInvoice;
+    const effectivePromoInvoice =
+      supportMethod === "soa" ? retailerBuy - enteredSoa : enteredPromoInvoice;
     const retailerSellOutEntered = promoSrpEntered;
     const retailerSellOutExVat = promoSrpValue;
     const incrementalUnits = units - baseline;
     const cannibalisedUnits = Math.max(0, incrementalUnits) * rate(cannibalisation);
     const postPromoDipUnits = units * rate(postPromoDip);
     const netIncrementalUnits = incrementalUnits - cannibalisedUnits - postPromoDipUnits;
-    const baseGpPerUnit = srpValue - cogsValue;
-    const baseGm = srpValue > 0 ? baseGpPerUnit / srpValue : 0;
-    const baseTotalGp = baseGpPerUnit * units;
+    const baselineInvoiceRevenue = baseline * retailerBuy;
+    const promoInvoiceRevenue = units * effectivePromoInvoice;
+    const invoiceRevenueImpact = promoInvoiceRevenue - baselineInvoiceRevenue;
+    const baseGpPerUnit = retailerBuy - cogsValue;
+    const baseGm = retailerBuy > 0 ? baseGpPerUnit / retailerBuy : 0;
+    const baseTotalGp = baseGpPerUnit * baseline;
     const baselineGrossProfit = baseGpPerUnit * baseline;
-    const promoGpBeforeSoaPerUnit = promoSrpValue - cogsValue;
-    const promoGmBeforeSoa = promoSrpValue > 0 ? promoGpBeforeSoaPerUnit / promoSrpValue : 0;
+    const promoGpBeforeSoaPerUnit = effectivePromoInvoice - cogsValue;
+    const promoGmBeforeSoa = effectivePromoInvoice > 0 ? promoGpBeforeSoaPerUnit / effectivePromoInvoice : 0;
     const soaValue = units * soaPerUnit;
     const soaRate = srpValue > 0 ? soaPerUnit / srpValue : 0;
     const totalInvestment = soaValue + fixed;
     const promoGpBeforeInvestment = units * promoGpBeforeSoaPerUnit;
     const incrementalGpBeforeInvestment = promoGpBeforeInvestment - baselineGrossProfit;
-    const netProfitImpact = incrementalGpBeforeInvestment - totalInvestment;
+    const netProfitImpact = incrementalGpBeforeInvestment - fixed;
     const roi = totalInvestment > 0 ? netProfitImpact / totalInvestment : 0;
     const breakEvenIncrementalUnits = totalInvestment / Math.max(baseGpPerUnit, 0.01);
-    const promoGpAfterSoaPerUnit = promoSrpValue - cogsValue - soaPerUnit;
-    const promoGmAfterSoa = promoSrpValue > 0 ? promoGpAfterSoaPerUnit / promoSrpValue : 0;
+    const promoGpAfterSoaPerUnit = effectivePromoInvoice - cogsValue;
+    const promoGmAfterSoa = effectivePromoInvoice > 0 ? promoGpAfterSoaPerUnit / effectivePromoInvoice : 0;
     const promoGpAfterSoaFixed = promoGpAfterSoaPerUnit * units - fixed;
     const gpChangeVsBase = promoGpAfterSoaFixed - baseTotalGp;
     const retailerGrossSales = units * retailerSellOutExVat;
-    const retailerCostOfGoods = units * retailerBuy;
+    const retailerCostOfGoods = units * effectivePromoInvoice;
     const supplierFundingReceived = totalInvestment;
     const retailerGpBeforeFunding = retailerGrossSales - retailerCostOfGoods;
-    const retailerEstimatedProfitAfterFunding = retailerGpBeforeFunding + supplierFundingReceived;
-    const retailerCashProfitPerUnitBeforeFunding = retailerSellOutExVat - retailerBuy;
+    const retailerEstimatedProfitAfterFunding = retailerGpBeforeFunding + fixed;
+    const retailerCashProfitPerUnitBeforeFunding = srpValue - retailerBuy;
     const retailerCashProfitPerUnitAfterFunding =
-      retailerCashProfitPerUnitBeforeFunding + (units > 0 ? supplierFundingReceived / units : 0);
+      retailerSellOutExVat - effectivePromoInvoice + (units > 0 ? fixed / units : 0);
     const retailerMarginBeforeFunding =
-      retailerSellOutExVat > 0 ? retailerCashProfitPerUnitBeforeFunding / retailerSellOutExVat : 0;
+      srpValue > 0 ? retailerCashProfitPerUnitBeforeFunding / srpValue : 0;
     const retailerMarginAfterFunding =
       retailerSellOutExVat > 0 ? retailerCashProfitPerUnitAfterFunding / retailerSellOutExVat : 0;
     const retailerSupportedMargin = promoSrpValue > 0 ? soaPerUnit / promoSrpValue : 0;
     const retailerMarginGapVsRequirement = rate(retailerMarginRequirement) - retailerMarginAfterFunding;
-    const grossSales = units * srpValue;
-    const invoiceSales = units * retailerBuy;
+    const grossSales = promoInvoiceRevenue;
+    const invoiceSales = promoInvoiceRevenue;
     const variableDiscountValue = grossSales * rate(averageDiscount);
     const rebateValue = grossSales * rate(rebate);
     const otherDeductionValue = grossSales * rate(otherDeductions);
@@ -513,13 +537,25 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
           : "Healthy";
     const spendIntensity =
       tradeSpendGrossRate > 0.25 ? "heavy" : tradeSpendGrossRate > 0.12 ? "normal" : "light";
+    const invoiceVerdict =
+      invoiceRevenueImpact >= totalInvestment
+        ? "Revenue impact covers support"
+        : invoiceRevenueImpact >= 0
+          ? "Positive revenue, check payback"
+          : "Revenue falls, needs a strategic reason";
 
     return {
       netIncrementalUnits,
+      baselineInvoiceRevenue,
+      promoInvoiceRevenue,
+      invoiceRevenueImpact,
+      effectivePromoInvoice,
       soaValue,
+      soaPerUnit,
       soaRate,
       fixed,
       totalInvestment,
+      baselineGrossProfit,
       incrementalGpBeforeInvestment,
       netProfitImpact,
       roi,
@@ -564,6 +600,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       monthlyPayback,
       investmentRecommendation,
       promoVerdict,
+      invoiceVerdict,
       marginVerdict,
       spendIntensity,
     };
@@ -574,10 +611,12 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     promoSrp,
     cogs,
     soa,
+    promoInvoicePrice,
     fixedCost,
     retailerBuyPrice,
     retailerVatBasis,
     vatRate,
+    supportMethod,
     averageDiscount,
     rebate,
     marketingContribution,
@@ -595,17 +634,25 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
 
   const retailerVatBasisLabel = taxBasisLabel(retailerVatBasis);
   const retailerVatSummary = `Retail selling price before promotion entered: ${money2.format(result.retailBaseEntered)} (${retailerVatBasisLabel}); excluding-tax value used: ${money2.format(result.retailBaseExTax)}. Promotional retail selling price entered: ${money2.format(result.retailerSellOutEntered)} (${retailerVatBasisLabel}); sales tax / VAT / IVA rate: ${safePercent(result.vatRateValue)}; excluding-tax value used for retailer margin: ${money2.format(result.retailerSellOutExVat)}. Currency is for formatting only. This tool does not convert exchange rates.`;
-  const hasDealInputs = hasValues([
-    baselineUnits,
-    promoUnits,
-    srp,
-    promoSrp,
-    cogs,
-    soa,
-    fixedCost,
-    retailerBuyPrice,
-    vatRate,
-  ]);
+  const supportInputReady = supportMethod === "soa" ? hasValues([soa]) : hasValues([promoInvoicePrice]);
+  const hasInvoiceInputs = hasValues([baselineUnits, promoUnits, retailerBuyPrice]) && supportInputReady;
+  const hasProfitInputs = hasInvoiceInputs && hasValues([cogs]);
+  const hasRetailerInputs =
+    hasInvoiceInputs && hasValues([srp, promoSrp, retailerMarginRequirement, vatRate]);
+  const activeTabReady =
+    activeTab === "promo"
+      ? hasInvoiceInputs
+      : activeTab === "investment"
+        ? hasProfitInputs
+        : activeTab === "margin"
+          ? hasRetailerInputs
+          : hasInvoiceInputs;
+  const activePrompt =
+    activeTab === "investment"
+      ? "Add supplier COGS to calculate profit impact and ROI."
+      : activeTab === "margin"
+        ? "Add retail selling prices to estimate the retailer/customer view."
+        : "Enter the required fields to see your result.";
 
   const retailerVerdict =
     result.retailerMarginAfterFunding >= rate(retailerMarginRequirement)
@@ -613,13 +660,14 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       : "Retailer margin may need checking";
 
   const simpleSummaries: Record<DealTab, string> = {
-    promo: `Supplier profit summary
-Verdict: ${result.promoVerdict}
-Total investment: ${currency.format(result.totalInvestment)}
-Net profit impact: ${currency.format(result.netProfitImpact)}
-ROI: ${safePercent(result.roi)}
-Break-even incremental units: ${number.format(result.breakEvenIncrementalUnits)}
-${retailerVatSummary}
+    promo: `Quick invoice deal summary
+Verdict: ${result.invoiceVerdict}
+Baseline invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
+Promo invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
+Revenue impact: ${currency.format(result.invoiceRevenueImpact)}
+SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
+Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
+Total supplier support: ${currency.format(result.totalInvestment)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
     margin: `Retailer view summary
 Verdict: ${retailerVerdict}
@@ -634,25 +682,26 @@ Spend level: ${result.spendIntensity}
 Total trade spend: ${currency.format(result.totalTradeSpend)}
 Net sales after trade spend: ${currency.format(result.netSalesAfterTradeSpend)}
 Trade spend % of gross sales: ${safePercent(result.tradeSpendGrossRate)}
-${retailerVatSummary}
+SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
+Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
-    investment: `Investment ask summary
-Recommendation: ${result.investmentRecommendation}
-Investment value: ${currency.format(result.investmentValue)}
-Expected incremental revenue: ${currency.format(result.expectedIncrementalRevenue)}
-Expected gross profit: ${currency.format(result.expectedGrossProfit)}
-Probability-adjusted net impact: ${currency.format(result.probabilityAdjustedNetImpact)}
-${retailerVatSummary}
+    investment: `Supplier profit summary
+Verdict: ${result.promoVerdict}
+Gross profit before: ${currency.format(result.baselineGrossProfit)}
+Gross profit during promotion: ${currency.format(result.promoGpAfterSoaFixed)}
+Net profit impact: ${currency.format(result.netProfitImpact)}
+ROI: ${safePercent(result.roi)}
+SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
+Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
   };
 
   const detailedSummaries: Record<DealTab, string> = {
     promo: `${simpleSummaries.promo}
 Net incremental units: ${number.format(result.netIncrementalUnits)}
-SOA / supplier support per unit value: ${currency.format(result.soaValue)}
+SOA / supplier support value: ${currency.format(result.soaValue)}
 Fixed supplier support: ${currency.format(result.fixed)}
-Incremental gross profit before support: ${currency.format(result.incrementalGpBeforeInvestment)}
-Retailer estimated profit after support: ${currency.format(result.retailerEstimatedProfitAfterFunding)}`,
+Effective promo invoice price: ${money2.format(result.effectivePromoInvoice)}`,
     margin: `${simpleSummaries.margin}
 Retailer gross sales excluding tax: ${currency.format(result.retailerGrossSales)}
 Retailer invoice/buy value: ${currency.format(result.retailerCostOfGoods)}
@@ -667,22 +716,23 @@ Marketing contribution: ${currency.format(result.marketingContributionValue)}
 Other deductions: ${currency.format(result.otherDeductionValue)}
 Trade spend % of invoice sales: ${safePercent(result.tradeSpendInvoiceRate)}`,
     investment: `${simpleSummaries.investment}
-Probability-adjusted revenue: ${currency.format(result.probabilityAdjustedRevenue)}
-Monthly payback / contract period view: ${currency.format(result.monthlyPayback)}
-Retention value included: ${currency.format(num(retentionValue))}`,
+Baseline invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
+Promo invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
+Break-even incremental units: ${number.format(result.breakEvenIncrementalUnits)}
+Fixed supplier support: ${currency.format(result.fixed)}`,
   };
 
   const tabSummaries: Record<DealTab, string> = {
     promo:
-      result.netProfitImpact >= 0
-        ? `This deal is estimated to create ${currency.format(result.netProfitImpact)} after supplier support. Check whether the assumptions are realistic before committing.`
-        : `This deal is estimated to lose ${currency.format(Math.abs(result.netProfitImpact))} after supplier support. It needs a strategic reason or a better mechanic.`,
+      result.invoiceRevenueImpact >= 0
+        ? `The promoted period is estimated to generate ${currency.format(result.invoiceRevenueImpact)} more invoice revenue than the baseline period. Check whether that is enough for the support being invested.`
+        : `The promoted period is estimated to generate ${currency.format(Math.abs(result.invoiceRevenueImpact))} less invoice revenue than baseline. It needs a strategic reason or stronger volume.`,
     margin: `The retailer/customer is estimated to make ${currency.format(result.retailerEstimatedProfitAfterFunding)} after supplier support. Pricing remains entirely at retailer discretion.`,
     spend: `Total trade spend is ${currency.format(result.totalTradeSpend)}, equal to ${safePercent(result.tradeSpendGrossRate)} of gross sales. High spend should buy a clear customer commitment.`,
     investment:
-      result.probabilityAdjustedNetImpact >= 0
-        ? `The investment ask appears to pay back on a probability-adjusted basis. Still challenge the uplift, timing and customer commitment.`
-        : `The investment ask does not appear to pay back on a probability-adjusted basis. Negotiate the ask, reshape the terms or reject it.`,
+      result.netProfitImpact >= 0
+        ? `This deal is estimated to create ${currency.format(result.netProfitImpact)} after fixed support. Check whether the assumptions are realistic before committing.`
+        : `This deal is estimated to lose ${currency.format(Math.abs(result.netProfitImpact))} after fixed support. It needs a strategic reason or a better mechanic.`,
   };
 
   return (
@@ -722,7 +772,7 @@ Retention value included: ${currency.format(num(retentionValue))}`,
               onChange={(value) => setRetailerVatBasis(value as VatBasis)}
               options={taxBasisOptions}
             />
-            <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail selling prices to excluding-tax values for margin estimates." placeholder="e.g. 20" value={vatRate} onChange={setVatRate} />
+            <NumericInput label="Sales tax / VAT / IVA rate %" help="Used to convert retail selling prices to excluding-tax values for margin estimates." placeholder="e.g. 20" required={dealMode === "retailer"} value={vatRate} onChange={setVatRate} />
           </div>
           <p className="form-note">
             Retailer prices are often discussed including sales tax / VAT / IVA,
@@ -732,21 +782,103 @@ Retention value included: ${currency.format(num(retentionValue))}`,
         </section>
         <section className="input-section" aria-label="Promotion and price inputs">
           <div className="input-section-header">
+            <h3>What are you trying to calculate?</h3>
+            <p>Choose the closest deal type. The calculator will only ask for the fields that fit that check.</p>
+          </div>
+          <div className="mode-grid" role="radiogroup" aria-label="Deal calculator mode">
+            {[
+              {
+                id: "invoice" as DealMode,
+                title: "Quick invoice deal check",
+                description:
+                  "I know invoice price before, promo invoice price and volumes. Show revenue impact and support.",
+              },
+              {
+                id: "profit" as DealMode,
+                title: "Profit / COGS deal check",
+                description:
+                  "I also know COGS and want to estimate profit impact and ROI.",
+              },
+              {
+                id: "retailer" as DealMode,
+                title: "Retailer margin and SOA check",
+                description:
+                  "I want to estimate retailer margin, SOA needed or promo invoice impact.",
+              },
+            ].map((mode) => (
+              <button
+                aria-checked={dealMode === mode.id}
+                className={dealMode === mode.id ? "mode-card mode-card-active" : "mode-card"}
+                key={mode.id}
+                onClick={() => chooseDealMode(mode.id)}
+                role="radio"
+                type="button"
+              >
+                <strong>{mode.title}</strong>
+                <span>{mode.description}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+        <section className="input-section" aria-label="Supplier support input method">
+          <div className="input-section-header">
+            <h3>How do you want to enter supplier support?</h3>
+          </div>
+          <div className="segmented-control" role="radiogroup" aria-label="Supplier support input method">
+            <button
+              aria-checked={supportMethod === "soa"}
+              className={supportMethod === "soa" ? "tab-button tab-button-active" : "tab-button"}
+              onClick={() => setSupportMethod("soa")}
+              role="radio"
+              type="button"
+            >
+              SOA / supplier support per unit
+            </button>
+            <button
+              aria-checked={supportMethod === "promoInvoice"}
+              className={supportMethod === "promoInvoice" ? "tab-button tab-button-active" : "tab-button"}
+              onClick={() => setSupportMethod("promoInvoice")}
+              role="radio"
+              type="button"
+            >
+              Promo invoice price
+            </button>
+          </div>
+        </section>
+        <section className="input-section" aria-label="Promotion and price inputs">
+          <div className="input-section-header">
             <h3>Promotion and price inputs</h3>
           </div>
           <div className="form-grid">
             <NumericInput label="Baseline units before promotion" help="Estimated units sold in the normal comparison period before the promotion." placeholder="e.g. 10,000" value={baselineUnits} onChange={setBaselineUnits} step="1" />
             <NumericInput label="Forecast units during promotion" help="Expected units sold during the promotion or deal period." placeholder="e.g. 18,000" value={promoUnits} onChange={setPromoUnits} step="1" />
-            <NumericInput label="Retail selling price before promotion" help="The normal shopper/end-customer price. Uses the tax setting above." placeholder="e.g. 2.50" value={srp} onChange={setSrp} />
-            <NumericInput label="Promotional retail selling price" help="The promotional shopper/end-customer price. Uses the tax setting above. Pricing is at the sole discretion of the retailer." placeholder="e.g. 2.00" value={promoSrp} onChange={setPromoSrp} />
-            <NumericInput label="Supplier COGS per unit" help="Your internal cost of goods sold per unit. This is not the retailer invoice price." placeholder="e.g. 1.10" value={cogs} onChange={setCogs} />
-            <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, scan support or per-unit promotional funding." placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
-            <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." placeholder="e.g. 2,500" value={fixedCost} onChange={setFixedCost} />
-            <NumericInput label="Retailer invoice/buy price per unit" help="The price the retailer/customer pays the supplier per unit, before any shopper retail price is applied. This is used for retailer margin estimates." placeholder="e.g. 1.75" value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
+            <NumericInput label="Retailer invoice/buy price before promotion" help="The price the retailer/customer pays the supplier per unit before the promotion." placeholder="e.g. 1.75" value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
+            {supportMethod === "soa" ? (
+              <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, scan support or per-unit promotional funding." placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
+            ) : (
+              <NumericInput label="Promotional retailer invoice/buy price" help="Effective invoice/buy price during the promotion after supplier support." placeholder="e.g. 1.40" value={promoInvoicePrice} onChange={setPromoInvoicePrice} />
+            )}
+            {dealMode === "profit" ? (
+              <NumericInput label="Supplier COGS per unit" help="Your internal cost of goods sold per unit. This is not the retailer invoice price." placeholder="e.g. 1.10" value={cogs} onChange={setCogs} />
+            ) : null}
+            {dealMode !== "profit" ? null : (
+              <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." placeholder="e.g. 2,500" required={false} value={fixedCost} onChange={setFixedCost} />
+            )}
+            {dealMode !== "profit" ? (
+              <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." placeholder="e.g. 2,500" required={false} value={fixedCost} onChange={setFixedCost} />
+            ) : null}
+            {dealMode === "retailer" || dealMode === "invoice" ? (
+              <NumericInput label="Retail selling price before promotion" help="The normal shopper/end-customer price. Uses the tax setting above." placeholder="e.g. 2.50" required={dealMode === "retailer"} value={srp} onChange={setSrp} />
+            ) : null}
+            {dealMode === "retailer" || dealMode === "invoice" ? (
+              <NumericInput label="Promotional retail selling price" help="The promotional shopper/end-customer price. Uses the tax setting above. Pricing is at the sole discretion of the retailer." placeholder="e.g. 2.00" required={dealMode === "retailer"} value={promoSrp} onChange={setPromoSrp} />
+            ) : null}
+            {dealMode === "retailer" ? (
+              <NumericInput label="Retailer margin target %" help="Target retailer/customer margin for a quick sense-check." placeholder="e.g. 25" value={retailerMarginRequirement} onChange={setRetailerMarginRequirement} />
+            ) : null}
           </div>
         </section>
         <AdvancedAssumptions>
-          <NumericInput label="Retailer margin target %" help="Target retailer/customer margin for a quick sense-check." placeholder="e.g. 25" required={false} value={retailerMarginRequirement} onChange={setRetailerMarginRequirement} />
           <NumericInput label="Estimated cannibalisation %" help="Sales that may switch from your other products." placeholder="e.g. 10" required={false} value={cannibalisation} onChange={setCannibalisation} />
           <NumericInput label="Estimated post-promo dip %" help="Sales that may be pulled forward from after the event." placeholder="e.g. 2" required={false} value={postPromoDip} onChange={setPostPromoDip} />
           <NumericInput label="Average invoice discount %" help="Average discount or price support applied to invoice sales." placeholder="e.g. 12" required={false} value={averageDiscount} onChange={setAverageDiscount} />
@@ -795,7 +927,7 @@ Retention value included: ${currency.format(num(retentionValue))}`,
           ))}
         </div>
 
-        {hasDealInputs ? (
+        {activeTabReady ? (
         <div className="result-box" role="tabpanel">
           <div className="output-header">
             <div>
@@ -807,31 +939,31 @@ Retention value included: ${currency.format(num(retentionValue))}`,
             </div>
           </div>
           <RetailerPricingCaveat />
-          <p className="vat-note">{retailerVatSummary}</p>
+          {activeTab === "margin" || hasValues([srp, promoSrp, vatRate]) ? (
+            <p className="vat-note">{retailerVatSummary}</p>
+          ) : null}
           <p className="tab-summary">{tabSummaries[activeTab]}</p>
 
           {activeTab === "promo" && (
             <>
               <ResultGrid
                 items={[
-                  { label: "Net profit impact", value: currency.format(result.netProfitImpact), tone: result.netProfitImpact >= 0 ? "good" : "bad" },
-                  { label: "ROI", value: safePercent(result.roi), tone: result.roi >= 0 ? "good" : "bad" },
+                  { label: "Baseline invoice revenue", value: currency.format(result.baselineInvoiceRevenue) },
+                  { label: "Promo invoice revenue", value: currency.format(result.promoInvoiceRevenue) },
+                  { label: "Revenue impact", value: currency.format(result.invoiceRevenueImpact), tone: result.invoiceRevenueImpact >= 0 ? "good" : "bad" },
                   { label: "Total SOA / supplier support", value: currency.format(result.totalInvestment) },
-                  { label: "Break-even units", value: number.format(result.breakEvenIncrementalUnits) },
-                  { label: "Verdict", value: result.promoVerdict, tone: result.netProfitImpact >= 0 ? "good" : "bad" },
+                  { label: "Effective promo invoice price", value: money2.format(result.effectivePromoInvoice) },
+                  { label: "Verdict", value: result.invoiceVerdict, tone: result.invoiceRevenueImpact >= 0 ? "good" : "bad" },
                 ]}
               />
               <CalculationDetail summary={detailedSummaries.promo}>
                 <ResultGrid
                   items={[
                     { label: "Net incremental units", value: number.format(result.netIncrementalUnits), tone: result.netIncrementalUnits >= 0 ? "good" : "bad" },
+                    { label: "SOA / supplier support per unit", value: money2.format(result.soaPerUnit) },
                     { label: "SOA / supplier support value", value: currency.format(result.soaValue) },
                     { label: "Fixed supplier support", value: currency.format(result.fixed) },
-                    { label: "Incremental GP before SOA / supplier support", value: currency.format(result.incrementalGpBeforeInvestment), tone: result.incrementalGpBeforeInvestment >= 0 ? "good" : "bad" },
-                    { label: "Retailer estimated profit after support", value: currency.format(result.retailerEstimatedProfitAfterFunding) },
-                    { label: "Promotional retail selling price entered", value: money2.format(result.retailerSellOutEntered) },
-                    { label: "Retail price tax basis", value: retailerVatBasisLabel },
-                    { label: "Promotional retail price excluding tax", value: money2.format(result.retailerSellOutExVat) },
+                    { label: "Promotional invoice price", value: money2.format(result.effectivePromoInvoice) },
                   ]}
                 />
               </CalculationDetail>
@@ -899,11 +1031,12 @@ Retention value included: ${currency.format(num(retentionValue))}`,
             <>
               <ResultGrid
                 items={[
-                  { label: "Investment value", value: currency.format(result.investmentValue) },
-                  { label: "Expected uplift value", value: currency.format(result.expectedIncrementalRevenue) },
-                  { label: "Expected gross profit", value: currency.format(result.expectedGrossProfit) },
-                  { label: "Net impact", value: currency.format(result.probabilityAdjustedNetImpact), tone: result.probabilityAdjustedNetImpact >= 0 ? "good" : "bad" },
-                  { label: "Recommendation", value: result.investmentRecommendation, tone: result.investmentRecommendation === "Support" ? "good" : result.investmentRecommendation.startsWith("Reject") ? "bad" : "neutral" },
+                  { label: "Gross profit before", value: currency.format(result.baselineGrossProfit) },
+                  { label: "Gross profit during promotion", value: currency.format(result.promoGpAfterSoaFixed) },
+                  { label: "Net profit impact", value: currency.format(result.netProfitImpact), tone: result.netProfitImpact >= 0 ? "good" : "bad" },
+                  { label: "ROI", value: safePercent(result.roi), tone: result.roi >= 0 ? "good" : "bad" },
+                  { label: "Break-even units", value: number.format(result.breakEvenIncrementalUnits) },
+                  { label: "Verdict", value: result.promoVerdict, tone: result.netProfitImpact >= 0 ? "good" : "bad" },
                 ]}
               />
               <CalculationDetail summary={detailedSummaries.investment}>
@@ -924,7 +1057,7 @@ Retention value included: ${currency.format(num(retentionValue))}`,
             <span className="pill">Free result</span>
             <h2>{dealTabTitle(activeTab)}</h2>
           </div>
-          <p className="empty-state">Enter the required fields to see your result.</p>
+          <p className="empty-state">{activePrompt}</p>
         </div>
         )}
       </section>

@@ -656,6 +656,48 @@ p {
   padding-bottom: 0.6rem;
 }
 
+.mode-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.mode-card {
+  display: grid;
+  gap: 0.4rem;
+  align-content: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--foreground);
+  min-height: 132px;
+  padding: 0.9rem;
+  text-align: left;
+}
+
+.mode-card strong {
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.mode-card span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.mode-card-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.segmented-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .tab-button {
   min-height: 42px;
   border: 1px solid var(--border);
@@ -1235,12 +1277,14 @@ p {
   .trust-strip,
   .form-grid,
   .result-grid,
-  .choice-grid {
+  .choice-grid,
+  .mode-grid {
     grid-template-columns: 1fr;
   }
 
   .tab-list,
-  .summary-actions {
+  .summary-actions,
+  .segmented-control {
     display: grid;
     grid-template-columns: 1fr;
   }
