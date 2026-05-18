@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
+  <title id="title">Commercial dashboard placeholder</title>
+  <desc id="desc">Placeholder illustration for a commercial dashboard and calculator screenshot.</desc>
+  <rect width="1200" height="800" rx="36" fill="#f7f5ef"/>
+  <rect x="70" y="70" width="1060" height="660" rx="28" fill="#ffffff" stroke="#ded9cf" stroke-width="4"/>
+  <rect x="110" y="115" width="980" height="80" rx="16" fill="#16202a"/>
+  <circle cx="155" cy="155" r="14" fill="#0f766e"/>
+  <circle cx="195" cy="155" r="14" fill="#e5f3f1"/>
+  <circle cx="235" cy="155" r="14" fill="#ded9cf"/>
+  <rect x="110" y="240" width="290" height="170" rx="18" fill="#e5f3f1" stroke="#aac6c2" stroke-width="3"/>
+  <rect x="455" y="240" width="290" height="170" rx="18" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="800" y="240" width="290" height="170" rx="18" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="110" y="465" width="455" height="200" rx="18" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="635" y="465" width="455" height="200" rx="18" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <path d="M155 610h70l55-70 55 32 62-88 68 110" fill="none" stroke="#0f766e" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="690" y="520" width="330" height="20" rx="10" fill="#0f766e"/>
+  <rect x="690" y="570" width="260" height="20" rx="10" fill="#aac6c2"/>
+  <rect x="690" y="620" width="300" height="20" rx="10" fill="#ded9cf"/>
+  <text x="110" y="710" fill="#5c6773" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Dashboard screenshot placeholder</text>
+</svg>

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Pricing Pro workflow placeholder</title>
+  <desc id="desc">Placeholder illustration for a Pro workflow, export and saved scenario mockup.</desc>
+  <rect width="1200" height="675" rx="32" fill="#f7f5ef"/>
+  <rect x="80" y="80" width="1040" height="515" rx="28" fill="#ffffff" stroke="#ded9cf" stroke-width="4"/>
+  <rect x="130" y="135" width="285" height="360" rx="20" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="458" y="135" width="285" height="360" rx="20" fill="#e5f3f1" stroke="#aac6c2" stroke-width="3"/>
+  <rect x="785" y="135" width="285" height="360" rx="20" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="175" y="190" width="145" height="22" rx="11" fill="#16202a"/>
+  <rect x="503" y="190" width="145" height="22" rx="11" fill="#0f766e"/>
+  <rect x="830" y="190" width="145" height="22" rx="11" fill="#16202a"/>
+  <g fill="#ded9cf">
+    <rect x="175" y="260" width="185" height="16" rx="8"/>
+    <rect x="175" y="305" width="150" height="16" rx="8"/>
+    <rect x="503" y="260" width="185" height="16" rx="8"/>
+    <rect x="503" y="305" width="150" height="16" rx="8"/>
+    <rect x="830" y="260" width="185" height="16" rx="8"/>
+    <rect x="830" y="305" width="150" height="16" rx="8"/>
+  </g>
+  <rect x="503" y="390" width="160" height="48" rx="12" fill="#0f766e"/>
+  <text x="130" y="555" fill="#5c6773" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">Pro export workflow placeholder</text>
+</svg>

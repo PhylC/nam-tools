@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Commercial planning workspace placeholder</title>
+  <desc id="desc">Placeholder illustration for commercial planning and account review workspace.</desc>
+  <rect width="1200" height="675" rx="32" fill="#f7f5ef"/>
+  <rect x="95" y="95" width="1010" height="485" rx="28" fill="#ffffff" stroke="#ded9cf" stroke-width="4"/>
+  <rect x="150" y="150" width="390" height="360" rx="22" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="600" y="150" width="450" height="170" rx="22" fill="#e5f3f1" stroke="#aac6c2" stroke-width="3"/>
+  <rect x="600" y="360" width="450" height="150" rx="22" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <rect x="195" y="205" width="190" height="24" rx="12" fill="#16202a"/>
+  <rect x="195" y="270" width="270" height="18" rx="9" fill="#0f766e"/>
+  <rect x="195" y="315" width="225" height="18" rx="9" fill="#aac6c2"/>
+  <rect x="195" y="360" width="285" height="18" rx="9" fill="#ded9cf"/>
+  <path d="M650 460h70l48-48 70 20 60-76 94 90" fill="none" stroke="#0f766e" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="150" y="625" fill="#5c6773" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700">Commercial planning workspace placeholder</text>
+</svg>

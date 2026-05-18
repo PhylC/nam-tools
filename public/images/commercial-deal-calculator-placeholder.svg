@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Commercial deal calculator placeholder</title>
+  <desc id="desc">Placeholder illustration for Excel-style scenario comparison and commercial dashboard.</desc>
+  <rect width="1200" height="675" rx="32" fill="#f7f5ef"/>
+  <rect x="64" y="64" width="1072" height="547" rx="28" fill="#ffffff" stroke="#ded9cf" stroke-width="4"/>
+  <rect x="108" y="110" width="984" height="66" rx="14" fill="#16202a"/>
+  <rect x="108" y="220" width="984" height="330" rx="16" fill="#fbfaf7" stroke="#ded9cf" stroke-width="3"/>
+  <g stroke="#ded9cf" stroke-width="3">
+    <path d="M108 286h984M108 352h984M108 418h984M108 484h984"/>
+    <path d="M305 220v330M502 220v330M699 220v330M896 220v330"/>
+  </g>
+  <g fill="#0f766e">
+    <rect x="135" y="242" width="115" height="18" rx="9"/>
+    <rect x="332" y="242" width="115" height="18" rx="9"/>
+    <rect x="529" y="242" width="115" height="18" rx="9"/>
+    <rect x="726" y="242" width="115" height="18" rx="9"/>
+    <rect x="923" y="242" width="115" height="18" rx="9"/>
+  </g>
+  <g fill="#aac6c2">
+    <rect x="135" y="314" width="96" height="16" rx="8"/>
+    <rect x="332" y="380" width="122" height="16" rx="8"/>
+    <rect x="529" y="446" width="88" height="16" rx="8"/>
+    <rect x="726" y="512" width="132" height="16" rx="8"/>
+    <rect x="923" y="314" width="104" height="16" rx="8"/>
+  </g>
+  <path d="M155 575h120l70-52 88 24 78-76 96 42 110-118 140 95 150-160" fill="none" stroke="#0f766e" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
