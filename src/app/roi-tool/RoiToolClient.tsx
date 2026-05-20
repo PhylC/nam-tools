@@ -9,6 +9,7 @@ type RoiLine = {
   id: string;
   sku: string;
   product: string;
+  notes: string;
   currentInvoice: string;
   promoInvoice: string;
   soa: string;
@@ -18,6 +19,8 @@ type RoiLine = {
   promoUnits: string;
   cogs: string;
   fixedSupport: string;
+  vatRate: string;
+  currency: string;
   supportMode: SupportMode;
 };
 
@@ -50,6 +53,7 @@ const blankLine = (): RoiLine => ({
   id: crypto.randomUUID(),
   sku: "",
   product: "",
+  notes: "",
   currentInvoice: "",
   promoInvoice: "",
   soa: "",
@@ -59,10 +63,12 @@ const blankLine = (): RoiLine => ({
   promoUnits: "",
   cogs: "",
   fixedSupport: "",
+  vatRate: "",
+  currency: "",
   supportMode: "promoInvoice",
 });
 
-const blankScenario = (name = "Base scenario"): RoiScenario => ({
+const blankScenario = (name = "Scenario 1"): RoiScenario => ({
   id: crypto.randomUUID(),
   name,
   lines: [blankLine()],
@@ -91,31 +97,32 @@ function money(value: number) {
   }).format(value);
 }
 
-function pct(value: number) {
-  return Number.isFinite(value)
+function pct(value: number | null) {
+  return value !== null && Number.isFinite(value)
     ? new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 1 }).format(value)
     : "n/a";
 }
 
 function calculateLine(line: RoiLine) {
   const currentInvoice = n(line.currentInvoice);
-  const supportPerUnit =
-    line.supportMode === "soa" ? n(line.soa) : currentInvoice - n(line.promoInvoice);
-  const promoInvoice =
-    line.supportMode === "soa" ? currentInvoice - supportPerUnit : n(line.promoInvoice);
+  const fixedSupport = n(line.fixedSupport);
+  const hasPromoInvoice = has(line.promoInvoice);
+  const hasSoa = has(line.soa);
+  const supportPerUnit = hasSoa ? n(line.soa) : hasPromoInvoice ? currentInvoice - n(line.promoInvoice) : 0;
+  const promoInvoice = hasPromoInvoice ? n(line.promoInvoice) : hasSoa ? currentInvoice - n(line.soa) : currentInvoice;
   const baselineUnits = n(line.baselineUnits);
   const promoUnits = n(line.promoUnits);
   const incrementalUnits = promoUnits - baselineUnits;
   const baselineRevenue = baselineUnits * currentInvoice;
   const promoRevenue = promoUnits * promoInvoice;
   const incrementalRevenue = promoRevenue - baselineRevenue;
-  const supportCost = supportPerUnit * promoUnits + n(line.fixedSupport);
+  const supportCost = supportPerUnit * promoUnits + fixedSupport;
   const hasCogs = has(line.cogs);
   const baselineProfit = hasCogs ? (currentInvoice - n(line.cogs)) * baselineUnits : 0;
-  const promoProfit = hasCogs ? (promoInvoice - n(line.cogs)) * promoUnits - n(line.fixedSupport) : 0;
+  const promoProfit = hasCogs ? (promoInvoice - n(line.cogs)) * promoUnits - fixedSupport : 0;
   const profitImpact = hasCogs ? promoProfit - baselineProfit : 0;
-  const revenueRoi = supportCost !== 0 ? incrementalRevenue / supportCost : 0;
-  const profitRoi = hasCogs && supportCost !== 0 ? profitImpact / supportCost : 0;
+  const revenueRoi = supportCost > 0 ? incrementalRevenue / supportCost : null;
+  const profitRoi = hasCogs && supportCost > 0 ? profitImpact / supportCost : null;
 
   return {
     supportPerUnit,
@@ -141,9 +148,13 @@ function aggregate(lines: RoiLine[]) {
       total.baselineUnits += n(line.baselineUnits);
       total.promoUnits += n(line.promoUnits);
       total.incrementalUnits += calc.incrementalUnits;
+      total.baselineRevenue += calc.baselineRevenue;
+      total.promoRevenue += calc.promoRevenue;
       total.revenueImpact += calc.incrementalRevenue;
       total.supportCost += calc.supportCost;
       total.profitImpact += calc.hasCogs ? calc.profitImpact : 0;
+      total.baselineProfit += calc.hasCogs ? calc.baselineProfit : 0;
+      total.promoProfit += calc.hasCogs ? calc.promoProfit : 0;
       total.profitRows += calc.hasCogs ? 1 : 0;
       return total;
     },
@@ -151,8 +162,12 @@ function aggregate(lines: RoiLine[]) {
       baselineUnits: 0,
       promoUnits: 0,
       incrementalUnits: 0,
+      baselineRevenue: 0,
+      promoRevenue: 0,
       revenueImpact: 0,
       supportCost: 0,
+      baselineProfit: 0,
+      promoProfit: 0,
       profitImpact: 0,
       profitRows: 0,
     },
@@ -187,6 +202,153 @@ function Field({
 
 function updateLine(lines: RoiLine[], id: string, patch: Partial<RoiLine>) {
   return lines.map((line) => (line.id === id ? { ...line, ...patch } : line));
+}
+
+function copyLine(line: RoiLine): RoiLine {
+  return { ...line, id: crypto.randomUUID(), sku: line.sku ? `${line.sku} copy` : "" };
+}
+
+function copyScenario(scenario: RoiScenario): RoiScenario {
+  return {
+    ...scenario,
+    id: crypto.randomUUID(),
+    name: `${scenario.name} copy`,
+    lines: scenario.lines.map((line) => ({ ...line, id: crypto.randomUUID() })),
+  };
+}
+
+function csvEscape(value: string | number | null) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`;
+}
+
+function downloadCsv(filename: string, rows: Array<Array<string | number | null>>) {
+  const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function splitCsvRow(row: string) {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < row.length; index += 1) {
+    const char = row[index];
+    const nextChar = row[index + 1];
+    if (char === '"' && inQuotes && nextChar === '"') {
+      current += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function parseCsv(text: string) {
+  const rows = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((row) => row.trim().length > 0)
+    .map(splitCsvRow);
+  const [headers = [], ...body] = rows;
+  return body.map((row) =>
+    headers.reduce<Record<string, string>>((record, header, index) => {
+      record[header.trim().toLowerCase().split(" ")[0]] = row[index] ?? "";
+      return record;
+    }, {}),
+  );
+}
+
+// These required/optional fields may change as the ROI model evolves.
+const inputTemplateHeaders = [
+  "scenario_name REQUIRED",
+  "sku_model_item_number REQUIRED",
+  "product_name REQUIRED",
+  "current_invoice_price REQUIRED",
+  "promo_invoice_price OPTIONAL",
+  "support_per_unit_soa OPTIONAL",
+  "current_srp OPTIONAL",
+  "promo_srp OPTIONAL",
+  "baseline_units REQUIRED",
+  "promo_units REQUIRED",
+  "cogs_per_unit OPTIONAL",
+  "fixed_support OPTIONAL",
+  "vat_rate OPTIONAL",
+  "currency OPTIONAL",
+  "notes OPTIONAL",
+];
+
+function downloadInputTemplate() {
+  downloadCsv("apt-roi-input-template.csv", [
+    inputTemplateHeaders,
+    [
+      "Scenario 1",
+      "SKU-1001",
+      "Core 500ml pack",
+      "1.75",
+      "1.40",
+      "",
+      "2.50",
+      "2.00",
+      "10000",
+      "18000",
+      "1.10",
+      "2500",
+      "",
+      "GBP",
+      "Example row - delete or replace",
+    ],
+  ]);
+}
+
+function lineFromUploadRow(row: Record<string, string>): RoiLine {
+  const promoInvoice = row.promo_invoice_price ?? "";
+  const soa = row.support_per_unit_soa ?? "";
+  return {
+    ...blankLine(),
+    sku: row.sku_model_item_number ?? "",
+    product: row.product_name ?? "",
+    notes: row.notes ?? "",
+    currentInvoice: row.current_invoice_price ?? "",
+    promoInvoice,
+    soa,
+    currentSrp: row.current_srp ?? "",
+    promoSrp: row.promo_srp ?? "",
+    baselineUnits: row.baseline_units ?? "",
+    promoUnits: row.promo_units ?? "",
+    cogs: row.cogs_per_unit ?? "",
+    fixedSupport: row.fixed_support ?? "",
+    vatRate: row.vat_rate ?? "",
+    currency: row.currency ?? "",
+    supportMode: soa && !promoInvoice ? "soa" : "promoInvoice",
+  };
+}
+
+function validateUploadRows(rows: Record<string, string>[]) {
+  const errors: string[] = [];
+  rows.forEach((row, index) => {
+    const rowNumber = index + 2;
+    if (!has(row.scenario_name ?? "")) errors.push(`Row ${rowNumber}: scenario_name is required.`);
+    if (!has(row.sku_model_item_number ?? "")) errors.push(`Row ${rowNumber}: sku_model_item_number is required.`);
+    if (!has(row.product_name ?? "")) errors.push(`Row ${rowNumber}: product_name is required.`);
+    if (!has(row.current_invoice_price ?? "")) errors.push(`Row ${rowNumber}: current_invoice_price is required.`);
+    if (!has(row.baseline_units ?? "")) errors.push(`Row ${rowNumber}: baseline_units is required.`);
+    if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
+  });
+  return errors;
 }
 
 function RoiLineEditor({
@@ -305,27 +467,35 @@ export function RoiFreeTool() {
 
 function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
   function exportCsv() {
-    const rows = [
+    const rows: Array<Array<string | number | null>> = [
       [
-        "Group",
-        "Scenario",
-        "SKU / Model / Item Number",
-        "Product name",
-        "Current invoice price",
-        "Promo invoice price",
-        "SOA/support per unit",
-        "Current SRP",
-        "Promo SRP",
-        "Baseline units",
-        "Promo units",
-        "COGS",
-        "Fixed support",
-        "Incremental units",
-        "Revenue impact",
-        "Total support cost",
-        "Profit impact",
-        "Revenue ROI",
-        "Profit ROI",
+        "group_name",
+        "scenario_name",
+        "row_type",
+        "sku_model_item_number",
+        "product_name",
+        "notes",
+        "current_invoice_price",
+        "promo_invoice_price",
+        "support_per_unit_soa",
+        "current_srp",
+        "promo_srp",
+        "baseline_units",
+        "promo_units",
+        "cogs_per_unit",
+        "fixed_support",
+        "vat_rate",
+        "currency",
+        "incremental_units",
+        "baseline_revenue",
+        "promo_revenue",
+        "incremental_revenue",
+        "support_cost",
+        "baseline_gross_profit",
+        "promo_gross_profit",
+        "profit_impact",
+        "revenue_roi",
+        "profit_roi",
       ],
     ];
 
@@ -336,66 +506,190 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
           rows.push([
             group.name,
             scenario.name,
+            "line",
             line.sku,
             line.product,
+            line.notes,
             line.currentInvoice,
-            String(calc.promoInvoice),
-            String(calc.supportPerUnit),
+            line.promoInvoice,
+            line.soa,
             line.currentSrp,
             line.promoSrp,
             line.baselineUnits,
             line.promoUnits,
             line.cogs,
             line.fixedSupport,
-            String(calc.incrementalUnits),
-            String(calc.incrementalRevenue),
-            String(calc.supportCost),
-            calc.hasCogs ? String(calc.profitImpact) : "",
-            String(calc.revenueRoi),
-            calc.hasCogs ? String(calc.profitRoi) : "",
+            line.vatRate,
+            line.currency,
+            calc.incrementalUnits,
+            calc.baselineRevenue,
+            calc.promoRevenue,
+            calc.incrementalRevenue,
+            calc.supportCost,
+            calc.hasCogs ? calc.baselineProfit : "",
+            calc.hasCogs ? calc.promoProfit : "",
+            calc.hasCogs ? calc.profitImpact : "",
+            calc.revenueRoi,
+            calc.profitRoi,
           ]);
         });
+
         const total = aggregate(scenario.lines);
         rows.push([
           group.name,
-          `${scenario.name} aggregate`,
+          scenario.name,
+          "scenario_summary",
           "",
-          "SUMMARY",
-          "",
-          "",
-          "",
-          "",
-          "",
-          String(total.baselineUnits),
-          String(total.promoUnits),
+          `${scenario.name} summary`,
+          `${scenario.lines.length} line(s)`,
           "",
           "",
-          String(total.incrementalUnits),
-          String(total.revenueImpact),
-          String(total.supportCost),
-          total.profitRows > 0 ? String(total.profitImpact) : "",
-          total.supportCost ? String(total.revenueImpact / total.supportCost) : "",
-          total.profitRows > 0 && total.supportCost ? String(total.profitImpact / total.supportCost) : "",
+          "",
+          "",
+          "",
+          total.baselineUnits,
+          total.promoUnits,
+          "",
+          "",
+          "",
+          "",
+          total.incrementalUnits,
+          total.baselineRevenue,
+          total.promoRevenue,
+          total.revenueImpact,
+          total.supportCost,
+          total.profitRows ? total.baselineProfit : "",
+          total.profitRows ? total.promoProfit : "",
+          total.profitRows ? total.profitImpact : "",
+          total.supportCost > 0 ? total.revenueImpact / total.supportCost : "",
+          total.profitRows && total.supportCost > 0 ? total.profitImpact / total.supportCost : "",
         ]);
       });
     });
 
-    const csv = rows
-      .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "apt-roi-scenarios.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadCsv("apt-roi-results.csv", rows);
   }
 
   return (
     <button className="button" onClick={exportCsv} type="button">
-      Export CSV
+      Export results
     </button>
+  );
+}
+
+function TableInput({
+  ariaLabel,
+  value,
+  onChange,
+}: {
+  ariaLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <input
+      aria-label={ariaLabel}
+      className="roi-table-input"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+function RoiEditableTable({
+  lines,
+  onChangeLines,
+}: {
+  lines: RoiLine[];
+  onChangeLines: (lines: RoiLine[]) => void;
+}) {
+  function changeLine(id: string, patch: Partial<RoiLine>) {
+    onChangeLines(updateLine(lines, id, patch));
+  }
+
+  return (
+    <div className="roi-table-scroll">
+      <table className="roi-planner-table">
+        <thead>
+          <tr>
+            <th colSpan={3}>Core</th>
+            <th colSpan={7}>Commercial inputs</th>
+            <th colSpan={3}>Volume</th>
+            <th colSpan={8}>Calculated outputs</th>
+            <th colSpan={2}>Actions</th>
+          </tr>
+          <tr>
+            <th className="sticky-col">SKU / Model / Item No.</th>
+            <th>Product</th>
+            <th>Notes</th>
+            <th>Current invoice</th>
+            <th>Promo invoice</th>
+            <th>SOA/support</th>
+            <th>Current SRP</th>
+            <th>Promo SRP</th>
+            <th>COGS</th>
+            <th>Fixed support</th>
+            <th>Baseline units</th>
+            <th>Promo units</th>
+            <th>Incremental units</th>
+            <th>Baseline revenue</th>
+            <th>Promo revenue</th>
+            <th>Incremental revenue</th>
+            <th>Support cost</th>
+            <th>Baseline gross profit</th>
+            <th>Promo gross profit</th>
+            <th>Profit impact</th>
+            <th>Revenue ROI</th>
+            <th>Profit ROI</th>
+            <th>Duplicate</th>
+            <th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line) => {
+            const calc = calculateLine(line);
+            return (
+              <tr key={line.id}>
+                <td className="sticky-col">
+                  <TableInput ariaLabel="SKU / Model / Item No." value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
+                </td>
+                <td><TableInput ariaLabel="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} /></td>
+                <td><TableInput ariaLabel="Notes" value={line.notes} onChange={(value) => changeLine(line.id, { notes: value })} /></td>
+                <td><TableInput ariaLabel="Current invoice" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
+                <td><TableInput ariaLabel="Promo invoice" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
+                <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
+                <td><TableInput ariaLabel="Current SRP" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} /></td>
+                <td><TableInput ariaLabel="Promo SRP" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} /></td>
+                <td><TableInput ariaLabel="COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
+                <td><TableInput ariaLabel="Fixed support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
+                <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
+                <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
+                <td>{calc.incrementalUnits.toLocaleString("en-GB")}</td>
+                <td>{money(calc.baselineRevenue)}</td>
+                <td>{money(calc.promoRevenue)}</td>
+                <td>{money(calc.incrementalRevenue)}</td>
+                <td>{money(calc.supportCost)}</td>
+                <td>{calc.hasCogs ? money(calc.baselineProfit) : "n/a"}</td>
+                <td>{calc.hasCogs ? money(calc.promoProfit) : "n/a"}</td>
+                <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
+                <td>{pct(calc.revenueRoi)}</td>
+                <td>{pct(calc.profitRoi)}</td>
+                <td>
+                  <button className="table-action" onClick={() => onChangeLines([...lines, copyLine(line)])} type="button">
+                    Duplicate
+                  </button>
+                </td>
+                <td>
+                  <button className="table-action" onClick={() => onChangeLines(lines.filter((item) => item.id !== line.id))} type="button">
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -472,35 +766,157 @@ export function RoiProPlanner() {
     }));
   }
 
+  function addGroup() {
+    const nextGroup = blankGroup(`Group ${groups.length + 1}`);
+    setPlannerState((current) => ({
+      ...current,
+      groups: [...current.groups, nextGroup],
+      activeGroupId: nextGroup.id,
+      activeScenarioId: nextGroup.scenarios[0]?.id ?? "",
+    }));
+  }
+
+  function duplicateGroup() {
+    if (!activeGroup) return;
+    const nextGroup: RoiGroup = {
+      ...activeGroup,
+      id: crypto.randomUUID(),
+      name: `${activeGroup.name} copy`,
+      scenarios: activeGroup.scenarios.map(copyScenario),
+    };
+    setPlannerState((current) => ({
+      ...current,
+      groups: [...current.groups, nextGroup],
+      activeGroupId: nextGroup.id,
+      activeScenarioId: nextGroup.scenarios[0]?.id ?? "",
+    }));
+  }
+
+  function addScenario() {
+    if (!activeGroup) return;
+    const nextScenario = blankScenario(`Scenario ${activeGroup.scenarios.length + 1}`);
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) =>
+        group.id === activeGroup.id ? { ...group, scenarios: [...group.scenarios, nextScenario] } : group,
+      ),
+      activeScenarioId: nextScenario.id,
+    }));
+  }
+
+  function duplicateScenario() {
+    if (!activeGroup || !activeScenario) return;
+    const nextScenario = copyScenario(activeScenario);
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) =>
+        group.id === activeGroup.id ? { ...group, scenarios: [...group.scenarios, nextScenario] } : group,
+      ),
+      activeScenarioId: nextScenario.id,
+    }));
+  }
+
+  function deleteScenario() {
+    if (!activeGroup || !activeScenario || activeGroup.scenarios.length <= 1) return;
+    const nextScenarios = activeGroup.scenarios.filter((scenario) => scenario.id !== activeScenario.id);
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) =>
+        group.id === activeGroup.id ? { ...group, scenarios: nextScenarios } : group,
+      ),
+      activeScenarioId: nextScenarios[0]?.id ?? "",
+    }));
+  }
+
+  function updateActiveScenarioName(name: string) {
+    if (!activeGroup || !activeScenario) return;
+    setGroups(
+      groups.map((group) =>
+        group.id === activeGroup.id
+          ? {
+              ...group,
+              scenarios: group.scenarios.map((scenario) =>
+                scenario.id === activeScenario.id ? { ...scenario, name } : scenario,
+              ),
+            }
+          : group,
+      ),
+    );
+  }
+
+  function uploadCsv(file: File | undefined) {
+    if (!file || !activeGroup) return;
+    file.text().then((text) => {
+      const rows = parseCsv(text);
+      const errors = validateUploadRows(rows);
+      if (errors.length > 0) {
+        window.alert(errors.slice(0, 8).join("\n"));
+        return;
+      }
+
+      const scenarios = rows.reduce<RoiScenario[]>((items, row) => {
+        const scenarioName = row.scenario_name;
+        const existing = items.find((scenario) => scenario.name === scenarioName);
+        const line = lineFromUploadRow(row);
+        if (existing) {
+          existing.lines.push(line);
+        } else {
+          items.push({ id: crypto.randomUUID(), name: scenarioName, lines: [line] });
+        }
+        return items;
+      }, []);
+
+      setPlannerState((current) => ({
+        ...current,
+        groups: current.groups.map((group) =>
+          group.id === activeGroup.id ? { ...group, scenarios } : group,
+        ),
+        activeScenarioId: scenarios[0]?.id ?? "",
+      }));
+    });
+  }
+
   return (
     <section className="shell section">
       <div className="section-header">
         <p className="eyebrow">Pro Preview</p>
-        <h2>Multi-SKU ROI planner.</h2>
+        <h2>ROI planner</h2>
         <p className="section-lead">
-          Pro Preview helps you plan multi-SKU promotions, compare scenarios and export the numbers for internal sign-off.
+          Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
         </p>
       </div>
 
-      <div className="grid-two">
-        <article className="card">
-          <span className="pill pro-pill">Pro Preview</span>
-          <h3>Upload spreadsheet to populate fields</h3>
-          <input accept=".csv,.xlsx" type="file" />
-          <p>
-            Spreadsheet mapping workflow prepared — parser to be connected later.
-            Suggested columns include SKU, product name, invoice price, promo invoice,
-            SOA/support, SRP, baseline units, promo units, COGS and fixed support.
-          </p>
-        </article>
-        <article className="card">
-          <span className="pill">Local save for now</span>
-          <h3>Save for future</h3>
-          <p>Saved locally on this device for now. Account saving will be added with Pro login later.</p>
-          <div className="cta-row">
-            <button className="button button-secondary" onClick={saveLocal} type="button">Save locally</button>
-            <CsvExportButton groups={groups} />
+      <article className="card roi-planner">
+        <div className="output-header">
+          <div>
+            <span className="pill pro-pill">Pro workflow preview</span>
+            <h3>{activeGroup?.name}</h3>
           </div>
+          <div className="summary-actions">
+            <button className="button button-secondary button-small" onClick={addGroup} type="button">Add group</button>
+            <button className="button button-secondary button-small" onClick={duplicateGroup} type="button">Duplicate group</button>
+            <button className="button button-secondary button-small" onClick={saveLocal} type="button">Save locally</button>
+          </div>
+        </div>
+        <div className="roi-control-grid">
+          <label className="field">
+            <span>Scenario group</span>
+            <select value={activeGroup?.id ?? ""} onChange={(event) => {
+              setActiveGroupId(event.target.value);
+              const nextGroup = groups.find((group) => group.id === event.target.value);
+              setActiveScenarioId(nextGroup?.scenarios[0]?.id ?? "");
+            }}>
+              {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+            </select>
+          </label>
+          <label className="field">
+            <span>Scenario</span>
+            <select value={activeScenario?.id ?? ""} onChange={(event) => setActiveScenarioId(event.target.value)}>
+              {activeGroup?.scenarios.map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.name}</option>)}
+            </select>
+          </label>
+          <Field label="Group name" value={activeGroup?.name ?? ""} onChange={(value) => setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, name: value } : group))} />
+          <Field label="Rename scenario" value={activeScenario?.name ?? ""} onChange={updateActiveScenarioName} />
           <label className="field">
             <span>Load saved group</span>
             <select defaultValue="" onChange={(event) => loadLocal(event.target.value)}>
@@ -512,80 +928,67 @@ export function RoiProPlanner() {
               ))}
             </select>
           </label>
-        </article>
-      </div>
-
-      <article className="card tool-form">
-        <div className="output-header">
-          <div>
-            <span className="pill pro-pill">Scenario groups</span>
-            <h3>{activeGroup?.name}</h3>
+          <div className="upload-control">
+            <span className="field-label">Upload a populated spreadsheet</span>
+            <label className="button button-secondary button-small">
+              Upload CSV
+              <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
+            </label>
+            <small>
+              Use the input template first so your columns match the planner. Required and optional fields are clearly marked.
+              XLSX support can be added later. Use the downloadable CSV template for now.
+            </small>
           </div>
-          <div className="summary-actions">
-            <button className="button button-secondary button-small" onClick={() => setGroups([...groups, blankGroup(`Group ${groups.length + 1}`)])} type="button">Add group</button>
-            <button className="button button-secondary button-small" onClick={() => activeGroup && setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, id: crypto.randomUUID(), name: `${group.name} copy`, scenarios: group.scenarios.map((scenario) => ({ ...scenario, id: crypto.randomUUID(), lines: scenario.lines.map((line) => ({ ...line, id: crypto.randomUUID() })) })) } : group))} type="button">Duplicate group</button>
-          </div>
-        </div>
-        <div className="form-grid">
-          <label className="field">
-            <span>Load saved group</span>
-            <select value={activeGroup?.id ?? ""} onChange={(event) => {
-              setActiveGroupId(event.target.value);
-              const nextGroup = groups.find((group) => group.id === event.target.value);
-              setActiveScenarioId(nextGroup?.scenarios[0]?.id ?? "");
-            }}>
-              {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-            </select>
-          </label>
-          <Field label="Rename group" value={activeGroup?.name ?? ""} onChange={(value) => setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, name: value } : group))} />
         </div>
 
-        <div className="output-header">
-          <div>
-            <span className="pill pro-pill">Scenarios</span>
-            <h3>{activeScenario?.name}</h3>
-          </div>
-          <div className="summary-actions">
-            <button className="button button-secondary button-small" onClick={() => activeGroup && setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, scenarios: [...group.scenarios, blankScenario(`Scenario ${group.scenarios.length + 1}`)] } : group))} type="button">Add scenario</button>
-            <button className="button button-secondary button-small" onClick={() => activeGroup && activeScenario && setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, scenarios: [...group.scenarios, { ...activeScenario, id: crypto.randomUUID(), name: `${activeScenario.name} copy`, lines: activeScenario.lines.map((line) => ({ ...line, id: crypto.randomUUID() })) }] } : group))} type="button">Duplicate scenario</button>
-            <button className="button button-secondary button-small" onClick={() => activeGroup && activeScenario && setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, scenarios: group.scenarios.filter((scenario) => scenario.id !== activeScenario.id) } : group))} type="button">Delete scenario</button>
-          </div>
+        <div className="roi-action-bar">
+          <button className="button button-secondary button-small" onClick={addScenario} type="button">Add scenario</button>
+          <button className="button button-secondary button-small" onClick={duplicateScenario} type="button">Duplicate scenario</button>
+          <button className="button button-secondary button-small" onClick={deleteScenario} type="button">Delete scenario</button>
+          <button className="button button-secondary button-small" onClick={() => setActiveScenarioLines([...(activeScenario?.lines ?? []), blankLine()])} type="button">Add line</button>
+          <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
+          <CsvExportButton groups={groups} />
         </div>
-        <div className="form-grid">
-          <label className="field">
-            <span>Scenario</span>
-            <select value={activeScenario?.id ?? ""} onChange={(event) => setActiveScenarioId(event.target.value)}>
-              {activeGroup?.scenarios.map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.name}</option>)}
-            </select>
-          </label>
-          <Field label="Rename scenario" value={activeScenario?.name ?? ""} onChange={(value) => setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, scenarios: group.scenarios.map((scenario) => scenario.id === activeScenario?.id ? { ...scenario, name: value } : scenario) } : group))} />
+
+        <p className="form-note">
+          Download this first if you want to populate the ROI planner by spreadsheet. Required fields are marked in the header.
+        </p>
+
+        <div className="scenario-tabs" aria-label="Scenario tabs">
+          {activeGroup?.scenarios.map((scenario) => (
+            <button
+              className={scenario.id === activeScenario?.id ? "tab-button tab-button-active" : "tab-button"}
+              key={scenario.id}
+              onClick={() => setActiveScenarioId(scenario.id)}
+              type="button"
+            >
+              {scenario.name}
+            </button>
+          ))}
         </div>
 
         <div className="result-box">
           <div className="output-header">
-            <h3>Aggregate summary</h3>
-            <button className="button button-secondary button-small" onClick={() => setActiveScenarioLines([...(activeScenario?.lines ?? []), blankLine()])} type="button">Add line</button>
+            <div>
+              <h3>Scenario summary</h3>
+              <p className="empty-state">Prefer to build it manually? Add one line at a time and the table will calculate as you go.</p>
+            </div>
+            <span className="pill">{activeScenario?.lines.length ?? 0} line(s)</span>
           </div>
           <div className="result-grid">
-            <div className="result-item"><span className="result-label">Total baseline units</span><strong>{summary.baselineUnits.toLocaleString("en-GB")}</strong></div>
-            <div className="result-item"><span className="result-label">Total promo units</span><strong>{summary.promoUnits.toLocaleString("en-GB")}</strong></div>
-            <div className="result-item"><span className="result-label">Total incremental units</span><strong>{summary.incrementalUnits.toLocaleString("en-GB")}</strong></div>
-            <div className="result-item"><span className="result-label">Total revenue impact</span><strong>{money(summary.revenueImpact)}</strong></div>
+            <div className="result-item"><span className="result-label">Total baseline revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
+            <div className="result-item"><span className="result-label">Total promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
+            <div className="result-item"><span className="result-label">Total incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
             <div className="result-item"><span className="result-label">Total support cost</span><strong>{money(summary.supportCost)}</strong></div>
-            <div className="result-item"><span className="result-label">Overall ROI</span><strong>{pct(summary.supportCost ? summary.revenueImpact / summary.supportCost : 0)}</strong></div>
-            <div className="result-item"><span className="result-label">Total profit impact</span><strong>{summary.profitRows ? money(summary.profitImpact) : "Add COGS"}</strong></div>
+            <div className="result-item"><span className="result-label">Total profit impact</span><strong>{summary.profitRows ? money(summary.profitImpact) : "n/a"}</strong></div>
+            <div className="result-item"><span className="result-label">Revenue ROI</span><strong>{pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
+            <div className="result-item"><span className="result-label">Profit ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)}</strong></div>
+            <div className="result-item"><span className="result-label">Lines / SKUs</span><strong>{activeScenario?.lines.length ?? 0}</strong></div>
           </div>
         </div>
 
-        {(activeScenario?.lines ?? []).map((line) => (
-          <RoiLineEditor
-            key={line.id}
-            line={line}
-            onChange={(nextLine) => setActiveScenarioLines(updateLine(activeScenario?.lines ?? [], line.id, nextLine))}
-            onDelete={() => setActiveScenarioLines((activeScenario?.lines ?? []).filter((item) => item.id !== line.id))}
-            onDuplicate={() => setActiveScenarioLines([...(activeScenario?.lines ?? []), { ...line, id: crypto.randomUUID(), sku: `${line.sku} copy` }])}
-          />
-        ))}
+        <RoiEditableTable lines={activeScenario?.lines ?? []} onChangeLines={setActiveScenarioLines} />
+        <p className="planning-disclaimer">Saved locally on this device for now. Account saving will be added with Pro login later.</p>
       </article>
     </section>
   );
@@ -599,23 +1002,25 @@ export function RoiToolProduct() {
       <section className="shell section">
         <ProductSectionTabs />
       </section>
-      <RoiFreeTool />
       {aptMode === "pro" ? (
         <RoiProPlanner />
       ) : (
-        <section className="shell section">
-          <article className="card split-band">
-            <div>
-              <p className="eyebrow">Pro Preview</p>
-              <h2>Plan multi-SKU promotions and export the numbers.</h2>
-              <p>
-                Switch the header toggle to Pro Preview to try local scenario groups,
-                multiple lines, CSV export and device-only saving.
-              </p>
-            </div>
-            <span className="pill pro-pill">Future account feature</span>
-          </article>
-        </section>
+        <>
+          <RoiFreeTool />
+          <section className="shell section">
+            <article className="card split-band">
+              <div>
+                <p className="eyebrow">Pro Preview</p>
+                <h2>Plan one SKU or a full multi-line promotion in one table.</h2>
+                <p>
+                  Switch the header toggle to Pro Preview to try CSV upload,
+                  scenario comparison, editable table rows, CSV export and device-only saving.
+                </p>
+              </div>
+              <span className="pill pro-pill">Future account feature</span>
+            </article>
+          </section>
+        </>
       )}
     </>
   );
