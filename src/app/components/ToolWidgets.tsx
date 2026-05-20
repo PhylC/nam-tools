@@ -783,7 +783,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <h3>What are you trying to calculate?</h3>
             <p>Choose the closest deal type. The calculator will only ask for the fields that fit that check.</p>
           </div>
-          <div className="mode-grid" role="radiogroup" aria-label="Deal calculator mode">
+          <div className="mode-grid" role="radiogroup" aria-label="ROI tool mode">
             {[
               {
                 id: "invoice" as DealMode,

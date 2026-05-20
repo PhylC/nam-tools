@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Hero } from "../components/Shell";
+import { Hero, PlaceholderImage } from "../components/Shell";
 import { RoiToolProduct } from "./RoiToolClient";
 
 export const metadata: Metadata = {
@@ -11,7 +11,18 @@ export const metadata: Metadata = {
 export default function RoiToolPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="ROI Tool" title="Practical account planning tools for NAMs, sales teams and commercial leaders.">
+      <Hero
+        eyebrow="ROI Tool"
+        title="Practical account planning tools for NAMs, sales teams and commercial leaders."
+        visual={
+          <PlaceholderImage
+            aspectRatio="16 / 9"
+            description="Promotion scenario planning and ROI comparison view."
+            filename="/images/commercial-deal-calculator.svg"
+            title="ROI planner workspace"
+          />
+        }
+      >
         <p>
           Use the free ROI tool for fast single-line promotion checks. Pro
           helps you plan multi-SKU promotions, compare scenarios and

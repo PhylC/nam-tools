@@ -11,7 +11,7 @@ const featuredTools = [
 const startHere = [
   {
     title: "Use free calculators",
-    text: "Quick calculators stay free. Use them for fast checks, pricing maths and simple commercial decisions.",
+    text: "Calculators stay free. Use them for fast checks, pricing maths and simple commercial decisions.",
     href: "/calculators",
     cta: "Open calculators",
   },
@@ -19,7 +19,7 @@ const startHere = [
     title: "Plan promotion ROI",
     text: "Use the free ROI tool for one-line checks, or use Pro for multi-SKU scenario planning.",
     href: "/roi-tool",
-    cta: "Open ROI Tool",
+    cta: "Open ROI tool",
   },
   {
     title: "Build a customer deck",
@@ -167,24 +167,24 @@ export default function Home() {
         <div className="grid">
           <article className="card tool-card">
             <span className="pill">Free</span>
-            <h3>Commercial Deal Calculator</h3>
+            <h3>ROI Tool</h3>
             <p>
-              Model supplier profit, retailer/customer view, trade spend and
-              investment ask from one set of assumptions.
+              Model one SKU or a full multi-line promotion, compare scenarios
+              and export the numbers.
             </p>
-            <Link className="text-link" href="/tools/commercial-deal-calculator">
-              Open deal calculator
+            <Link className="text-link" href="/roi-tool">
+              Open ROI tool
             </Link>
           </article>
           <article className="card tool-card">
             <span className="pill">Free</span>
-            <h3>Quick Commercial Calculators</h3>
+            <h3>Calculators</h3>
             <p>
               Use fast SOA, retail price, invoice price, margin, tax and markup
               calculators when you only have a few numbers.
             </p>
             <Link className="text-link" href="/calculators/quick-calculators">
-              Open quick calculators
+              Browse calculators
             </Link>
           </article>
         </div>

@@ -122,7 +122,7 @@ export default async function CalculatorPage({
           <article className="card related-card">
             <h2>Related calculators</h2>
             <div className="related-links">
-              <Link href="/calculators/quick-calculators">All quick calculators</Link>
+              <Link href="/calculators/quick-calculators">Browse calculators</Link>
               {related.map((item) => (
                 <Link key={item.slug} href={`/calculators/${item.slug}`}>
                   {item.title}

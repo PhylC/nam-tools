@@ -53,6 +53,8 @@ type SavedRoiGroup = RoiGroup & {
   updated_at?: string;
 };
 
+type RoiPlannerMode = "free" | "pro";
+
 function initialRoiPlannerState() {
   const group = blankGroup();
   return {
@@ -187,32 +189,6 @@ function aggregate(lines: RoiLine[]) {
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  optional,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  optional?: boolean;
-}) {
-  return (
-    <label className="field">
-      <span className="field-label">
-        <span>{label}</span>
-        <span className={optional ? "field-status" : "field-status field-required"}>
-          {optional ? "Optional" : "Required"}
-        </span>
-      </span>
-      <input placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} />
-    </label>
-  );
-}
-
 function updateLine(lines: RoiLine[], id: string, patch: Partial<RoiLine>) {
   return lines.map((line) => (line.id === id ? { ...line, ...patch } : line));
 }
@@ -228,6 +204,19 @@ function copyScenario(scenario: RoiScenario): RoiScenario {
     name: `${scenario.name} copy`,
     lines: scenario.lines.map((line) => ({ ...line, id: crypto.randomUUID() })),
   };
+}
+
+function limitGroupsForFree(nextGroups: RoiGroup[]) {
+  const group = nextGroups[0] ?? blankGroup();
+  const scenario = group.scenarios[0] ?? blankScenario();
+  const lines = scenario.lines.length ? scenario.lines.slice(0, 1) : [blankLine()];
+
+  return [
+    {
+      ...group,
+      scenarios: [{ ...scenario, lines }],
+    },
+  ];
 }
 
 function csvEscape(value: string | number | null) {
@@ -361,120 +350,6 @@ function validateUploadRows(rows: Record<string, string>[]) {
     if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
   });
   return errors;
-}
-
-function RoiLineEditor({
-  line,
-  onChange,
-  onDuplicate,
-  onDelete,
-}: {
-  line: RoiLine;
-  onChange: (line: RoiLine) => void;
-  onDuplicate?: () => void;
-  onDelete?: () => void;
-}) {
-  return (
-    <article className="mini-card">
-      <div className="output-header">
-        <div>
-          <span className="pill">ROI line</span>
-          <h3>{line.product || line.sku || "New line"}</h3>
-        </div>
-        <div className="summary-actions">
-          {onDuplicate ? <button className="button button-secondary button-small" onClick={onDuplicate} type="button">Duplicate</button> : null}
-          {onDelete ? <button className="button button-secondary button-small" onClick={onDelete} type="button">Delete</button> : null}
-        </div>
-      </div>
-      <div className="form-grid">
-        <Field label="SKU / Model / Item Number" placeholder="e.g. SKU-1001" value={line.sku} onChange={(value) => onChange({ ...line, sku: value })} />
-        <Field label="Product name" placeholder="e.g. Core 500ml pack" value={line.product} onChange={(value) => onChange({ ...line, product: value })} />
-        <Field label="Current invoice price" placeholder="e.g. 1.75" value={line.currentInvoice} onChange={(value) => onChange({ ...line, currentInvoice: value })} />
-        <label className="field">
-          <span className="field-label">
-            <span>Support input</span>
-            <span className="field-status field-required">Required</span>
-          </span>
-          <select value={line.supportMode} onChange={(event) => onChange({ ...line, supportMode: event.target.value as SupportMode })}>
-            <option value="promoInvoice">Promo invoice price</option>
-            <option value="soa">SOA / supplier support per unit</option>
-          </select>
-        </label>
-        {line.supportMode === "promoInvoice" ? (
-          <Field label="Promo invoice price" placeholder="e.g. 1.40" value={line.promoInvoice} onChange={(value) => onChange({ ...line, promoInvoice: value })} />
-        ) : (
-          <Field label="SOA / supplier support per unit" placeholder="e.g. 0.35" value={line.soa} onChange={(value) => onChange({ ...line, soa: value })} />
-        )}
-        <Field label="Current SRP" optional placeholder="e.g. 2.50" value={line.currentSrp} onChange={(value) => onChange({ ...line, currentSrp: value })} />
-        <Field label="Promo SRP" optional placeholder="e.g. 2.00" value={line.promoSrp} onChange={(value) => onChange({ ...line, promoSrp: value })} />
-        <Field label="Units baseline" placeholder="e.g. 10,000" value={line.baselineUnits} onChange={(value) => onChange({ ...line, baselineUnits: value })} />
-        <Field label="Units on promotion" placeholder="e.g. 18,000" value={line.promoUnits} onChange={(value) => onChange({ ...line, promoUnits: value })} />
-        <Field label="COGS" optional placeholder="e.g. 1.10" value={line.cogs} onChange={(value) => onChange({ ...line, cogs: value })} />
-        <Field label="Fixed support" optional placeholder="e.g. 2,500" value={line.fixedSupport} onChange={(value) => onChange({ ...line, fixedSupport: value })} />
-      </div>
-    </article>
-  );
-}
-
-function ResultCards({ line }: { line: RoiLine }) {
-  const calc = calculateLine(line);
-  const ready =
-    has(line.currentInvoice) &&
-    (line.supportMode === "soa" ? has(line.soa) : has(line.promoInvoice)) &&
-    has(line.baselineUnits) &&
-    has(line.promoUnits);
-
-  if (!ready) {
-    return <p className="empty-state">Enter the required fields to see your result.</p>;
-  }
-
-  return (
-    <div className="result-grid">
-      <div className="result-item"><span className="result-label">Incremental units</span><strong>{calc.incrementalUnits.toLocaleString("en-GB")}</strong></div>
-      <div className="result-item"><span className="result-label">Incremental revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
-      <div className="result-item"><span className="result-label">Total support cost</span><strong>{money(calc.supportCost)}</strong></div>
-      <div className="result-item"><span className="result-label">Revenue ROI</span><strong>{pct(calc.revenueRoi)}</strong></div>
-      {calc.hasCogs ? (
-        <>
-          <div className="result-item"><span className="result-label">Gross profit impact</span><strong>{money(calc.profitImpact)}</strong></div>
-          <div className="result-item"><span className="result-label">Profit ROI</span><strong>{pct(calc.profitRoi)}</strong></div>
-        </>
-      ) : (
-        <div className="result-item"><span className="result-label">Profit ROI</span><strong>Add COGS</strong></div>
-      )}
-    </div>
-  );
-}
-
-export function RoiFreeTool() {
-  const [line, setLine] = useState<RoiLine>(blankLine);
-
-  return (
-    <section className="shell section">
-      <div className="section-header">
-        <p className="eyebrow">Free ROI Tool</p>
-        <h2>Single-line promotion ROI check.</h2>
-        <p className="section-lead">
-          Use this for one SKU, model or item. COGS and fixed support are optional, so you can start with a revenue ROI view and add profit later.
-        </p>
-      </div>
-      <article className="card tool-form">
-        <RoiLineEditor line={line} onChange={setLine} />
-        <div className="result-box">
-          <div className="output-header">
-            <div>
-              <span className="pill">Free result</span>
-              <h3>ROI summary</h3>
-            </div>
-          </div>
-          <ResultCards line={line} />
-          <p className="planning-disclaimer">
-            Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.
-          </p>
-        </div>
-      </article>
-    </section>
-  );
 }
 
 function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
@@ -612,10 +487,14 @@ function RoiEditableTable({
   lines,
   onChangeLines,
   onAddLine,
+  lineActions = true,
+  newLineProOnly = false,
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
   onAddLine: () => void;
+  lineActions?: boolean;
+  newLineProOnly?: boolean;
 }) {
   function changeLine(id: string, patch: Partial<RoiLine>) {
     onChangeLines(updateLine(lines, id, patch));
@@ -647,7 +526,7 @@ function RoiEditableTable({
               <th>Profit impact</th>
               <th>Revenue ROI</th>
               <th>Profit ROI</th>
-              <th>Actions</th>
+              {lineActions ? <th>Actions</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -671,19 +550,27 @@ function RoiEditableTable({
                   <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
                   <td>{pct(calc.revenueRoi)}</td>
                   <td>{pct(calc.profitRoi)}</td>
-                  <td>
-                    <div className="table-action-group">
-                      <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
-                      <button className="table-action" onClick={() => onChangeLines(lines.length > 1 ? lines.filter((item) => item.id !== line.id) : [blankLine()])} type="button">Delete</button>
-                    </div>
-                  </td>
+                  {lineActions ? (
+                    <td>
+                      <div className="table-action-group">
+                        <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
+                        <button className="table-action" onClick={() => onChangeLines(lines.length > 1 ? lines.filter((item) => item.id !== line.id) : [blankLine()])} type="button">Delete</button>
+                      </div>
+                    </td>
+                  ) : null}
                 </tr>
               );
             })}
           </tbody>
         </table>
       </div>
-      <button className="button button-secondary new-line-button" onClick={onAddLine} type="button">+ New line</button>
+      <button
+        className={newLineProOnly ? "button button-secondary new-line-button pro-only-button" : "button button-secondary new-line-button"}
+        onClick={onAddLine}
+        type="button"
+      >
+        + New line{newLineProOnly ? " · Pro" : ""}
+      </button>
     </>
   );
 }
@@ -838,16 +725,53 @@ function SavedRoiPlansPanel({
   );
 }
 
-export function RoiProPlanner() {
+function ProOnlyAction({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button className="button button-secondary button-small pro-only-button" onClick={onClick} type="button">
+      {children} · Pro
+    </button>
+  );
+}
+
+function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
+  return (
+    <article className="card pro-upgrade-panel">
+      <div>
+        <span className="pill pro-pill">Pro</span>
+        <h3>Need to compare more than one option?</h3>
+        <p>
+          Pro lets you add multiple products, build different scenarios, upload spreadsheets,
+          save plans and export the results.
+        </p>
+      </div>
+      <button className="button" onClick={onSwitchToPro} type="button">Switch to Pro</button>
+    </article>
+  );
+}
+
+export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
+  const isPro = mode === "pro";
+  const { setAptMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
   const [saveMessage, setSaveMessage] = useState("");
+  const [proMessage, setProMessage] = useState("");
 
   useEffect(() => {
-    refreshSavedGroups();
-  }, [isAuthenticated]);
+    if (isPro) refreshSavedGroups();
+  }, [isAuthenticated, isPro]);
+
+  function showProMessage() {
+    setProMessage("Available in Pro.");
+  }
 
   async function refreshSavedGroups() {
     const result = await listRoiPlans();
@@ -856,13 +780,18 @@ export function RoiProPlanner() {
   }
 
   function setGroups(nextGroups: RoiGroup[]) {
+    const limitedGroups = isPro ? nextGroups : limitGroupsForFree(nextGroups);
     setPlannerState((current) => ({
       ...current,
-      groups: nextGroups.length ? nextGroups : [blankGroup()],
+      groups: limitedGroups.length ? limitedGroups : [blankGroup()],
     }));
   }
 
   async function saveCurrentGroup() {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     if (!activeGroup) return;
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
     const now = new Date().toISOString();
@@ -882,6 +811,10 @@ export function RoiProPlanner() {
   }
 
   async function loadSavedGroup(groupId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     const result = await loadRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     const saved = result.data as SavedRoiGroup | null;
@@ -897,6 +830,10 @@ export function RoiProPlanner() {
   }
 
   async function renameSavedGroup(groupId: string, name: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     const saved = savedGroups.find((group) => group.id === groupId);
     if (!saved) return;
     const now = new Date().toISOString();
@@ -910,6 +847,10 @@ export function RoiProPlanner() {
   }
 
   async function duplicateSavedGroup(groupId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     const result = await duplicateRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     const copy = result.data as SavedRoiGroup | null;
@@ -923,16 +864,22 @@ export function RoiProPlanner() {
   }
 
   async function deleteSavedGroup(groupId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     const result = await deleteRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
   }
 
-  const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+  const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
+  const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
   const activeScenarios = activeGroup?.scenarios ?? [];
 
   function setScenarioLines(scenarioId: string, lines: RoiLine[]) {
     if (!activeGroup) return;
+    const nextLines = isPro ? lines : lines.slice(0, 1);
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) =>
@@ -940,7 +887,7 @@ export function RoiProPlanner() {
           ? {
               ...group,
               scenarios: group.scenarios.map((scenario) =>
-                scenario.id === scenarioId ? { ...scenario, lines } : scenario,
+                scenario.id === scenarioId ? { ...scenario, lines: nextLines } : scenario,
               ),
             }
           : group,
@@ -949,11 +896,19 @@ export function RoiProPlanner() {
   }
 
   function addLineToScenario(scenarioId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     const scenario = activeScenarios.find((item) => item.id === scenarioId);
     setScenarioLines(scenarioId, [...(scenario?.lines ?? []), blankLine()]);
   }
 
   function addScenario() {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     if (!activeGroup) return;
     const nextScenario = blankScenario(`Scenario ${activeGroup.scenarios.length + 1}`);
     setPlannerState((current) => ({
@@ -966,6 +921,10 @@ export function RoiProPlanner() {
   }
 
   function duplicateScenario(scenarioId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     if (!activeGroup) return;
     const scenario = activeGroup.scenarios.find((item) => item.id === scenarioId);
     if (!scenario) return;
@@ -986,6 +945,10 @@ export function RoiProPlanner() {
   }
 
   function deleteScenario(scenarioId: string) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     if (!activeGroup) return;
     const nextScenarios =
       activeGroup.scenarios.length > 1
@@ -1017,6 +980,10 @@ export function RoiProPlanner() {
   }
 
   function uploadCsv(file: File | undefined) {
+    if (!isPro) {
+      showProMessage();
+      return;
+    }
     if (!file || !activeGroup) return;
     file.text().then((text) => {
       const rows = parseCsv(text);
@@ -1051,7 +1018,7 @@ export function RoiProPlanner() {
   return (
     <section className="shell section">
       <div className="section-header">
-        <p className="eyebrow">Pro</p>
+        <p className="eyebrow">{isPro ? "Pro" : "Free"}</p>
         <h2>ROI planner</h2>
         <p className="section-lead">
           Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
@@ -1060,40 +1027,59 @@ export function RoiProPlanner() {
       <article className="card roi-planner">
         <div className="roi-plan-header">
           <div>
-            <span className="pill pro-pill">Pro</span>
-            <label className="field inline-plan-name">
-              <span>Plan name</span>
-              <input
-                value={activeGroup?.name ?? ""}
-                onChange={(event) =>
-                  setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, name: event.target.value } : group)))
-                }
-              />
-            </label>
-            <p className="form-note">Use this template if you prefer to build your plan in Excel first. You can also add lines directly below.</p>
+            <span className={isPro ? "pill pro-pill" : "pill"}>{isPro ? "Pro" : "Free"}</span>
+            {isPro ? (
+              <label className="field inline-plan-name">
+                <span>Plan name</span>
+                <input
+                  value={activeGroup?.name ?? ""}
+                  onChange={(event) =>
+                    setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, name: event.target.value } : group)))
+                  }
+                />
+              </label>
+            ) : null}
+            <p className="form-note">
+              {isPro
+                ? "Use this template if you prefer to build your plan in Excel first. You can also add lines directly below."
+                : "Edit the single product line below to calculate one scenario."}
+            </p>
           </div>
           <div className="roi-action-bar roi-action-bar-simple">
-            <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
-            <label className="button button-secondary button-small">
-              Upload spreadsheet
-              <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
-            </label>
-            <CsvExportButton groups={activeGroup ? [activeGroup] : groups} />
-            <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">
-              Save plan
-            </button>
+            {isPro ? (
+              <>
+                <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
+                <label className="button button-secondary button-small">
+                  Upload spreadsheet
+                  <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
+                </label>
+                <CsvExportButton groups={activeGroup ? [activeGroup] : groups} />
+                <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">Save plan</button>
+              </>
+            ) : (
+              <>
+                <ProOnlyAction onClick={showProMessage}>Upload spreadsheet</ProOnlyAction>
+                <ProOnlyAction onClick={showProMessage}>Download input template</ProOnlyAction>
+                <ProOnlyAction onClick={showProMessage}>Save plan</ProOnlyAction>
+                <ProOnlyAction onClick={showProMessage}>Export results</ProOnlyAction>
+              </>
+            )}
           </div>
         </div>
 
-        <SavedRoiPlansPanel
-          groups={savedGroups}
-          isLoading={isLoading}
-          saveMessage={saveMessage}
-          onDelete={deleteSavedGroup}
-          onDuplicate={duplicateSavedGroup}
-          onLoad={loadSavedGroup}
-          onRename={renameSavedGroup}
-        />
+        {proMessage ? <p className="pro-inline-message" role="status">{proMessage}</p> : null}
+
+        {isPro ? (
+          <SavedRoiPlansPanel
+            groups={savedGroups}
+            isLoading={isLoading}
+            saveMessage={saveMessage}
+            onDelete={deleteSavedGroup}
+            onDuplicate={duplicateSavedGroup}
+            onLoad={loadSavedGroup}
+            onRename={renameSavedGroup}
+          />
+        ) : null}
 
         <div className="scenario-stack">
           {activeScenarios.map((scenario) => (
@@ -1104,26 +1090,36 @@ export function RoiProPlanner() {
                   <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
                 </label>
                 <div className="scenario-card-actions">
-                  <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
-                  <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
+                  {isPro ? (
+                    <>
+                      <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
+                      <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <RoiEditableTable
                 lines={scenario.lines}
                 onAddLine={() => addLineToScenario(scenario.id)}
                 onChangeLines={(lines) => setScenarioLines(scenario.id, lines)}
+                lineActions={isPro}
+                newLineProOnly={!isPro}
               />
               <ScenarioSummary scenario={scenario} />
             </section>
           ))}
         </div>
 
-        <button className="button new-scenario-button" onClick={addScenario} type="button">+ New scenario</button>
+        <button
+          className={isPro ? "button new-scenario-button" : "button button-secondary new-scenario-button pro-only-button"}
+          onClick={addScenario}
+          type="button"
+        >
+          + New scenario{isPro ? "" : " · Pro"}
+        </button>
 
-        <ScenarioComparison scenarios={activeScenarios} />
-        <p className="planning-disclaimer">
-          Save your work and return to it later.
-        </p>
+        {isPro ? <ScenarioComparison scenarios={activeScenarios} /> : <FreeProPrompt onSwitchToPro={() => setAptMode("pro")} />}
+        {isPro ? <p className="planning-disclaimer">Save your work and return to it later.</p> : null}
       </article>
     </section>
   );
@@ -1134,26 +1130,7 @@ export function RoiToolProduct() {
 
   return (
     <>
-      {aptMode === "pro" ? (
-        <RoiProPlanner />
-      ) : (
-        <>
-          <RoiFreeTool />
-          <section className="shell section">
-            <article className="card split-band">
-              <div>
-                <p className="eyebrow">Pro</p>
-                <h2>Plan one SKU or a full multi-line promotion in one table.</h2>
-                <p>
-                  Switch the header toggle to Pro to use CSV upload,
-                  scenario comparison, editable table rows, CSV export and saved plans.
-                </p>
-              </div>
-              <span className="pill pro-pill">Pro</span>
-            </article>
-          </section>
-        </>
-      )}
+      <RoiPlanner mode={aptMode} />
     </>
   );
 }

@@ -17,13 +17,21 @@ export default function CalculatorsPage() {
         title="Free commercial calculators for NAMs and account managers"
         actions={
           <>
-            <Link className="button" href="/tools/commercial-deal-calculator">
-              Open deal calculator
+            <Link className="button" href="/roi-tool">
+              Open ROI tool
             </Link>
             <Link className="button button-secondary" href="/calculators/quick-calculators">
-              Open quick calculators
+              Browse calculators
             </Link>
           </>
+        }
+        visual={
+          <PlaceholderImage
+            aspectRatio="16 / 9"
+            description="Scenario comparison and calculator dashboard visual."
+            filename="/images/commercial-deal-calculator.svg"
+            title="Free calculator workspace"
+          />
         }
       >
         <p>
@@ -33,17 +41,8 @@ export default function CalculatorsPage() {
         </p>
       </Hero>
 
-      <section className="shell visual-section">
-        <PlaceholderImage
-          aspectRatio="16 / 9"
-          description="Future Excel-style scenario comparison and calculator dashboard visual."
-          filename="/images/commercial-deal-calculator.svg"
-          title="Free calculator workspace"
-        />
-      </section>
-
       <section className="shell section">
-        <SectionHeader eyebrow="Main calculator" title="One calculator for the full deal shape.">
+        <SectionHeader eyebrow="Main calculator" title="One calculator for the full ROI picture.">
           <p>
             Use one set of inputs to compare the supplier view, retailer/customer
             view, trade spend and investment ask.
@@ -52,24 +51,24 @@ export default function CalculatorsPage() {
         <div className="grid">
           <article className="card tool-card">
             <span className="pill">Free</span>
-            <h3>Commercial Deal Calculator</h3>
+            <h3>ROI Tool</h3>
             <p>
-              One set of inputs, supplier view, retailer view, trade spend and
-              investment ask.
+              Model one SKU or a full multi-line promotion, compare scenarios
+              and export the numbers.
             </p>
-            <Link className="text-link" href="/tools/commercial-deal-calculator">
-              Open main calculator
+            <Link className="text-link" href="/roi-tool">
+              Open ROI tool
             </Link>
           </article>
           <article className="card tool-card">
             <span className="pill">Free</span>
-            <h3>Quick Commercial Calculators</h3>
+            <h3>Calculators</h3>
             <p>
               A grouped index of fast SOA, retailer margin, invoice price, tax
               and markup calculators.
             </p>
             <Link className="text-link" href="/calculators/quick-calculators">
-              Choose a quick calculator
+              Browse calculators
             </Link>
           </article>
         </div>

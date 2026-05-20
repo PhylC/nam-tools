@@ -14,8 +14,8 @@ export type Tool = {
 export const tools: Tool[] = [
   {
     slug: "quick-commercial-calculators",
-    title: "Quick Commercial Calculators",
-    shortTitle: "Quick Calculators",
+    title: "Commercial Calculators",
+    shortTitle: "Calculators",
     description:
       "Fast SOA, invoice price, retail margin, sales tax / VAT / IVA and markup calculators for quick commercial checks.",
     category: "Calculator",
@@ -29,12 +29,12 @@ export const tools: Tool[] = [
   },
   {
     slug: "commercial-deal-calculator",
-    title: "Commercial Deal Calculator",
-    shortTitle: "Deal Calculator",
+    title: "ROI Tool",
+    shortTitle: "ROI Tool",
     description:
-      "Model supplier view, retailer/customer view, promo ROI, gross margin, trade spend and investment asks from one set of assumptions.",
+      "Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.",
     category: "Calculator",
-    href: "/tools/commercial-deal-calculator",
+    href: "/roi-tool",
     related: [
       "quick-commercial-calculators",
       "promotion-roi-calculator",

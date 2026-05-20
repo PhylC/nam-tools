@@ -4,7 +4,7 @@ import { Hero, SectionHeader } from "../../components/Shell";
 import { quickCalculatorGroups, quickCalculators } from "../../data/quickCalculators";
 
 export const metadata: Metadata = {
-  title: "Quick Commercial Calculators for NAMs",
+  title: "Commercial Calculators for NAMs",
   description:
     "Quick SOA, retailer margin, invoice price, promo invoice, sales tax, VAT, IVA, markup and margin calculators for account managers.",
 };
@@ -21,7 +21,7 @@ const choices = [
 export default function QuickCalculatorsIndexPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="Quick calculators" title="Choose the quick commercial calculation you need.">
+      <Hero eyebrow="Calculators" title="Choose the commercial calculation you need.">
         <p>
           Fast retail price, margin, invoice, SOA, support percentage and sales
           tax / VAT / IVA calculators for common NAM and KAM checks.
@@ -50,7 +50,7 @@ export default function QuickCalculatorsIndexPage() {
 
         return (
           <section className="shell section" key={group}>
-            <SectionHeader eyebrow="Quick calculators" title={group}>
+            <SectionHeader eyebrow="Calculators" title={group}>
               <p>
                 Open the calculator that matches the commercial question in
                 front of you. Each page includes the calculator, formula and

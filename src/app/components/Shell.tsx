@@ -68,7 +68,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <nav aria-label="Site links">
             <h2>Site</h2>
             <Link href="/calculators">Calculators</Link>
-            <Link href="/calculators/quick-calculators">Quick calculators</Link>
+            <Link href="/calculators/quick-calculators">Calculators</Link>
             <Link href="/roi-tool">ROI Tool</Link>
             <Link href="/tools">All tools</Link>
             <Link href="/presentation-templates">Presentation Templates</Link>
@@ -107,20 +107,23 @@ export function Hero({
   title,
   children,
   actions,
+  visual,
 }: {
   eyebrow?: string;
   title: string;
   children: React.ReactNode;
   actions?: React.ReactNode;
+  visual?: React.ReactNode;
 }) {
   return (
-    <section className="hero shell">
+    <section className={visual ? "hero shell hero-with-media" : "hero shell"}>
       <div className="hero-copy">
         {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
         <h1>{title}</h1>
         <div className="lead">{children}</div>
         {actions ? <div className="hero-actions">{actions}</div> : null}
       </div>
+      {visual ? <div className="hero-media">{visual}</div> : null}
     </section>
   );
 }
@@ -214,19 +217,22 @@ export function ToolPage({
 
   return (
     <div className="page-stack">
-      <Hero eyebrow={tool.category} title={tool.title}>
+      <Hero
+        eyebrow={tool.category}
+        title={tool.title}
+        visual={
+          tool.category === "Calculator" ? (
+            <PlaceholderImage
+              aspectRatio="16 / 9"
+              description="Excel-style scenario comparison and commercial dashboard visual."
+              filename="/images/commercial-deal-calculator.svg"
+              title="ROI scenario view"
+            />
+          ) : undefined
+        }
+      >
         <p>{intro}</p>
       </Hero>
-      {tool.category === "Calculator" ? (
-        <section className="shell visual-section">
-          <PlaceholderImage
-            aspectRatio="16 / 9"
-            description="Excel-style scenario comparison and commercial dashboard visual."
-            filename="/images/commercial-deal-calculator.svg"
-            title="Calculator scenario view"
-          />
-        </section>
-      ) : null}
       <section className="shell tool-layout">
         <div className="tool-main">
           <aside className="card judgement-card">

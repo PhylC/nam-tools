@@ -202,8 +202,34 @@ function Field({
   );
 }
 
+function TemplateThumbnail({ template }: { template: (typeof freeTemplates)[number] }) {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  return (
+    <div className="template-preview">
+      {hasImageError ? (
+        <div className="template-preview-fallback" role="img" aria-label={`${template.title} thumbnail fallback`}>
+          <span>APT</span>
+          <strong>{template.title}</strong>
+          <small>{template.deckType} · editable PowerPoint</small>
+        </div>
+      ) : (
+        <Image
+          alt={`${template.title} thumbnail`}
+          height={270}
+          onError={() => setHasImageError(true)}
+          src={`/templates/${template.slug}/preview.svg`}
+          width={480}
+        />
+      )}
+      <strong>{template.title}</strong>
+      <small>Editable example deck included</small>
+    </div>
+  );
+}
+
 export function PresentationTemplatesFree() {
-  const { aptMode } = useAptMode();
+  const { aptMode, setAptMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [activeTemplateSlug, setActiveTemplateSlug] = useState("");
   const [brief, setBrief] = useState<DeckBrief>(() => blankBrief(freeTemplates[0]));
@@ -216,6 +242,13 @@ export function PresentationTemplatesFree() {
       setSaveMessage(result.message ?? "");
     });
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (aptMode !== "pro" || !activeTemplateSlug) return;
+    window.setTimeout(() => {
+      document.getElementById(`template-${activeTemplateSlug}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }, [activeTemplateSlug, aptMode]);
 
   async function copyOutline(slug: string) {
     const response = await fetch(`/templates/${slug}/outline.txt`);
@@ -236,6 +269,16 @@ export function PresentationTemplatesFree() {
         ? current
         : { ...blankBrief(template), customer: current.customer, audience: current.audience },
     );
+  }
+
+  function switchToPro(templateSlug?: string) {
+    setAptMode("pro");
+    window.setTimeout(() => {
+      document.getElementById(templateSlug ? `template-${templateSlug}` : "template-card-grid")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
   }
 
   async function saveBrief(nextBrief = brief) {
@@ -297,9 +340,9 @@ export function PresentationTemplatesFree() {
           onLoad={loadBrief}
         />
       ) : null}
-      <div className="card-grid">
+      <div className="card-grid" id="template-card-grid">
         {freeTemplates.map((template) => (
-          <div className="template-card-wrap" key={template.title}>
+          <div className="template-card-wrap" id={`template-${template.slug}`} key={template.title}>
             <article className="card template-card">
               <div className="badge-row">
                 <span className="pill">Free</span>
@@ -307,16 +350,7 @@ export function PresentationTemplatesFree() {
                 <span className="pill">PowerPoint</span>
                 <span className="pill">Example data included</span>
               </div>
-              <div className="template-preview">
-                <Image
-                  alt={`${template.title} thumbnail`}
-                  height={270}
-                  src={`/templates/${template.slug}/preview.svg`}
-                  width={480}
-                />
-                <strong>{template.title}</strong>
-                <small>Editable example deck included</small>
-              </div>
+              <TemplateThumbnail template={template} />
               <h3>{template.title}</h3>
               <p>{template.for}</p>
               <ul className="compact-list">
@@ -333,12 +367,19 @@ export function PresentationTemplatesFree() {
                     Build custom deck
                   </button>
                 ) : (
-                  <span className="pill pro-pill">Pro</span>
+                  <button className="button button-secondary" onClick={() => switchToPro(template.slug)} type="button">
+                    Switch to Pro
+                  </button>
                 )}
                 <button className="button button-secondary" onClick={() => copyOutline(template.slug)} type="button">
                   Copy outline
                 </button>
               </div>
+              {aptMode === "pro" ? null : (
+                <p className="template-pro-note">
+                  Pro: build a custom version from your data and meeting brief.
+                </p>
+              )}
             </article>
             {aptMode === "pro" && activeTemplateSlug === template.slug ? (
               <CustomDeckBuilder
@@ -359,6 +400,27 @@ export function PresentationTemplatesFree() {
           </div>
         ))}
       </div>
+      {aptMode === "pro" ? null : (
+        <article className="card pro-explainer-panel">
+          <div>
+            <h3>Build custom decks with Pro</h3>
+            <p>
+              Start from any PowerPoint template, then tailor it with your customer,
+              agenda, data, risks, opportunities and commercial ask.
+            </p>
+            <ul className="compact-list">
+              <li>Build a custom deck from any template</li>
+              <li>Upload customer or sales data</li>
+              <li>Add meeting notes, agenda and commercial context</li>
+              <li>Generate a first-draft slide outline</li>
+              <li>Save deck briefs and return to them later</li>
+            </ul>
+          </div>
+          <button className="button" onClick={() => switchToPro()} type="button">
+            Switch to Pro
+          </button>
+        </article>
+      )}
     </section>
   );
 }
@@ -381,7 +443,6 @@ function SavedDeckBriefsPanel({
   return (
     <aside className="card saved-panel">
       <div>
-        <span className="pill pro-pill">Pro</span>
         <h3>Saved custom decks</h3>
         <p>Save your work and return to it later.</p>
         {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
@@ -441,7 +502,6 @@ function CustomDeckBuilder({
     <section className="card custom-deck-builder">
       <div className="output-header">
         <div>
-          <span className="pill pro-pill">Pro</span>
           <h2>Build custom {template.title}</h2>
           <p>Use your agenda, customer context and data to create a stronger first draft.</p>
         </div>
@@ -503,7 +563,7 @@ function CustomDeckBuilder({
         <section className="draft-outline">
           <div className="output-header">
             <div>
-              <span className="pill pro-pill">Generated draft outline</span>
+              <span className="pill">Generated draft outline</span>
               <h3>{brief.deckType} outline</h3>
             </div>
           </div>
@@ -591,26 +651,9 @@ function draftSlides(brief: DeckBrief): DraftSlide[] {
 }
 
 export function PresentationTemplatesProduct() {
-  const { aptMode } = useAptMode();
-
   return (
     <>
       <PresentationTemplatesFree />
-      {aptMode !== "pro" ? (
-        <section className="shell section">
-          <article className="card split-band">
-            <div>
-              <p className="eyebrow">Pro</p>
-              <h2>Build a custom deck from any template.</h2>
-              <p>
-                Switch the header toggle to Pro to open a template-specific
-                custom deck brief directly from each template card.
-              </p>
-            </div>
-            <span className="pill pro-pill">Pro</span>
-          </article>
-        </section>
-      ) : null}
     </>
   );
 }
