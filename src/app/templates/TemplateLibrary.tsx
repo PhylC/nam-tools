@@ -5,6 +5,7 @@ import { useState } from "react";
 const powerpointTemplates = [
   {
     name: "Joint Business Plan PowerPoint Template",
+    file: "joint-business-plan-template.pptx",
     useCase: "Structure a customer JBP conversation without starting from a blank deck.",
     includes: ["Executive summary", "Category context", "Shared objectives", "Growth pillars", "Activation plan", "Investment ask", "Success measures", "Next steps"],
     outline: `Joint Business Plan PowerPoint Outline
@@ -53,6 +54,7 @@ Slide 8: Next steps
   },
   {
     name: "Account Plan PowerPoint Template",
+    file: "annual-planning-template.pptx",
     useCase: "Turn account performance, risks and priorities into a simple internal plan deck.",
     includes: ["Account overview", "Current performance", "Growth opportunity", "Risks", "Customer priorities", "Commercial strategy", "30/60/90 plan"],
     outline: `Account Plan PowerPoint Outline
@@ -102,6 +104,7 @@ Slide 8: Internal asks
   },
   {
     name: "Buyer Meeting Prep PowerPoint Template",
+    file: "buyer-meeting-prep-template.pptx",
     useCase: "Prepare a buyer conversation with a sharper ask, story and objection plan.",
     includes: ["Meeting objective", "Opening", "Commercial story", "Evidence", "Objections", "Questions", "Closing ask", "Follow-up"],
     outline: `Buyer Meeting Prep PowerPoint Outline
@@ -148,6 +151,7 @@ Slide 8: Closing ask and follow-up
   },
   {
     name: "QBR / Customer Review PowerPoint Template",
+    file: "quarterly-business-review-template.pptx",
     useCase: "Create a customer review narrative covering performance, wins, misses and actions.",
     includes: ["Executive summary", "Performance overview", "Wins", "Misses", "Recommendations", "Next priorities", "Proposed asks", "Actions"],
     outline: `QBR / Customer Review PowerPoint Outline
@@ -195,6 +199,7 @@ Slide 8: Follow-up actions
   },
   {
     name: "Promo Review PowerPoint Template",
+    file: "promotional-proposal-template.pptx",
     useCase: "Review a promotion with baseline, investment, return and next recommendation.",
     includes: ["Promo objective", "Baseline", "Performance", "Investment", "ROI", "Retailer view", "Learnings", "Recommendation"],
     outline: `Promo Review PowerPoint Outline
@@ -241,6 +246,7 @@ Slide 8: Recommendation
   },
   {
     name: "Investment Ask PowerPoint Template",
+    file: "promotional-proposal-template.pptx",
     useCase: "Frame a customer investment ask for internal approval or negotiation.",
     includes: ["Ask summary", "Commercial rationale", "Expected uplift", "Payback", "Conditions", "Risks", "Counter-offer", "Decision"],
     outline: `Investment Ask PowerPoint Outline
@@ -482,8 +488,8 @@ export function TemplateLibrary() {
           <h2>Blank deck structures for common commercial moments.</h2>
           <div className="section-lead">
             <p>
-              These are static PowerPoint-style outlines. Download buttons are
-              placeholders until real files are added.
+              These are editable PowerPoint files with APT branding and fictional
+              example data you can adapt for customer meetings.
             </p>
           </div>
         </div>
@@ -506,7 +512,9 @@ export function TemplateLibrary() {
                 <pre>{template.outline}</pre>
               </details>
               <div className="template-actions">
-                <DisabledDownloadButton>Download PowerPoint template coming soon</DisabledDownloadButton>
+                <a className="button button-secondary" download href={`/templates/${template.file}`}>
+                  Download PowerPoint template
+                </a>
                 <CopyTemplateButton label="Copy outline" text={template.outline} />
               </div>
             </article>

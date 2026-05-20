@@ -53,6 +53,7 @@ const freeTemplates = [
   {
     title: "Joint Business Plan Template",
     slug: "joint-business-plan",
+    pptx: "joint-business-plan-template.pptx",
     deckType: "Joint Business Plan",
     for: "Align annual customer objectives, growth pillars, investment and measures of success.",
     audience: "NAMs, KAMs, Sales Directors and customer-facing category teams",
@@ -61,6 +62,7 @@ const freeTemplates = [
   {
     title: "Quarterly Business Review Template",
     slug: "qbr-template",
+    pptx: "quarterly-business-review-template.pptx",
     deckType: "Quarterly Business Review",
     for: "Review performance, wins, misses, risks and next-quarter actions.",
     audience: "Customer teams, commercial leadership and buyer review meetings",
@@ -69,6 +71,7 @@ const freeTemplates = [
   {
     title: "Promotional Proposal Template",
     slug: "promo-proposal",
+    pptx: "promotional-proposal-template.pptx",
     deckType: "Promotional Proposal",
     for: "Frame a promotion mechanic, support ask, retailer benefit and ROI logic.",
     audience: "Retail buyers, trade marketing and internal promo approval",
@@ -77,6 +80,7 @@ const freeTemplates = [
   {
     title: "Range Review Template",
     slug: "range-review",
+    pptx: "range-review-template.pptx",
     deckType: "Range Review",
     for: "Structure distribution, rate of sale, opportunity gaps and recommended range changes.",
     audience: "NAMs, category teams and range review stakeholders",
@@ -85,6 +89,7 @@ const freeTemplates = [
   {
     title: "New Product Launch Template",
     slug: "product-launch",
+    pptx: "new-product-launch-template.pptx",
     deckType: "New Product Launch",
     for: "Build the first launch sell-in story with customer fit, forecast, support and launch plan.",
     audience: "Buyers, commercial managers and innovation launch teams",
@@ -93,6 +98,7 @@ const freeTemplates = [
   {
     title: "Annual Planning Template",
     slug: "annual-planning",
+    pptx: "annual-planning-template.pptx",
     deckType: "Annual Planning",
     for: "Turn the full-year review, targets, investment priorities and quarterly roadmap into one planning deck.",
     audience: "NAMs, sales leads, commercial finance and customer leadership",
@@ -101,6 +107,7 @@ const freeTemplates = [
   {
     title: "Buyer Meeting Prep Template",
     slug: "buyer-meeting",
+    pptx: "buyer-meeting-prep-template.pptx",
     deckType: "Buyer Meeting Prep",
     for: "Prepare the meeting objective, buyer priorities, talking points, objections and follow-up actions.",
     audience: "NAMs, KAMs and customer-facing commercial teams",
@@ -109,6 +116,7 @@ const freeTemplates = [
   {
     title: "Category Opportunity Deck",
     slug: "category-opportunity",
+    pptx: "category-opportunity-deck-template.pptx",
     deckType: "Category Opportunity",
     for: "Size a category opportunity with shopper trends, competitor benchmarking and practical recommendations.",
     audience: "NAMs, category managers, buyers and commercial leaders",
@@ -283,7 +291,7 @@ export function PresentationTemplatesFree() {
         <p className="eyebrow">Free editable templates</p>
         <h2>Free editable deck templates.</h2>
         <p className="section-lead">
-          Download real editable HTML deck templates with APT branding, structured slides and fictional UK retail example data you can adapt for customer meetings.
+          Download real editable PowerPoint templates with APT branding, structured slides and fictional UK retail example data you can adapt for customer meetings.
         </p>
       </div>
       {aptMode === "pro" ? (
@@ -324,8 +332,8 @@ export function PresentationTemplatesFree() {
                 <li>Includes editable text, charts, tables and commercial example data.</li>
               </ul>
               <div className="template-actions">
-                <a className="button" download href={`/templates/${template.slug}/template.html`}>
-                  Download editable template
+                <a className="button" download href={`/templates/${template.pptx}`}>
+                  Download PowerPoint template
                 </a>
                 {aptMode === "pro" ? (
                   <button className="button button-secondary" onClick={() => openBuilder(template)} type="button">

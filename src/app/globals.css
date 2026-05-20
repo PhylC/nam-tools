@@ -923,7 +923,19 @@ p {
 
 .roi-planner {
   display: grid;
+  gap: 1.1rem;
+}
+
+.roi-plan-header {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
   gap: 1rem;
+  align-items: start;
+}
+
+.inline-plan-name {
+  margin-top: 0.65rem;
+  max-width: 420px;
 }
 
 .roi-control-grid {
@@ -953,6 +965,42 @@ p {
   gap: 0.55rem;
 }
 
+.roi-action-bar-simple {
+  justify-content: flex-end;
+}
+
+.scenario-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.scenario-card {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.9rem;
+}
+
+.scenario-card-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.scenario-name-field {
+  max-width: 360px;
+}
+
+.scenario-card-actions,
+.table-action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .roi-table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -963,7 +1011,7 @@ p {
 
 .roi-planner-table {
   width: max-content;
-  min-width: 1700px;
+  min-width: 1420px;
   border-collapse: separate;
   border-spacing: 0;
   font-size: 0.84rem;
@@ -1034,6 +1082,58 @@ p {
   border-color: var(--accent);
   color: var(--accent-dark);
   outline: none;
+}
+
+.new-line-button,
+.new-scenario-button {
+  width: fit-content;
+}
+
+.scenario-summary {
+  display: grid;
+  gap: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  padding: 0.85rem;
+}
+
+.scenario-summary h4 {
+  font-size: 1rem;
+}
+
+.scenario-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.scenario-comparison {
+  display: grid;
+  gap: 0.9rem;
+  background: #f9fdfc;
+  border-color: #aac6c2;
+}
+
+.scenario-comparison p {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.saved-plans-details {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.saved-plans-details summary {
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.8rem 0.9rem;
+}
+
+.saved-panel-compact {
+  border-top: 1px solid var(--border);
+  padding: 0.9rem;
 }
 
 .field span {
@@ -1565,8 +1665,14 @@ p {
   .footer-grid,
   .checklist,
   .locked-grid,
-  .roi-control-grid {
+  .roi-control-grid,
+  .roi-plan-header,
+  .scenario-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .roi-action-bar-simple {
+    justify-content: flex-start;
   }
 
   .tool-side {
@@ -1620,7 +1726,10 @@ p {
   .summary-actions,
   .segmented-control,
   .agenda-row,
-  .roi-action-bar {
+  .roi-action-bar,
+  .scenario-card-header,
+  .scenario-card-actions,
+  .table-action-group {
     display: grid;
     grid-template-columns: 1fr;
   }

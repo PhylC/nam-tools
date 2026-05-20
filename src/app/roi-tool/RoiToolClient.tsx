@@ -355,7 +355,6 @@ function validateUploadRows(rows: Record<string, string>[]) {
   const errors: string[] = [];
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    if (!has(row.scenario_name ?? "")) errors.push(`Row ${rowNumber}: scenario_name is required.`);
     if (!has(row.sku_model_item_number ?? "")) errors.push(`Row ${rowNumber}: sku_model_item_number is required.`);
     if (!has(row.product_name ?? "")) errors.push(`Row ${rowNumber}: product_name is required.`);
     if (!has(row.current_invoice_price ?? "")) errors.push(`Row ${rowNumber}: current_invoice_price is required.`);
@@ -585,7 +584,7 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
   }
 
   return (
-    <button className="button" onClick={exportCsv} type="button">
+    <button className="button button-secondary button-small" onClick={exportCsv} type="button">
       Export results
     </button>
   );
@@ -613,97 +612,168 @@ function TableInput({
 function RoiEditableTable({
   lines,
   onChangeLines,
+  onAddLine,
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
+  onAddLine: () => void;
 }) {
   function changeLine(id: string, patch: Partial<RoiLine>) {
     onChangeLines(updateLine(lines, id, patch));
   }
 
+  function duplicateLine(id: string) {
+    const index = lines.findIndex((line) => line.id === id);
+    if (index < 0) return;
+    onChangeLines([...lines.slice(0, index + 1), copyLine(lines[index]), ...lines.slice(index + 1)]);
+  }
+
   return (
-    <div className="roi-table-scroll">
-      <table className="roi-planner-table">
-        <thead>
-          <tr>
-            <th colSpan={3}>Core</th>
-            <th colSpan={7}>Commercial inputs</th>
-            <th colSpan={3}>Volume</th>
-            <th colSpan={8}>Calculated outputs</th>
-            <th colSpan={2}>Actions</th>
-          </tr>
-          <tr>
-            <th className="sticky-col">SKU / Model / Item No.</th>
-            <th>Product</th>
-            <th>Notes</th>
-            <th>Current invoice</th>
-            <th>Promo invoice</th>
-            <th>SOA/support</th>
-            <th>Current SRP</th>
-            <th>Promo SRP</th>
-            <th>COGS</th>
-            <th>Fixed support</th>
-            <th>Baseline units</th>
-            <th>Promo units</th>
-            <th>Incremental units</th>
-            <th>Baseline revenue</th>
-            <th>Promo revenue</th>
-            <th>Incremental revenue</th>
-            <th>Support cost</th>
-            <th>Baseline gross profit</th>
-            <th>Promo gross profit</th>
-            <th>Profit impact</th>
-            <th>Revenue ROI</th>
-            <th>Profit ROI</th>
-            <th>Duplicate</th>
-            <th>Delete</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => {
-            const calc = calculateLine(line);
-            return (
-              <tr key={line.id}>
-                <td className="sticky-col">
-                  <TableInput ariaLabel="SKU / Model / Item No." value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
-                </td>
-                <td><TableInput ariaLabel="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} /></td>
-                <td><TableInput ariaLabel="Notes" value={line.notes} onChange={(value) => changeLine(line.id, { notes: value })} /></td>
-                <td><TableInput ariaLabel="Current invoice" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
-                <td><TableInput ariaLabel="Promo invoice" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
-                <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
-                <td><TableInput ariaLabel="Current SRP" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} /></td>
-                <td><TableInput ariaLabel="Promo SRP" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} /></td>
-                <td><TableInput ariaLabel="COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
-                <td><TableInput ariaLabel="Fixed support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
-                <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
-                <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
-                <td>{calc.incrementalUnits.toLocaleString("en-GB")}</td>
-                <td>{money(calc.baselineRevenue)}</td>
-                <td>{money(calc.promoRevenue)}</td>
-                <td>{money(calc.incrementalRevenue)}</td>
-                <td>{money(calc.supportCost)}</td>
-                <td>{calc.hasCogs ? money(calc.baselineProfit) : "n/a"}</td>
-                <td>{calc.hasCogs ? money(calc.promoProfit) : "n/a"}</td>
-                <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
-                <td>{pct(calc.revenueRoi)}</td>
-                <td>{pct(calc.profitRoi)}</td>
-                <td>
-                  <button className="table-action" onClick={() => onChangeLines([...lines, copyLine(line)])} type="button">
-                    Duplicate
-                  </button>
-                </td>
-                <td>
-                  <button className="table-action" onClick={() => onChangeLines(lines.filter((item) => item.id !== line.id))} type="button">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <>
+      <div className="roi-table-scroll">
+        <table className="roi-planner-table">
+          <thead>
+            <tr>
+              <th className="sticky-col">SKU / Item</th>
+              <th>Product</th>
+              <th>Current invoice</th>
+              <th>Promo invoice</th>
+              <th>SOA/support</th>
+              <th>Baseline units</th>
+              <th>Promo units</th>
+              <th>COGS optional</th>
+              <th>Fixed support optional</th>
+              <th>Incremental revenue</th>
+              <th>Support cost</th>
+              <th>Profit impact</th>
+              <th>Revenue ROI</th>
+              <th>Profit ROI</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lines.map((line) => {
+              const calc = calculateLine(line);
+              return (
+                <tr key={line.id}>
+                  <td className="sticky-col">
+                    <TableInput ariaLabel="SKU / Item" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
+                  </td>
+                  <td><TableInput ariaLabel="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} /></td>
+                  <td><TableInput ariaLabel="Current invoice" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
+                  <td><TableInput ariaLabel="Promo invoice" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
+                  <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
+                  <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
+                  <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
+                  <td><TableInput ariaLabel="COGS optional" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
+                  <td><TableInput ariaLabel="Fixed support optional" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
+                  <td>{money(calc.incrementalRevenue)}</td>
+                  <td>{money(calc.supportCost)}</td>
+                  <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
+                  <td>{pct(calc.revenueRoi)}</td>
+                  <td>{pct(calc.profitRoi)}</td>
+                  <td>
+                    <div className="table-action-group">
+                      <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
+                      <button className="table-action" onClick={() => onChangeLines(lines.length > 1 ? lines.filter((item) => item.id !== line.id) : [blankLine()])} type="button">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <button className="button button-secondary new-line-button" onClick={onAddLine} type="button">+ New line</button>
+    </>
+  );
+}
+
+function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
+  const summary = aggregate(scenario.lines);
+
+  return (
+    <div className="scenario-summary">
+      <h4>Scenario summary</h4>
+      <div className="result-grid scenario-summary-grid">
+        <div className="result-item"><span className="result-label">Total baseline revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
+        <div className="result-item"><span className="result-label">Total promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
+        <div className="result-item"><span className="result-label">Incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
+        <div className="result-item"><span className="result-label">Total support cost</span><strong>{money(summary.supportCost)}</strong></div>
+        <div className="result-item"><span className="result-label">Profit impact</span><strong>{summary.profitRows ? money(summary.profitImpact) : "n/a"}</strong></div>
+        <div className="result-item"><span className="result-label">Revenue ROI</span><strong>{pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
+        <div className="result-item"><span className="result-label">Profit ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)}</strong></div>
+        <div className="result-item"><span className="result-label">Lines / SKUs</span><strong>{scenario.lines.length}</strong></div>
+      </div>
     </div>
+  );
+}
+
+function scenarioMetrics(scenario: RoiScenario) {
+  const summary = aggregate(scenario.lines);
+  return {
+    scenario,
+    summary,
+    revenueRoi: summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null,
+    profitRoi: summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null,
+  };
+}
+
+function maxBy<T>(items: T[], selector: (item: T) => number | null) {
+  return items.reduce<T | null>((best, item) => {
+    const value = selector(item);
+    if (value === null || !Number.isFinite(value)) return best;
+    if (!best) return item;
+    const bestValue = selector(best);
+    return bestValue === null || value > bestValue ? item : best;
+  }, null);
+}
+
+function minBy<T>(items: T[], selector: (item: T) => number | null) {
+  return items.reduce<T | null>((best, item) => {
+    const value = selector(item);
+    if (value === null || !Number.isFinite(value)) return best;
+    if (!best) return item;
+    const bestValue = selector(best);
+    return bestValue === null || value < bestValue ? item : best;
+  }, null);
+}
+
+function ScenarioComparison({ scenarios }: { scenarios: RoiScenario[] }) {
+  const metrics = scenarios.map(scenarioMetrics);
+  const bestRevenue = maxBy(metrics, (item) => item.summary.revenueImpact);
+  const bestProfit = maxBy(metrics, (item) => (item.summary.profitRows ? item.summary.profitImpact : null));
+  const bestRoi = maxBy(metrics, (item) => item.profitRoi ?? item.revenueRoi);
+  const lowestSupport = minBy(metrics, (item) => item.summary.supportCost);
+  const highestRisk = maxBy(metrics, (item) => item.summary.supportCost || (item.revenueRoi !== null ? 1 / Math.max(item.revenueRoi, 0.01) : null));
+  const recommended = bestProfit?.profitRoi !== null && bestProfit?.profitRoi !== undefined ? bestProfit : bestRoi;
+
+  let narrative = "Add another scenario to compare options.";
+  if (scenarios.length > 1 && bestRevenue && lowestSupport && recommended) {
+    narrative =
+      bestRevenue.scenario.id === lowestSupport.scenario.id
+        ? `${bestRevenue.scenario.name} delivers the strongest incremental revenue while also requiring the lowest support cost.`
+        : `${bestRevenue.scenario.name} delivers the strongest incremental revenue, but ${lowestSupport.scenario.name} is more efficient on support cost. Recommended route: ${recommended.scenario.name}.`;
+  }
+
+  return (
+    <section className="card scenario-comparison">
+      <div>
+        <span className="pill pro-pill">Scenario comparison</span>
+        <h3>Scenario comparison</h3>
+        <p>{narrative}</p>
+      </div>
+      {scenarios.length > 1 ? (
+        <div className="result-grid scenario-summary-grid">
+          <div className="result-item"><span className="result-label">Best revenue scenario</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
+          <div className="result-item"><span className="result-label">Best profit scenario</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+          <div className="result-item"><span className="result-label">Best ROI scenario</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
+          <div className="result-item"><span className="result-label">Lowest support cost</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
+          <div className="result-item"><span className="result-label">Highest risk scenario</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
+          <div className="result-item"><span className="result-label">Recommended scenario</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -727,45 +797,46 @@ function SavedRoiPlansPanel({
   onRename: (id: string, name: string) => void | Promise<void>;
 }) {
   return (
-    <aside className="card saved-panel">
-      <div>
-        <span className="pill pro-pill">Pro Preview</span>
-        <h3>Saved ROI plans</h3>
-        <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
-        {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
-        {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
-      </div>
-      {groups.length ? (
-        <div className="saved-list">
-          {groups.map((group) => (
-            <div className="saved-row" key={group.id}>
-              <label className="field saved-name-field">
-                <span>Saved ROI group</span>
-                <input value={group.name} onChange={(event) => onRename(group.id, event.target.value)} />
-              </label>
-              <div>
-                <strong>{group.scenarios.length} scenario(s)</strong>
-                <span>Last edited {new Date(group.updatedAt ?? group.updated_at ?? group.savedAt).toLocaleDateString("en-GB")}</span>
-              </div>
-              <div className="summary-actions">
-                <button className="button button-secondary button-small" onClick={() => onLoad(group.id)} type="button">Load</button>
-                <button className="button button-secondary button-small" onClick={() => onDuplicate(group.id)} type="button">Duplicate</button>
-                <button className="button button-secondary button-small" onClick={() => onDelete(group.id)} type="button">Delete</button>
-              </div>
-            </div>
-          ))}
+    <details className="saved-plans-details">
+      <summary>Load or manage saved ROI plans</summary>
+      <aside className="saved-panel saved-panel-compact">
+        <div>
+          <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
+          {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
+          {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
         </div>
-      ) : (
-        <p className="empty-state">No saved ROI plans yet.</p>
-      )}
-    </aside>
+        {groups.length ? (
+          <div className="saved-list">
+            {groups.map((group) => (
+              <div className="saved-row" key={group.id}>
+                <label className="field saved-name-field">
+                  <span>Saved ROI group</span>
+                  <input value={group.name} onChange={(event) => onRename(group.id, event.target.value)} />
+                </label>
+                <div>
+                  <strong>{group.scenarios.length} scenario(s)</strong>
+                  <span>Last edited {new Date(group.updatedAt ?? group.updated_at ?? group.savedAt).toLocaleDateString("en-GB")}</span>
+                </div>
+                <div className="summary-actions">
+                  <button className="button button-secondary button-small" onClick={() => onLoad(group.id)} type="button">Load</button>
+                  <button className="button button-secondary button-small" onClick={() => onDuplicate(group.id)} type="button">Duplicate</button>
+                  <button className="button button-secondary button-small" onClick={() => onDelete(group.id)} type="button">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">No saved ROI plans yet.</p>
+        )}
+      </aside>
+    </details>
   );
 }
 
 export function RoiProPlanner() {
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
-  const { groups, activeGroupId, activeScenarioId } = plannerState;
+  const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
   const [saveMode, setSaveMode] = useState<SaveMode>("local");
   const [saveMessage, setSaveMessage] = useState("");
@@ -786,14 +857,6 @@ export function RoiProPlanner() {
       ...current,
       groups: nextGroups.length ? nextGroups : [blankGroup()],
     }));
-  }
-
-  function setActiveGroupId(nextGroupId: string) {
-    setPlannerState((current) => ({ ...current, activeGroupId: nextGroupId }));
-  }
-
-  function setActiveScenarioId(nextScenarioId: string) {
-    setPlannerState((current) => ({ ...current, activeScenarioId: nextScenarioId }));
   }
 
   async function saveCurrentGroup() {
@@ -868,12 +931,10 @@ export function RoiProPlanner() {
   }
 
   const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
-  const activeScenario =
-    activeGroup?.scenarios.find((scenario) => scenario.id === activeScenarioId) ??
-    activeGroup?.scenarios[0];
-  const summary = aggregate(activeScenario?.lines ?? []);
+  const activeScenarios = activeGroup?.scenarios ?? [];
 
-  function setActiveScenarioLines(lines: RoiLine[]) {
+  function setScenarioLines(scenarioId: string, lines: RoiLine[]) {
+    if (!activeGroup) return;
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) =>
@@ -881,7 +942,7 @@ export function RoiProPlanner() {
           ? {
               ...group,
               scenarios: group.scenarios.map((scenario) =>
-                scenario.id === activeScenario?.id ? { ...scenario, lines } : scenario,
+                scenario.id === scenarioId ? { ...scenario, lines } : scenario,
               ),
             }
           : group,
@@ -889,30 +950,9 @@ export function RoiProPlanner() {
     }));
   }
 
-  function addGroup() {
-    const nextGroup = blankGroup(`Group ${groups.length + 1}`);
-    setPlannerState((current) => ({
-      ...current,
-      groups: [...current.groups, nextGroup],
-      activeGroupId: nextGroup.id,
-      activeScenarioId: nextGroup.scenarios[0]?.id ?? "",
-    }));
-  }
-
-  function duplicateGroup() {
-    if (!activeGroup) return;
-    const nextGroup: RoiGroup = {
-      ...activeGroup,
-      id: crypto.randomUUID(),
-      name: `${activeGroup.name} copy`,
-      scenarios: activeGroup.scenarios.map(copyScenario),
-    };
-    setPlannerState((current) => ({
-      ...current,
-      groups: [...current.groups, nextGroup],
-      activeGroupId: nextGroup.id,
-      activeScenarioId: nextGroup.scenarios[0]?.id ?? "",
-    }));
+  function addLineToScenario(scenarioId: string) {
+    const scenario = activeScenarios.find((item) => item.id === scenarioId);
+    setScenarioLines(scenarioId, [...(scenario?.lines ?? []), blankLine()]);
   }
 
   function addScenario() {
@@ -927,21 +967,32 @@ export function RoiProPlanner() {
     }));
   }
 
-  function duplicateScenario() {
-    if (!activeGroup || !activeScenario) return;
-    const nextScenario = copyScenario(activeScenario);
+  function duplicateScenario(scenarioId: string) {
+    if (!activeGroup) return;
+    const scenario = activeGroup.scenarios.find((item) => item.id === scenarioId);
+    if (!scenario) return;
+    const nextScenario = copyScenario(scenario);
+    const index = activeGroup.scenarios.findIndex((item) => item.id === scenarioId);
+    const nextScenarios = [
+      ...activeGroup.scenarios.slice(0, index + 1),
+      nextScenario,
+      ...activeGroup.scenarios.slice(index + 1),
+    ];
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) =>
-        group.id === activeGroup.id ? { ...group, scenarios: [...group.scenarios, nextScenario] } : group,
+        group.id === activeGroup.id ? { ...group, scenarios: nextScenarios } : group,
       ),
       activeScenarioId: nextScenario.id,
     }));
   }
 
-  function deleteScenario() {
-    if (!activeGroup || !activeScenario || activeGroup.scenarios.length <= 1) return;
-    const nextScenarios = activeGroup.scenarios.filter((scenario) => scenario.id !== activeScenario.id);
+  function deleteScenario(scenarioId: string) {
+    if (!activeGroup) return;
+    const nextScenarios =
+      activeGroup.scenarios.length > 1
+        ? activeGroup.scenarios.filter((scenario) => scenario.id !== scenarioId)
+        : [blankScenario("Scenario 1")];
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) =>
@@ -951,15 +1002,15 @@ export function RoiProPlanner() {
     }));
   }
 
-  function updateActiveScenarioName(name: string) {
-    if (!activeGroup || !activeScenario) return;
+  function updateScenarioName(scenarioId: string, name: string) {
+    if (!activeGroup) return;
     setGroups(
       groups.map((group) =>
         group.id === activeGroup.id
           ? {
               ...group,
               scenarios: group.scenarios.map((scenario) =>
-                scenario.id === activeScenario.id ? { ...scenario, name } : scenario,
+                scenario.id === scenarioId ? { ...scenario, name } : scenario,
               ),
             }
           : group,
@@ -978,7 +1029,7 @@ export function RoiProPlanner() {
       }
 
       const scenarios = rows.reduce<RoiScenario[]>((items, row) => {
-        const scenarioName = row.scenario_name;
+        const scenarioName = has(row.scenario_name ?? "") ? row.scenario_name : "Scenario 1";
         const existing = items.find((scenario) => scenario.name === scenarioName);
         const line = lineFromUploadRow(row);
         if (existing) {
@@ -1008,110 +1059,71 @@ export function RoiProPlanner() {
           Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
         </p>
       </div>
-      <SavedRoiPlansPanel
-        groups={savedGroups}
-        isLoading={isLoading}
-        saveMessage={saveMessage}
-        saveMode={saveMode}
-        onDelete={deleteSavedGroup}
-        onDuplicate={duplicateSavedGroup}
-        onLoad={loadSavedGroup}
-        onRename={renameSavedGroup}
-      />
-
       <article className="card roi-planner">
-        <div className="output-header">
+        <div className="roi-plan-header">
           <div>
             <span className="pill pro-pill">Pro workflow preview</span>
-            <h3>{activeGroup?.name}</h3>
+            <label className="field inline-plan-name">
+              <span>Plan name</span>
+              <input
+                value={activeGroup?.name ?? ""}
+                onChange={(event) =>
+                  setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, name: event.target.value } : group)))
+                }
+              />
+            </label>
+            <p className="form-note">Use this template if you prefer to build your plan in Excel first. You can also add lines directly below.</p>
           </div>
-          <div className="summary-actions">
-            <button className="button button-secondary button-small" onClick={addGroup} type="button">Add group</button>
-            <button className="button button-secondary button-small" onClick={duplicateGroup} type="button">Duplicate group</button>
-            <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">
-              Save ROI group
-            </button>
-          </div>
-        </div>
-        <div className="roi-control-grid">
-          <label className="field">
-            <span>Scenario group</span>
-            <select value={activeGroup?.id ?? ""} onChange={(event) => {
-              setActiveGroupId(event.target.value);
-              const nextGroup = groups.find((group) => group.id === event.target.value);
-              setActiveScenarioId(nextGroup?.scenarios[0]?.id ?? "");
-            }}>
-              {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
-            </select>
-          </label>
-          <label className="field">
-            <span>Scenario</span>
-            <select value={activeScenario?.id ?? ""} onChange={(event) => setActiveScenarioId(event.target.value)}>
-              {activeGroup?.scenarios.map((scenario) => <option key={scenario.id} value={scenario.id}>{scenario.name}</option>)}
-            </select>
-          </label>
-          <Field label="Group name" value={activeGroup?.name ?? ""} onChange={(value) => setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, name: value } : group))} />
-          <Field label="Rename scenario" value={activeScenario?.name ?? ""} onChange={updateActiveScenarioName} />
-          <div className="upload-control">
-            <span className="field-label">Upload a populated spreadsheet</span>
+          <div className="roi-action-bar roi-action-bar-simple">
+            <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
             <label className="button button-secondary button-small">
-              Upload CSV
+              Upload spreadsheet
               <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
             </label>
-            <small>
-              Use the input template first so your columns match the planner. Required and optional fields are clearly marked.
-              XLSX support can be added later. Use the downloadable CSV template for now.
-            </small>
+            <CsvExportButton groups={activeGroup ? [activeGroup] : groups} />
+            <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">
+              Save plan
+            </button>
           </div>
         </div>
 
-        <div className="roi-action-bar">
-          <button className="button button-secondary button-small" onClick={addScenario} type="button">Add scenario</button>
-          <button className="button button-secondary button-small" onClick={duplicateScenario} type="button">Duplicate scenario</button>
-          <button className="button button-secondary button-small" onClick={deleteScenario} type="button">Delete scenario</button>
-          <button className="button button-secondary button-small" onClick={() => setActiveScenarioLines([...(activeScenario?.lines ?? []), blankLine()])} type="button">Add line</button>
-          <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
-          <CsvExportButton groups={groups} />
-        </div>
+        <SavedRoiPlansPanel
+          groups={savedGroups}
+          isLoading={isLoading}
+          saveMessage={saveMessage}
+          saveMode={saveMode}
+          onDelete={deleteSavedGroup}
+          onDuplicate={duplicateSavedGroup}
+          onLoad={loadSavedGroup}
+          onRename={renameSavedGroup}
+        />
 
-        <p className="form-note">
-          Download this first if you want to populate the ROI planner by spreadsheet. Required fields are marked in the header.
-        </p>
-
-        <div className="scenario-tabs" aria-label="Scenario tabs">
-          {activeGroup?.scenarios.map((scenario) => (
-            <button
-              className={scenario.id === activeScenario?.id ? "tab-button tab-button-active" : "tab-button"}
-              key={scenario.id}
-              onClick={() => setActiveScenarioId(scenario.id)}
-              type="button"
-            >
-              {scenario.name}
-            </button>
+        <div className="scenario-stack">
+          {activeScenarios.map((scenario) => (
+            <section className="scenario-card" key={scenario.id}>
+              <div className="scenario-card-header">
+                <label className="field scenario-name-field">
+                  <span>Scenario name</span>
+                  <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
+                </label>
+                <div className="scenario-card-actions">
+                  <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
+                  <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
+                </div>
+              </div>
+              <RoiEditableTable
+                lines={scenario.lines}
+                onAddLine={() => addLineToScenario(scenario.id)}
+                onChangeLines={(lines) => setScenarioLines(scenario.id, lines)}
+              />
+              <ScenarioSummary scenario={scenario} />
+            </section>
           ))}
         </div>
 
-        <div className="result-box">
-          <div className="output-header">
-            <div>
-              <h3>Scenario summary</h3>
-              <p className="empty-state">Prefer to build it manually? Add one line at a time and the table will calculate as you go.</p>
-            </div>
-            <span className="pill">{activeScenario?.lines.length ?? 0} line(s)</span>
-          </div>
-          <div className="result-grid">
-            <div className="result-item"><span className="result-label">Total baseline revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
-            <div className="result-item"><span className="result-label">Total promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
-            <div className="result-item"><span className="result-label">Total incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
-            <div className="result-item"><span className="result-label">Total support cost</span><strong>{money(summary.supportCost)}</strong></div>
-            <div className="result-item"><span className="result-label">Total profit impact</span><strong>{summary.profitRows ? money(summary.profitImpact) : "n/a"}</strong></div>
-            <div className="result-item"><span className="result-label">Revenue ROI</span><strong>{pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
-            <div className="result-item"><span className="result-label">Profit ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)}</strong></div>
-            <div className="result-item"><span className="result-label">Lines / SKUs</span><strong>{activeScenario?.lines.length ?? 0}</strong></div>
-          </div>
-        </div>
+        <button className="button new-scenario-button" onClick={addScenario} type="button">+ New scenario</button>
 
-        <RoiEditableTable lines={activeScenario?.lines ?? []} onChangeLines={setActiveScenarioLines} />
+        <ScenarioComparison scenarios={activeScenarios} />
         <p className="planning-disclaimer">
           {saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."} Account saving will be used automatically when Pro login is active.
         </p>
