@@ -691,19 +691,27 @@ function RoiEditableTable({
 
 function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
   const summary = aggregate(scenario.lines);
+  const items = [
+    ["Base rev", money(summary.baselineRevenue)],
+    ["Promo rev", money(summary.promoRevenue)],
+    ["Inc rev", money(summary.revenueImpact)],
+    ["Support", money(summary.supportCost)],
+    ["Profit", summary.profitRows ? money(summary.profitImpact) : "n/a"],
+    ["Rev ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
+    ["Profit ROI", pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)],
+    ["Lines", scenario.lines.length.toLocaleString("en-GB")],
+  ];
 
   return (
     <div className="scenario-summary">
       <h4>Scenario summary</h4>
-      <div className="result-grid scenario-summary-grid">
-        <div className="result-item"><span className="result-label">Total baseline revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
-        <div className="result-item"><span className="result-label">Total promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
-        <div className="result-item"><span className="result-label">Incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
-        <div className="result-item"><span className="result-label">Total support cost</span><strong>{money(summary.supportCost)}</strong></div>
-        <div className="result-item"><span className="result-label">Profit impact</span><strong>{summary.profitRows ? money(summary.profitImpact) : "n/a"}</strong></div>
-        <div className="result-item"><span className="result-label">Revenue ROI</span><strong>{pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
-        <div className="result-item"><span className="result-label">Profit ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)}</strong></div>
-        <div className="result-item"><span className="result-label">Lines / SKUs</span><strong>{scenario.lines.length}</strong></div>
+      <div className="kpi-strip" aria-label={`${scenario.name} summary`}>
+        {items.map(([label, value]) => (
+          <div className="kpi-chip" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -764,13 +772,13 @@ function ScenarioComparison({ scenarios }: { scenarios: RoiScenario[] }) {
         <p>{narrative}</p>
       </div>
       {scenarios.length > 1 ? (
-        <div className="result-grid scenario-summary-grid">
-          <div className="result-item"><span className="result-label">Best revenue scenario</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
-          <div className="result-item"><span className="result-label">Best profit scenario</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
-          <div className="result-item"><span className="result-label">Best ROI scenario</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
-          <div className="result-item"><span className="result-label">Lowest support cost</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
-          <div className="result-item"><span className="result-label">Highest risk scenario</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
-          <div className="result-item"><span className="result-label">Recommended scenario</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+        <div className="comparison-chip-row">
+          <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
+          <div className="kpi-chip"><span>Best profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+          <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
+          <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
+          <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
+          <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
         </div>
       ) : null}
     </section>
