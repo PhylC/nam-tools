@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Quarterly Business Review deck preview">
+  <rect width="960" height="540" fill="#f7f5ef"/><rect x="54" y="48" width="852" height="444" rx="12" fill="#fff" stroke="#ded9cf"/>
+  <text x="86" y="90" fill="#0f766e" font-family="Arial" font-size="18" font-weight="800">QUARTERLY BUSINESS REVIEW</text><text x="760" y="92" fill="#1b2b44" font-family="Arial" font-size="34" font-weight="900">APT</text>
+  <text x="86" y="154" fill="#16202a" font-family="Arial" font-size="46" font-weight="900">Q3 Trading Review</text><text x="86" y="196" fill="#5c6773" font-family="Arial" font-size="22">Scorecard, performance, promo readout and next-quarter asks</text>
+  <rect x="86" y="244" width="170" height="104" rx="8" fill="#e5f3f1"/><text x="112" y="295" fill="#0f766e" font-family="Arial" font-size="34" font-weight="900">£5.1m</text><text x="112" y="325" fill="#16202a" font-family="Arial" font-size="17">Q3 sales</text>
+  <rect x="282" y="244" width="170" height="104" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><text x="308" y="295" fill="#176b3a" font-family="Arial" font-size="34" font-weight="900">+7.2%</text><text x="308" y="325" fill="#16202a" font-family="Arial" font-size="17">YoY</text>
+  <rect x="500" y="238" width="320" height="170" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><line x1="532" y1="278" x2="790" y2="278" stroke="#ded9cf"/><line x1="532" y1="322" x2="790" y2="322" stroke="#ded9cf"/><line x1="532" y1="366" x2="790" y2="366" stroke="#ded9cf"/><rect x="550" y="294" width="188" height="14" rx="7" fill="#0f766e"/><rect x="550" y="338" width="132" height="14" rx="7" fill="#c9972b"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Range Review deck preview">
+  <rect width="960" height="540" fill="#f7f5ef"/><rect x="54" y="48" width="852" height="444" rx="12" fill="#fff" stroke="#ded9cf"/>
+  <text x="86" y="90" fill="#0f766e" font-family="Arial" font-size="18" font-weight="800">RANGE REVIEW</text><text x="760" y="92" fill="#1b2b44" font-family="Arial" font-size="34" font-weight="900">APT</text>
+  <text x="86" y="154" fill="#16202a" font-family="Arial" font-size="44" font-weight="900">Fixture Productivity Review</text><text x="86" y="196" fill="#5c6773" font-family="Arial" font-size="22">SKU productivity, distribution gaps and recommendations</text>
+  <rect x="90" y="246" width="730" height="42" fill="#e5f3f1"/><rect x="90" y="288" width="730" height="42" fill="#fff" stroke="#ded9cf"/><rect x="90" y="330" width="730" height="42" fill="#fff" stroke="#ded9cf"/><rect x="90" y="372" width="730" height="42" fill="#fff" stroke="#ded9cf"/>
+  <text x="116" y="274" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">SKU</text><text x="330" y="274" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">ROS</text><text x="520" y="274" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">Action</text>
+  <rect x="330" y="304" width="180" height="12" rx="6" fill="#0f766e"/><rect x="330" y="346" width="126" height="12" rx="6" fill="#c9972b"/><rect x="330" y="388" width="72" height="12" rx="6" fill="#a93434"/>
+</svg>

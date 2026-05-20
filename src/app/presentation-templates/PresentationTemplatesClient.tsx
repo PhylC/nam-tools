@@ -1,12 +1,21 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductSectionTabs, useAptMode } from "../components/AptMode";
+import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import {
+  deleteDeckBrief,
+  duplicateDeckBrief,
+  listDeckBriefs,
+  saveDeckBrief,
+  type SaveMode,
+} from "../../lib/saveStore";
 
 type DeckBrief = {
   id: string;
   name: string;
+  templateSlug: string;
   templateName: string;
   dataName: string;
   deckType: string;
@@ -25,83 +34,111 @@ type DeckBrief = {
   charts: string;
   tone: string;
   notes: string;
+  generatedOutline: DraftSlide[];
+  createdAt: string;
+  updatedAt: string;
 };
 
+type DraftSlide = {
+  title: string;
+  purpose: string;
+  narrative: string;
+  chart: string;
+  data: string;
+  speakerNote: string;
+};
+
+// Templates intentionally use editable example content so users can adapt them for real customer meetings.
 const freeTemplates = [
   {
     title: "Joint Business Plan Template",
+    slug: "joint-business-plan",
+    deckType: "Joint Business Plan",
     for: "Align annual customer objectives, growth pillars, investment and measures of success.",
     audience: "NAMs, KAMs, Sales Directors and customer-facing category teams",
-    slides: "10-12 slides",
+    slides: "11 slides",
   },
   {
-    title: "QBR / Quarterly Review Template",
+    title: "Quarterly Business Review Template",
+    slug: "qbr-template",
+    deckType: "Quarterly Business Review",
     for: "Review performance, wins, misses, risks and next-quarter actions.",
     audience: "Customer teams, commercial leadership and buyer review meetings",
-    slides: "8-10 slides",
+    slides: "10 slides",
   },
   {
     title: "Promotional Proposal Template",
+    slug: "promo-proposal",
+    deckType: "Promotional Proposal",
     for: "Frame a promotion mechanic, support ask, retailer benefit and ROI logic.",
     audience: "Retail buyers, trade marketing and internal promo approval",
-    slides: "7-9 slides",
+    slides: "8 slides",
   },
   {
     title: "Range Review Template",
+    slug: "range-review",
+    deckType: "Range Review",
     for: "Structure distribution, rate of sale, opportunity gaps and recommended range changes.",
     audience: "NAMs, category teams and range review stakeholders",
-    slides: "9-11 slides",
+    slides: "9 slides",
   },
   {
     title: "New Product Launch Template",
+    slug: "product-launch",
+    deckType: "New Product Launch",
     for: "Build the first launch sell-in story with customer fit, forecast, support and launch plan.",
     audience: "Buyers, commercial managers and innovation launch teams",
-    slides: "8-10 slides",
+    slides: "9 slides",
+  },
+  {
+    title: "Annual Planning Template",
+    slug: "annual-planning",
+    deckType: "Annual Planning",
+    for: "Turn the full-year review, targets, investment priorities and quarterly roadmap into one planning deck.",
+    audience: "NAMs, sales leads, commercial finance and customer leadership",
+    slides: "7 slides",
+  },
+  {
+    title: "Buyer Meeting Prep Template",
+    slug: "buyer-meeting",
+    deckType: "Buyer Meeting Prep",
+    for: "Prepare the meeting objective, buyer priorities, talking points, objections and follow-up actions.",
+    audience: "NAMs, KAMs and customer-facing commercial teams",
+    slides: "8 slides",
+  },
+  {
+    title: "Category Opportunity Deck",
+    slug: "category-opportunity",
+    deckType: "Category Opportunity",
+    for: "Size a category opportunity with shopper trends, competitor benchmarking and practical recommendations.",
+    audience: "NAMs, category managers, buyers and commercial leaders",
+    slides: "7 slides",
   },
 ];
 
-const chartOptions = ["Line chart", "Bar chart", "Waterfall chart", "Pie/donut chart", "Table", "Scorecard/KPI tiles"];
-
-const agendaQuestionRules = [
-  {
-    match: "performance",
-    questions: [
-      "What period are we reviewing?",
-      "What were the biggest wins?",
-      "What underperformed?",
-      "What should the buyer care about?",
-    ],
-  },
-  {
-    match: "promo",
-    questions: [
-      "What is the proposed mechanic?",
-      "What support is being requested?",
-      "What is the expected uplift?",
-      "What is the retailer benefit?",
-    ],
-  },
-  {
-    match: "range",
-    questions: [
-      "Which SKUs deserve more space?",
-      "Which range gaps are hurting the customer?",
-      "What evidence supports the change?",
-      "What is the risk if nothing changes?",
-    ],
-  },
+const chartOptions = [
+  "KPI scorecard",
+  "Line chart",
+  "Bar chart",
+  "Waterfall chart",
+  "Table",
+  "Range/product matrix",
+  "Promo ROI summary",
 ];
 
-const blankBrief = (): DeckBrief => ({
+const blankBrief = (template = freeTemplates[1]): DeckBrief => {
+  const now = new Date().toISOString();
+  return {
   id: crypto.randomUUID(),
-  name: "Customer deck brief",
+  name: `${template.deckType} brief`,
+  templateSlug: template.slug,
   templateName: "",
   dataName: "",
-  deckType: "QBR / Customer Review",
+  deckType: template.deckType,
   audience: "",
   customer: "",
   meetingDate: "",
-  agenda: ["Performance Review", "Promo Proposal", "Next Steps"],
+  agenda: defaultAgendaForTemplate(template.deckType),
   context: "",
   headlines: "",
   risks: "",
@@ -113,7 +150,25 @@ const blankBrief = (): DeckBrief => ({
   charts: "",
   tone: "Commercial, clear and buyer-friendly",
   notes: "",
-});
+  generatedOutline: [],
+  createdAt: now,
+  updatedAt: now,
+  };
+};
+
+function defaultAgendaForTemplate(deckType: string) {
+  const agendaByType: Record<string, string[]> = {
+    "Joint Business Plan": ["Executive Summary", "Customer Objectives", "Growth Pillars", "Investment Plan", "Next Steps"],
+    "Quarterly Business Review": ["Performance Review", "Promo Performance", "Range Updates", "Next Quarter Priorities"],
+    "Promotional Proposal": ["Proposal Summary", "Commercial Rationale", "ROI Assumptions", "Recommendation"],
+    "Range Review": ["Current Range", "SKU Productivity", "Distribution Gaps", "Recommended Actions"],
+    "New Product Launch": ["Launch Overview", "Market Opportunity", "Forecast", "Commercial Ask"],
+    "Annual Planning": ["FY Review", "Strategic Objectives", "Annual Targets", "Quarterly Roadmap"],
+    "Buyer Meeting Prep": ["Meeting Objective", "Buyer Priorities", "Objection Handling", "Follow-up Actions"],
+    "Category Opportunity": ["Category Performance", "Shopper Trends", "Opportunity Sizing", "Recommendations"],
+  };
+  return agendaByType[deckType] ?? ["Executive Summary", "Commercial Context", "Recommendation", "Next Steps"];
+}
 
 function Field({
   label,
@@ -141,43 +196,333 @@ function Field({
 }
 
 export function PresentationTemplatesFree() {
+  const { aptMode } = useAptMode();
+  const { isAuthenticated, isLoading } = useSupabaseAuth();
+  const [activeTemplateSlug, setActiveTemplateSlug] = useState("");
+  const [brief, setBrief] = useState<DeckBrief>(() => blankBrief(freeTemplates[0]));
+  const [savedBriefs, setSavedBriefs] = useState<DeckBrief[]>([]);
+  const [saveMode, setSaveMode] = useState<SaveMode>("local");
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    listDeckBriefs().then((result) => {
+      setSavedBriefs(result.data as DeckBrief[]);
+      setSaveMode(result.mode);
+      setSaveMessage(result.message ?? "");
+    });
+  }, [isAuthenticated]);
+
+  async function copyOutline(slug: string) {
+    const response = await fetch(`/templates/${slug}/outline.txt`);
+    const outline = await response.text();
+    await navigator.clipboard.writeText(outline);
+  }
+
+  async function refreshBriefs() {
+    const result = await listDeckBriefs();
+    setSavedBriefs(result.data as DeckBrief[]);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+  }
+
+  function openBuilder(template: (typeof freeTemplates)[number]) {
+    setActiveTemplateSlug(template.slug);
+    setBrief((current) =>
+      current.templateSlug === template.slug
+        ? current
+        : { ...blankBrief(template), customer: current.customer, audience: current.audience },
+    );
+  }
+
+  async function saveBrief(nextBrief = brief) {
+    const now = new Date().toISOString();
+    const item = {
+      ...nextBrief,
+      updatedAt: now,
+      createdAt: nextBrief.createdAt || now,
+    };
+    const result = await saveDeckBrief(item);
+    setBrief(result.data as DeckBrief);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    await refreshBriefs();
+  }
+
+  function loadBrief(id: string) {
+    const saved = savedBriefs.find((item) => item.id === id);
+    if (!saved) return;
+    setBrief(saved);
+    setActiveTemplateSlug(saved.templateSlug);
+  }
+
+  async function duplicateBrief(id: string) {
+    const result = await duplicateDeckBrief(id);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    if (result.data) {
+      setBrief(result.data as DeckBrief);
+      setActiveTemplateSlug((result.data as DeckBrief).templateSlug);
+    }
+    await refreshBriefs();
+  }
+
+  async function deleteBrief(id: string) {
+    const result = await deleteDeckBrief(id);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    await refreshBriefs();
+    if (brief.id === id) {
+      const template = freeTemplates.find((item) => item.slug === activeTemplateSlug) ?? freeTemplates[0];
+      setBrief(blankBrief(template));
+    }
+  }
+
   return (
     <section className="shell section">
       <div className="section-header">
         <p className="eyebrow">Free editable templates</p>
         <h2>Free editable deck templates.</h2>
         <p className="section-lead">
-          Download placeholders are prepared for editable PowerPoint files. The final static files will live in public downloads and use APT branding.
+          Download real editable HTML deck templates with APT branding, structured slides and fictional UK retail example data you can adapt for customer meetings.
         </p>
       </div>
+      {aptMode === "pro" ? (
+        <SavedDeckBriefsPanel
+          briefs={savedBriefs}
+          isLoading={isLoading}
+          saveMessage={saveMessage}
+          saveMode={saveMode}
+          onDelete={deleteBrief}
+          onDuplicate={duplicateBrief}
+          onLoad={loadBrief}
+        />
+      ) : null}
       <div className="card-grid">
         {freeTemplates.map((template) => (
-          <article className="card template-card" key={template.title}>
-            <span className="pill">Free</span>
-            <div className="template-preview">
-              <Image
-                alt="APT Account Planning Tools logo"
-                height={48}
-                src="/images/branding/logo-full.png"
-                width={118}
+          <div className="template-card-wrap" key={template.title}>
+            <article className="card template-card">
+              <div className="badge-row">
+                <span className="pill">Editable</span>
+                <span className="pill">APT template</span>
+                <span className="pill">Example data included</span>
+              </div>
+              <div className="template-preview">
+                <Image
+                  alt={`${template.title} preview`}
+                  height={270}
+                  src={`/templates/${template.slug}/preview.svg`}
+                  width={480}
+                />
+                <strong>{template.title}</strong>
+                <small>Editable example deck included</small>
+              </div>
+              <h3>{template.title}</h3>
+              <p>{template.for}</p>
+              <ul className="compact-list">
+                <li>Suggested audience: {template.audience}</li>
+                <li>Approx slide count: {template.slides}</li>
+                <li>Includes editable text, charts, tables and commercial example data.</li>
+              </ul>
+              <div className="template-actions">
+                <a className="button" download href={`/templates/${template.slug}/template.html`}>
+                  Download editable template
+                </a>
+                {aptMode === "pro" ? (
+                  <button className="button button-secondary" onClick={() => openBuilder(template)} type="button">
+                    Build custom deck
+                  </button>
+                ) : (
+                  <span className="pill pro-pill">Build custom deck in Pro Preview</span>
+                )}
+                <button className="button button-secondary" onClick={() => copyOutline(template.slug)} type="button">
+                  Copy outline
+                </button>
+              </div>
+            </article>
+            {aptMode === "pro" && activeTemplateSlug === template.slug ? (
+              <CustomDeckBuilder
+                brief={brief}
+                onBriefChange={setBrief}
+                onClose={() => setActiveTemplateSlug("")}
+                onDelete={() => deleteBrief(brief.id)}
+                onDuplicate={async () => {
+                  const now = new Date().toISOString();
+                  const copy = { ...brief, id: crypto.randomUUID(), name: `${brief.name} copy`, createdAt: now, updatedAt: now };
+                  setBrief(copy);
+                  await saveBrief(copy);
+                }}
+                onSave={saveBrief}
+                template={template}
               />
-              <strong>{template.title}</strong>
-              <small>Editable deck placeholder</small>
-            </div>
-            <h3>{template.title}</h3>
-            <p>{template.for}</p>
-            <ul className="compact-list">
-              <li>Suggested audience: {template.audience}</li>
-              <li>Approx slide count: {template.slides}</li>
-              <li>Includes editable text boxes, chart placeholders and summary tables.</li>
-            </ul>
-            <div className="cta-row">
-              <button className="button button-secondary" type="button">Download placeholder</button>
-              <button className="button button-secondary" type="button">Copy outline</button>
-            </div>
-          </article>
+            ) : null}
+          </div>
         ))}
       </div>
+    </section>
+  );
+}
+
+function SavedDeckBriefsPanel({
+  briefs,
+  isLoading,
+  saveMessage,
+  saveMode,
+  onDelete,
+  onDuplicate,
+  onLoad,
+}: {
+  briefs: DeckBrief[];
+  isLoading: boolean;
+  saveMessage: string;
+  saveMode: SaveMode;
+  onDelete: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onLoad: (id: string) => void;
+}) {
+  return (
+    <aside className="card saved-panel">
+      <div>
+        <span className="pill pro-pill">Pro Preview</span>
+        <h3>Saved custom decks</h3>
+        <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
+        {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
+        {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
+      </div>
+      {briefs.length ? (
+        <div className="saved-list">
+          {briefs.map((brief) => (
+            <div className="saved-row" key={brief.id}>
+              <div>
+                <strong>{brief.name}</strong>
+                <span>{brief.deckType} · Last edited {new Date(brief.updatedAt).toLocaleDateString("en-GB")}</span>
+              </div>
+              <div className="summary-actions">
+                <button className="button button-secondary button-small" onClick={() => onLoad(brief.id)} type="button">Load</button>
+                <button className="button button-secondary button-small" onClick={() => onDuplicate(brief.id)} type="button">Duplicate</button>
+                <button className="button button-secondary button-small" onClick={() => onDelete(brief.id)} type="button">Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="empty-state">No saved custom deck briefs yet.</p>
+      )}
+    </aside>
+  );
+}
+
+function CustomDeckBuilder({
+  brief,
+  onBriefChange,
+  onClose,
+  onDelete,
+  onDuplicate,
+  onSave,
+  template,
+}: {
+  brief: DeckBrief;
+  onBriefChange: (brief: DeckBrief) => void;
+  onClose: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onSave: (brief?: DeckBrief) => void;
+  template: (typeof freeTemplates)[number];
+}) {
+  function update(patch: Partial<DeckBrief>) {
+    onBriefChange({ ...brief, ...patch, updatedAt: new Date().toISOString() });
+  }
+
+  function generateOutline() {
+    const generatedOutline = draftSlides(brief);
+    const next = { ...brief, generatedOutline, updatedAt: new Date().toISOString() };
+    onBriefChange(next);
+  }
+
+  return (
+    <section className="card custom-deck-builder">
+      <div className="output-header">
+        <div>
+          <span className="pill pro-pill">Pro Preview</span>
+          <h2>Build custom {template.title}</h2>
+          <p>Use your agenda, customer context and data to create a stronger first draft.</p>
+        </div>
+        <button className="button button-secondary button-small" onClick={onClose} type="button">Close</button>
+      </div>
+
+      <div className="grid-two">
+        <article className="mini-card">
+          <h3>Uploads</h3>
+          <label className="field">
+            <span>Upload company/template deck</span>
+            <input type="file" />
+          </label>
+          <label className="field">
+            <span>Upload supporting data</span>
+            <input type="file" />
+          </label>
+          <p className="empty-state">Future account feature will connect files, style matching and saved templates.</p>
+        </article>
+        <article className="mini-card">
+          <h3>Chart options</h3>
+          <label className="field">
+            <span>Must-include charts</span>
+            <select value={brief.charts} onChange={(event) => update({ charts: event.target.value })}>
+              <option value="">Choose a chart/table type</option>
+              {chartOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <Field label="Tone/style preference" value={brief.tone} onChange={(value) => update({ tone: value })} />
+        </article>
+      </div>
+
+      <div className="form-grid">
+        <Field label="Deck name" value={brief.name} onChange={(value) => update({ name: value })} />
+        <Field label="Customer / retailer" value={brief.customer} onChange={(value) => update({ customer: value })} />
+        <Field label="Audience" value={brief.audience} onChange={(value) => update({ audience: value })} />
+        <Field label="Meeting date" value={brief.meetingDate} onChange={(value) => update({ meetingDate: value })} />
+        <Field label="Business context" multiline value={brief.context} onChange={(value) => update({ context: value })} />
+        <Field label="Key numbers / performance headlines" multiline value={brief.headlines} onChange={(value) => update({ headlines: value })} />
+        <Field label="Key risks" multiline value={brief.risks} onChange={(value) => update({ risks: value })} />
+        <Field label="Key opportunities" multiline value={brief.opportunities} onChange={(value) => update({ opportunities: value })} />
+        <Field label="Previous meeting / QBR notes" multiline value={brief.previousNotes} onChange={(value) => update({ previousNotes: value })} />
+        <Field label="Planned outcome" multiline value={brief.outcome} onChange={(value) => update({ outcome: value })} />
+        <Field label="Commercial ask" multiline value={brief.ask} onChange={(value) => update({ ask: value })} />
+        <Field label="Must-include products/SKUs" multiline value={brief.products} onChange={(value) => update({ products: value })} />
+        <Field label="Extra notes" multiline value={brief.notes} onChange={(value) => update({ notes: value })} />
+      </div>
+
+      <AgendaBuilder agenda={brief.agenda} onChange={(agenda) => update({ agenda })} />
+
+      <div className="cta-row">
+        <button className="button" onClick={generateOutline} type="button">Generate draft outline</button>
+        <button className="button button-secondary" onClick={() => onSave()} type="button">Save deck brief</button>
+        <button className="button button-secondary" onClick={onDuplicate} type="button">Duplicate deck brief</button>
+        <button className="button button-secondary" onClick={onDelete} type="button">Delete saved brief</button>
+      </div>
+
+      {brief.generatedOutline.length ? (
+        <section className="draft-outline">
+          <div className="output-header">
+            <div>
+              <span className="pill pro-pill">Generated draft outline</span>
+              <h3>{brief.deckType} outline</h3>
+            </div>
+          </div>
+          <div className="card-grid">
+            {brief.generatedOutline.map((slide, index) => (
+              <article className="mini-card" key={`${slide.title}-${index}`}>
+                <span className="pill">Slide {index + 1}</span>
+                <h3>{slide.title}</h3>
+                <p><strong>Purpose:</strong> {slide.purpose}</p>
+                <p><strong>Narrative:</strong> {slide.narrative}</p>
+                <p><strong>Chart/table:</strong> {slide.chart}</p>
+                <p><strong>Inputs/data needed:</strong> {slide.data}</p>
+                <p><strong>Speaker note prompt:</strong> {slide.speakerNote}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }
@@ -218,179 +563,32 @@ function AgendaBuilder({
   );
 }
 
-function FollowUpQuestionPanel({ brief }: { brief: DeckBrief }) {
-  const questions = useMemo(() => {
-    const agendaQuestions = brief.agenda.flatMap((item) => {
-      const rule = agendaQuestionRules.find((entry) => item.toLowerCase().includes(entry.match));
-      return rule?.questions ?? [];
-    });
-    return [
-      "What is the one decision you need from this meeting?",
-      "Which 3 numbers best prove the opportunity?",
-      "What objection is the buyer most likely to raise?",
-      "What is the fallback proposal?",
-      ...agendaQuestions,
-    ].slice(0, 10);
-  }, [brief.agenda]);
+function draftSlides(brief: DeckBrief): DraftSlide[] {
+  // Future Pro version can replace this rule-based outline with AI-assisted deck generation.
+  const chart = brief.charts || "KPI scorecard";
+  const context = brief.context || "Explain the customer context, what has changed and why it matters now.";
+  const headline = brief.headlines || "Use the strongest three numbers to prove the commercial story.";
+  const ask = brief.ask || "State the decision needed, commercial ask, timing and fallback position.";
+  const rules: Record<string, string[]> = {
+    "Joint Business Plan": ["Executive summary", "Customer objectives", "Business performance overview", "Category trends", "Growth pillars", "Innovation pipeline", "Promotional strategy", "Financial targets", "Risks and opportunities", "Next steps"],
+    "Quarterly Business Review": ["Quarter summary", "KPI scorecard", "Sales performance", "Promo performance", "Distribution and range updates", "Wins and challenges", "Competitor activity", "Next quarter priorities", "Commercial asks"],
+    "Promotional Proposal": ["Proposal summary", "Promotional mechanic", "Commercial rationale", "Forecast uplift", "ROI assumptions", "Retailer benefit", "Support requested", "Recommendation"],
+    "Range Review": ["Current range overview", "SKU productivity", "Distribution gaps", "ROS analysis", "Category trends", "Rationalisation opportunities", "Innovation recommendations", "Recommended actions"],
+    "New Product Launch": ["Launch overview", "Consumer insight", "Market opportunity", "Product proposition", "Forecast", "Activation plan", "Launch timeline", "Commercial ask"],
+    "Annual Planning": ["FY review", "Strategic objectives", "Annual targets", "Investment priorities", "Quarterly roadmap", "Risk areas"],
+    "Buyer Meeting Prep": ["Meeting objective", "Buyer priorities", "Key talking points", "Objection handling", "Supporting data", "Desired outcome", "Follow-up actions"],
+    "Category Opportunity": ["Category performance", "Shopper trends", "White space opportunities", "Competitor benchmarking", "Opportunity sizing", "Recommendations"],
+  };
+  const slideTitles = rules[brief.deckType] ?? ["Executive summary", ...brief.agenda, "Commercial ask and next steps"];
 
-  return (
-    <aside className="card">
-      <span className="pill pro-pill">Suggested follow-up questions</span>
-      <ul className="compact-list">
-        {questions.map((question) => <li key={question}>{question}</li>)}
-      </ul>
-    </aside>
-  );
-}
-
-function draftSlides(brief: DeckBrief) {
-  return [
-    {
-      title: "Executive summary",
-      purpose: "Frame the meeting and the decision required.",
-      narrative: brief.headlines || "Summarise the commercial story in three numbers.",
-      chart: "Scorecard/KPI tiles",
-      data: "Sales, margin, distribution and execution headlines.",
-    },
-    ...brief.agenda.map((item) => ({
-      title: item,
-      purpose: `Cover ${item.toLowerCase()} with a buyer-ready recommendation.`,
-      narrative: brief.context || "Explain what changed, why it matters and what you recommend.",
-      chart: brief.charts || "Table or bar chart",
-      data: "Relevant sales, SKU, promotion or category data.",
-    })),
-    {
-      title: "Commercial ask and next steps",
-      purpose: "Make the decision and owner clear.",
-      narrative: brief.ask || "State the ask, timing, conditions and fallback.",
-      chart: "Action tracker",
-      data: "Owners, dates, decision needed and dependencies.",
-    },
-  ];
-}
-
-export function ProDeckBuilderPreview() {
-  const [brief, setBrief] = useState<DeckBrief>(blankBrief);
-  const [savedBriefs, setSavedBriefs] = useState<DeckBrief[]>(() => {
-    if (typeof window === "undefined") return [];
-    const saved = window.localStorage.getItem("apt-deck-briefs");
-    if (!saved) return [];
-    try {
-      return JSON.parse(saved) as DeckBrief[];
-    } catch {
-      return [];
-    }
-  });
-  const [showDraft, setShowDraft] = useState(false);
-
-  function persist(nextBriefs: DeckBrief[]) {
-    setSavedBriefs(nextBriefs);
-    window.localStorage.setItem("apt-deck-briefs", JSON.stringify(nextBriefs));
-  }
-
-  function saveBrief() {
-    const next = [...savedBriefs.filter((item) => item.id !== brief.id), brief];
-    persist(next);
-  }
-
-  return (
-    <section className="shell section">
-      <div className="section-header">
-        <p className="eyebrow">Pro Deck Builder Preview</p>
-        <h2>Build a stronger first draft of your customer deck.</h2>
-        <p className="section-lead">
-          Build a stronger first draft of your customer deck using your agenda, data, previous meeting notes and commercial objective.
-        </p>
-      </div>
-      <div className="grid-two">
-        <article className="card">
-          <span className="pill pro-pill">Template/design upload</span>
-          <h3>Upload company deck/template</h3>
-          <input type="file" />
-          <Field label="Template name saved locally" placeholder="e.g. 2026 customer deck master" value={brief.templateName} onChange={(value) => setBrief({ ...brief, templateName: value })} />
-          <p>Future version will use the uploaded file to match colours, fonts and style. For now, the template name can be saved locally.</p>
-        </article>
-        <article className="card">
-          <span className="pill pro-pill">Data upload</span>
-          <h3>Upload sales/performance data</h3>
-          <input type="file" />
-          <Field label="Data file name" placeholder="e.g. Retailer A Q4 performance" value={brief.dataName} onChange={(value) => setBrief({ ...brief, dataName: value })} />
-          <label className="field">
-            <span>Chart option</span>
-            <select value={brief.charts} onChange={(event) => setBrief({ ...brief, charts: event.target.value })}>
-              <option value="">Choose a chart type</option>
-              {chartOptions.map((option) => <option key={option}>{option}</option>)}
-            </select>
-          </label>
-          <p>Suggested data types: sales by period, sales by SKU, customer performance, promo performance, forecast and category data.</p>
-        </article>
-      </div>
-
-      <article className="card tool-form">
-        <span className="pill pro-pill">Deck brief inputs</span>
-        <div className="form-grid">
-          <Field label="Brief name" value={brief.name} onChange={(value) => setBrief({ ...brief, name: value })} />
-          <Field label="Deck type" value={brief.deckType} onChange={(value) => setBrief({ ...brief, deckType: value })} />
-          <Field label="Audience" placeholder="e.g. buyer and category manager" value={brief.audience} onChange={(value) => setBrief({ ...brief, audience: value })} />
-          <Field label="Retailer/customer" placeholder="e.g. Retailer A" value={brief.customer} onChange={(value) => setBrief({ ...brief, customer: value })} />
-          <Field label="Meeting date" placeholder="e.g. 2026-09-15" value={brief.meetingDate} onChange={(value) => setBrief({ ...brief, meetingDate: value })} />
-          <Field label="Tone/style preference" value={brief.tone} onChange={(value) => setBrief({ ...brief, tone: value })} />
-          <Field label="Business context" multiline value={brief.context} onChange={(value) => setBrief({ ...brief, context: value })} />
-          <Field label="Key numbers / performance headlines" multiline value={brief.headlines} onChange={(value) => setBrief({ ...brief, headlines: value })} />
-          <Field label="Key risks" multiline value={brief.risks} onChange={(value) => setBrief({ ...brief, risks: value })} />
-          <Field label="Key opportunities" multiline value={brief.opportunities} onChange={(value) => setBrief({ ...brief, opportunities: value })} />
-          <Field label="Notes from previous QBR/meeting" multiline value={brief.previousNotes} onChange={(value) => setBrief({ ...brief, previousNotes: value })} />
-          <Field label="Planned outcome" multiline value={brief.outcome} onChange={(value) => setBrief({ ...brief, outcome: value })} />
-          <Field label="Commercial ask" multiline value={brief.ask} onChange={(value) => setBrief({ ...brief, ask: value })} />
-          <Field label="Must-include products/SKUs" multiline value={brief.products} onChange={(value) => setBrief({ ...brief, products: value })} />
-          <Field label="Must-include charts" multiline value={brief.charts} onChange={(value) => setBrief({ ...brief, charts: value })} />
-          <Field label="Extra notes" multiline value={brief.notes} onChange={(value) => setBrief({ ...brief, notes: value })} />
-        </div>
-        <AgendaBuilder agenda={brief.agenda} onChange={(agenda) => setBrief({ ...brief, agenda })} />
-        <div className="cta-row">
-          <button className="button" onClick={() => setShowDraft(true)} type="button">Generate draft deck</button>
-          <button className="button button-secondary" onClick={saveBrief} type="button">Save deck brief locally</button>
-          <button className="button button-secondary" onClick={() => setBrief({ ...brief, id: crypto.randomUUID(), name: `${brief.name} copy` })} type="button">Duplicate saved deck</button>
-          <button className="button button-secondary" onClick={() => persist(savedBriefs.filter((item) => item.id !== brief.id))} type="button">Delete saved deck</button>
-        </div>
-        <p className="planning-disclaimer">Saved locally on this device for now. Account saving will be added with Pro login later.</p>
-        {savedBriefs.length ? (
-          <label className="field">
-            <span>Edit saved deck</span>
-            <select value={brief.id} onChange={(event) => {
-              const selected = savedBriefs.find((item) => item.id === event.target.value);
-              if (selected) setBrief(selected);
-            }}>
-              <option value="">Choose saved deck</option>
-              {savedBriefs.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-            </select>
-          </label>
-        ) : null}
-      </article>
-
-      <FollowUpQuestionPanel brief={brief} />
-
-      {showDraft ? (
-        <section className="card">
-          <span className="pill pro-pill">Draft deck output</span>
-          <h2>Generated draft outline</h2>
-          <div className="card-grid">
-            {draftSlides(brief).map((slide, index) => (
-              <article className="mini-card" key={`${slide.title}-${index}`}>
-                <span className="pill">Slide {index + 1}</span>
-                <h3>{slide.title}</h3>
-                <p><strong>Purpose:</strong> {slide.purpose}</p>
-                <p><strong>Narrative:</strong> {slide.narrative}</p>
-                <p><strong>Chart/table:</strong> {slide.chart}</p>
-                <p><strong>Data needed:</strong> {slide.data}</p>
-                <p><strong>Speaker note prompt:</strong> What decision or action should this slide move forward?</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ) : null}
-    </section>
-  );
+  return slideTitles.map((title, index) => ({
+    title,
+    purpose: index === 0 ? "Frame the meeting and the decision required." : `Make ${title.toLowerCase()} clear, commercial and buyer-ready.`,
+    narrative: title.toLowerCase().includes("ask") || title.toLowerCase().includes("recommendation") ? ask : title.toLowerCase().includes("performance") || title.toLowerCase().includes("summary") ? headline : context,
+    chart: title.toLowerCase().includes("roi") ? "Promo ROI summary" : title.toLowerCase().includes("range") || title.toLowerCase().includes("sku") ? "Range/product matrix" : chart,
+    data: brief.products || "Sales, units, margin, distribution, promo performance and customer-specific context.",
+    speakerNote: "What decision, objection or next action should this slide move forward?",
+  }));
 }
 
 export function PresentationTemplatesProduct() {
@@ -402,23 +600,21 @@ export function PresentationTemplatesProduct() {
         <ProductSectionTabs />
       </section>
       <PresentationTemplatesFree />
-      {aptMode === "pro" ? (
-        <ProDeckBuilderPreview />
-      ) : (
+      {aptMode !== "pro" ? (
         <section className="shell section">
           <article className="card split-band">
             <div>
               <p className="eyebrow">Pro Preview</p>
-              <h2>Pro will build the first draft for you.</h2>
+              <h2>Build a custom deck from any template.</h2>
               <p>
-                Switch the header toggle to Pro Preview to try the deck brief
-                workflow, agenda builder, follow-up prompts and local saving.
+                Switch the header toggle to Pro Preview to open a template-specific
+                custom deck brief directly from each template card.
               </p>
             </div>
             <span className="pill pro-pill">Future account feature</span>
           </article>
         </section>
-      )}
+      ) : null}
     </>
   );
 }

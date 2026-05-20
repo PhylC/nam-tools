@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Hero, PlaceholderImage } from "../components/Shell";
+import Image from "next/image";
+import { Hero } from "../components/Shell";
 import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 
 export const metadata: Metadata = {
@@ -19,13 +20,17 @@ export default function PresentationTemplatesPage() {
           into a first draft.
         </p>
       </Hero>
-      <section className="shell visual-section">
-        <PlaceholderImage
-          aspectRatio="16 / 9"
-          description="Future PowerPoint and Google Sheets-style guided template workflow visual."
-          filename="/images/templates-deck-builder-placeholder.svg"
-          title="Deck builder preview"
-        />
+      <section className="shell visual-section template-hero-previews" aria-label="Template previews">
+        {[
+          ["Joint Business Plan", "/templates/joint-business-plan/preview.svg"],
+          ["Quarterly Business Review", "/templates/qbr-template/preview.svg"],
+          ["Promotional Proposal", "/templates/promo-proposal/preview.svg"],
+        ].map(([title, src]) => (
+          <figure key={title}>
+            <Image alt={`${title} preview`} height={270} src={src} width={480} />
+            <figcaption>{title}</figcaption>
+          </figure>
+        ))}
       </section>
       <PresentationTemplatesProduct />
     </div>

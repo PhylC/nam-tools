@@ -1,7 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ProductSectionTabs, useAptMode } from "../components/AptMode";
+import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import {
+  deleteRoiPlan,
+  duplicateRoiPlan,
+  listRoiPlans,
+  loadRoiPlan,
+  saveRoiPlan,
+  type SaveMode,
+} from "../../lib/saveStore";
 
 type SupportMode = "soa" | "promoInvoice";
 
@@ -37,7 +46,12 @@ type RoiGroup = {
 };
 
 type SavedRoiGroup = RoiGroup & {
+  group_name: string;
   savedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 function initialRoiPlannerState() {
@@ -693,19 +707,79 @@ function RoiEditableTable({
   );
 }
 
+function SavedRoiPlansPanel({
+  groups,
+  isLoading,
+  saveMessage,
+  saveMode,
+  onDelete,
+  onDuplicate,
+  onLoad,
+  onRename,
+}: {
+  groups: SavedRoiGroup[];
+  isLoading: boolean;
+  saveMessage: string;
+  saveMode: SaveMode;
+  onDelete: (id: string) => void | Promise<void>;
+  onDuplicate: (id: string) => void | Promise<void>;
+  onLoad: (id: string) => void | Promise<void>;
+  onRename: (id: string, name: string) => void | Promise<void>;
+}) {
+  return (
+    <aside className="card saved-panel">
+      <div>
+        <span className="pill pro-pill">Pro Preview</span>
+        <h3>Saved ROI plans</h3>
+        <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
+        {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
+        {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
+      </div>
+      {groups.length ? (
+        <div className="saved-list">
+          {groups.map((group) => (
+            <div className="saved-row" key={group.id}>
+              <label className="field saved-name-field">
+                <span>Saved ROI group</span>
+                <input value={group.name} onChange={(event) => onRename(group.id, event.target.value)} />
+              </label>
+              <div>
+                <strong>{group.scenarios.length} scenario(s)</strong>
+                <span>Last edited {new Date(group.updatedAt ?? group.updated_at ?? group.savedAt).toLocaleDateString("en-GB")}</span>
+              </div>
+              <div className="summary-actions">
+                <button className="button button-secondary button-small" onClick={() => onLoad(group.id)} type="button">Load</button>
+                <button className="button button-secondary button-small" onClick={() => onDuplicate(group.id)} type="button">Duplicate</button>
+                <button className="button button-secondary button-small" onClick={() => onDelete(group.id)} type="button">Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="empty-state">No saved ROI plans yet.</p>
+      )}
+    </aside>
+  );
+}
+
 export function RoiProPlanner() {
+  const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId, activeScenarioId } = plannerState;
-  const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>(() => {
-    if (typeof window === "undefined") return [];
-    const saved = window.localStorage.getItem("apt-roi-saved-groups");
-    if (!saved) return [];
-    try {
-      return JSON.parse(saved) as SavedRoiGroup[];
-    } catch {
-      return [];
-    }
-  });
+  const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
+  const [saveMode, setSaveMode] = useState<SaveMode>("local");
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    refreshSavedGroups();
+  }, [isAuthenticated]);
+
+  async function refreshSavedGroups() {
+    const result = await listRoiPlans();
+    setSavedGroups(result.data as SavedRoiGroup[]);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+  }
 
   function setGroups(nextGroups: RoiGroup[]) {
     setPlannerState((current) => ({
@@ -722,17 +796,31 @@ export function RoiProPlanner() {
     setPlannerState((current) => ({ ...current, activeScenarioId: nextScenarioId }));
   }
 
-  function saveLocal() {
-    // Temporary local save. Replace with database-backed saved groups after auth is added.
+  async function saveCurrentGroup() {
     if (!activeGroup) return;
-    const snapshot: SavedRoiGroup = { ...activeGroup, savedAt: new Date().toISOString() };
-    const nextSaved = [snapshot, ...savedGroups.filter((group) => group.id !== activeGroup.id)];
-    setSavedGroups(nextSaved);
-    window.localStorage.setItem("apt-roi-saved-groups", JSON.stringify(nextSaved));
+    const existing = savedGroups.find((group) => group.id === activeGroup.id);
+    const now = new Date().toISOString();
+    const snapshot = {
+      ...activeGroup,
+      name: activeGroup.name,
+      group_name: activeGroup.name,
+      savedAt: now,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      created_at: existing?.created_at ?? existing?.createdAt ?? now,
+      updated_at: now,
+    };
+    const result = await saveRoiPlan(snapshot);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    await refreshSavedGroups();
   }
 
-  function loadLocal(groupId: string) {
-    const saved = savedGroups.find((group) => group.id === groupId);
+  async function loadSavedGroup(groupId: string) {
+    const result = await loadRoiPlan(groupId);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    const saved = result.data as SavedRoiGroup | null;
     if (!saved) return;
     setPlannerState((current) => {
       const nextGroups = [saved, ...current.groups.filter((group) => group.id !== saved.id)];
@@ -742,6 +830,41 @@ export function RoiProPlanner() {
         activeScenarioId: saved.scenarios[0]?.id ?? "",
       };
     });
+  }
+
+  async function renameSavedGroup(groupId: string, name: string) {
+    const saved = savedGroups.find((group) => group.id === groupId);
+    if (!saved) return;
+    const now = new Date().toISOString();
+    const result = await saveRoiPlan({ ...saved, name, group_name: name, savedAt: now, updatedAt: now, updated_at: now });
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    await refreshSavedGroups();
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) => (group.id === groupId ? { ...group, name } : group)),
+    }));
+  }
+
+  async function duplicateSavedGroup(groupId: string) {
+    const result = await duplicateRoiPlan(groupId);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    const copy = result.data as SavedRoiGroup | null;
+    if (!copy) return;
+    setPlannerState((current) => ({
+      groups: [copy, ...current.groups],
+      activeGroupId: copy.id,
+      activeScenarioId: copy.scenarios[0]?.id ?? "",
+    }));
+    await refreshSavedGroups();
+  }
+
+  async function deleteSavedGroup(groupId: string) {
+    const result = await deleteRoiPlan(groupId);
+    setSaveMode(result.mode);
+    setSaveMessage(result.message ?? "");
+    await refreshSavedGroups();
   }
 
   const activeGroup = groups.find((group) => group.id === activeGroupId) ?? groups[0];
@@ -885,6 +1008,16 @@ export function RoiProPlanner() {
           Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
         </p>
       </div>
+      <SavedRoiPlansPanel
+        groups={savedGroups}
+        isLoading={isLoading}
+        saveMessage={saveMessage}
+        saveMode={saveMode}
+        onDelete={deleteSavedGroup}
+        onDuplicate={duplicateSavedGroup}
+        onLoad={loadSavedGroup}
+        onRename={renameSavedGroup}
+      />
 
       <article className="card roi-planner">
         <div className="output-header">
@@ -895,7 +1028,9 @@ export function RoiProPlanner() {
           <div className="summary-actions">
             <button className="button button-secondary button-small" onClick={addGroup} type="button">Add group</button>
             <button className="button button-secondary button-small" onClick={duplicateGroup} type="button">Duplicate group</button>
-            <button className="button button-secondary button-small" onClick={saveLocal} type="button">Save locally</button>
+            <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">
+              Save ROI group
+            </button>
           </div>
         </div>
         <div className="roi-control-grid">
@@ -917,17 +1052,6 @@ export function RoiProPlanner() {
           </label>
           <Field label="Group name" value={activeGroup?.name ?? ""} onChange={(value) => setGroups(groups.map((group) => group.id === activeGroup.id ? { ...group, name: value } : group))} />
           <Field label="Rename scenario" value={activeScenario?.name ?? ""} onChange={updateActiveScenarioName} />
-          <label className="field">
-            <span>Load saved group</span>
-            <select defaultValue="" onChange={(event) => loadLocal(event.target.value)}>
-              <option value="">Choose a locally saved group</option>
-              {savedGroups.map((group) => (
-                <option key={`${group.id}-${group.savedAt}`} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-          </label>
           <div className="upload-control">
             <span className="field-label">Upload a populated spreadsheet</span>
             <label className="button button-secondary button-small">
@@ -988,7 +1112,9 @@ export function RoiProPlanner() {
         </div>
 
         <RoiEditableTable lines={activeScenario?.lines ?? []} onChangeLines={setActiveScenarioLines} />
-        <p className="planning-disclaimer">Saved locally on this device for now. Account saving will be added with Pro login later.</p>
+        <p className="planning-disclaimer">
+          {saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."} Account saving will be used automatically when Pro login is active.
+        </p>
       </article>
     </section>
   );

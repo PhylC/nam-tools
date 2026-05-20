@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Promotional Proposal deck preview">
+  <rect width="960" height="540" fill="#f7f5ef"/><rect x="54" y="48" width="852" height="444" rx="12" fill="#fff" stroke="#ded9cf"/>
+  <text x="86" y="90" fill="#0f766e" font-family="Arial" font-size="18" font-weight="800">PROMOTIONAL PROPOSAL</text><text x="760" y="92" fill="#1b2b44" font-family="Arial" font-size="34" font-weight="900">APT</text>
+  <text x="86" y="154" fill="#16202a" font-family="Arial" font-size="44" font-weight="900">Spring Event Proposal</text><text x="86" y="196" fill="#5c6773" font-family="Arial" font-size="22">Mechanic, uplift forecast, ROI assumptions and support ask</text>
+  <rect x="86" y="250" width="220" height="120" rx="8" fill="#e5f3f1"/><text x="112" y="302" fill="#0f766e" font-family="Arial" font-size="34" font-weight="900">2 for £4</text><text x="112" y="334" fill="#16202a" font-family="Arial" font-size="18">Mechanic</text>
+  <rect x="342" y="250" width="220" height="120" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><text x="368" y="302" fill="#0f766e" font-family="Arial" font-size="34" font-weight="900">+44%</text><text x="368" y="334" fill="#16202a" font-family="Arial" font-size="18">Unit uplift</text>
+  <path d="M626 352 L678 310 L726 326 L808 270" fill="none" stroke="#0f766e" stroke-width="10" stroke-linecap="round"/><circle cx="808" cy="270" r="10" fill="#c9972b"/>
+</svg>

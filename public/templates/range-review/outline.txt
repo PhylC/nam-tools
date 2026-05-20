@@ -1,0 +1,15 @@
+Range Review Template
+
+1. Cover slide
+2. Current range overview
+3. SKU productivity
+4. Distribution gaps
+5. ROS analysis
+6. Category trends
+7. Rationalisation opportunities
+8. Innovation recommendations
+9. Recommended actions
+
+Example account: Northstar Retail
+Example supplier brand: Orchard & Co
+Core fictional data: £920k annualised opportunity, add 3 SKUs, exit 2 SKUs, top 2 SKU ROS 24.5.

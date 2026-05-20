@@ -1,0 +1,16 @@
+Quarterly Business Review Template
+
+1. Cover slide
+2. Quarter summary
+3. KPI scorecard
+4. Sales performance
+5. Promo performance
+6. Distribution and range updates
+7. Wins and challenges
+8. Competitor activity
+9. Next quarter priorities
+10. Commercial asks
+
+Example account: Northstar Retail
+Example supplier brand: Orchard & Co
+Core fictional data: £5.1m Q3 sales, +7.2% YoY, 2.9m units, promo ROI 1.4x.

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" role="img" aria-label="Annual Planning deck preview">
+  <rect width="960" height="540" fill="#f7f5ef"/><rect x="54" y="48" width="852" height="444" rx="12" fill="#fff" stroke="#ded9cf"/>
+  <text x="86" y="90" fill="#0f766e" font-family="Arial" font-size="18" font-weight="800">ANNUAL PLANNING</text><text x="760" y="92" fill="#1b2b44" font-family="Arial" font-size="34" font-weight="900">APT</text>
+  <text x="86" y="154" fill="#16202a" font-family="Arial" font-size="46" font-weight="900">FY2026 Commercial Plan</text><text x="86" y="196" fill="#5c6773" font-family="Arial" font-size="22">FY review, strategic objectives, targets and roadmap</text>
+  <rect x="88" y="260" width="180" height="112" rx="8" fill="#e5f3f1"/><text x="114" y="314" fill="#0f766e" font-family="Arial" font-size="34" font-weight="900">£20.25m</text>
+  <rect x="320" y="256" width="120" height="150" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><text x="350" y="284" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">Q1</text><rect x="462" y="256" width="120" height="150" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><text x="492" y="284" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">Q2</text><rect x="604" y="256" width="120" height="150" rx="8" fill="#fbfaf7" stroke="#ded9cf"/><text x="634" y="284" fill="#0f766e" font-family="Arial" font-size="16" font-weight="900">Q3</text>
+</svg>
