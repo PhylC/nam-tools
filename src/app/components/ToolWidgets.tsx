@@ -211,7 +211,7 @@ function BadgeRow() {
   return (
     <div className="badge-row" aria-label="Tool access level">
       <span className="pill">Free</span>
-      <span className="pill pro-pill">Pro preview</span>
+      <span className="pill pro-pill">Pro</span>
     </div>
   );
 }
@@ -278,24 +278,24 @@ function FreeResult({
 
 function ProPreview({ features }: { features: string[] }) {
   return (
-    <aside className="pro-preview">
-      <span className="pill pro-pill">Pro preview</span>
-      <h2>Upgrade later for deeper work</h2>
-      <div className="locked-grid" aria-label="Locked Pro feature previews">
+    <aside className="pro-panel">
+      <span className="pill pro-pill">Pro</span>
+      <h2>Go deeper with Pro</h2>
+      <div className="locked-grid" aria-label="Pro features">
         <div className="locked-card">
           <strong>Retailer-friendly view</strong>
           <span>Turn the deal into a clean customer-facing story.</span>
         </div>
         <div className="locked-card">
-          <strong>Locked scenarios</strong>
+          <strong>Scenario comparison</strong>
           <span>Compare multiple scenarios side by side.</span>
         </div>
         <div className="locked-card">
-          <strong>Locked save/export</strong>
+          <strong>Save and export</strong>
           <span>Save plans and download PDF/deck-ready outputs.</span>
         </div>
         <div className="locked-card">
-          <strong>Locked team pack</strong>
+          <strong>Team pack</strong>
           <span>Build fuller customer-ready write-ups and team reviews.</span>
         </div>
       </div>
@@ -305,14 +305,13 @@ function ProPreview({ features }: { features: string[] }) {
         ))}
       </ul>
       <div className="locked-card">
-        <strong>Retailer-friendly Pro preview</strong>
+        <strong>Retailer-friendly Pro story</strong>
         <span>
           Pro will turn the same calculation into a clean customer-facing story,
           showing the commercial upside for the retailer without exposing
           unnecessary internal supplier commentary.
         </span>
       </div>
-      <p>Placeholder only. No login, payment or Stripe integration is live yet.</p>
     </aside>
   );
 }
@@ -362,10 +361,10 @@ function CalculationDetail({
 
 function DealProPreview() {
   return (
-    <aside className="pro-preview">
-      <span className="pill pro-pill">Pro preview</span>
-      <h2>Upgrade later for deeper deal work</h2>
-      <div className="locked-grid locked-grid-three" aria-label="Locked Pro feature previews">
+    <aside className="pro-panel">
+      <span className="pill pro-pill">Pro</span>
+      <h2>Go deeper with Pro deal planning</h2>
+      <div className="locked-grid locked-grid-three" aria-label="Pro features">
         <div className="locked-card">
           <strong>Excel import/export</strong>
           <span>Paste SKU or customer rows and export the finished deal view.</span>
@@ -379,7 +378,6 @@ function DealProPreview() {
           <span>Create a cleaner customer-facing story with charts and notes.</span>
         </div>
       </div>
-      <p>Placeholder only. No login, payment or Stripe integration is live yet.</p>
     </aside>
   );
 }

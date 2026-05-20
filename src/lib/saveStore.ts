@@ -117,7 +117,7 @@ export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecor
     updated_at: item.updated_at,
   });
 
-  if (error) return saveLocalRoiPlan(item, "Could not save to account. Saved locally instead.");
+  if (error) return saveLocalRoiPlan(item, "Could not save right now. Your plan is still available in saved plans.");
   return { data: item, mode: "account" };
 }
 
@@ -132,7 +132,7 @@ export async function listRoiPlans(): Promise<StoreResult<AnyRecord[]>> {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { data: readLocal(ROI_LOCAL_KEY), mode: "local", message: "Could not load account saves. Showing local saves." };
+    return { data: readLocal(ROI_LOCAL_KEY), mode: "local", message: "Could not load saved plans right now." };
   }
 
   return {
@@ -190,7 +190,7 @@ export async function saveDeckBrief(brief: AnyRecord): Promise<StoreResult<AnyRe
     updated_at: item.updated_at,
   });
 
-  if (error) return saveLocalDeckBrief(item, "Could not save to account. Saved locally instead.");
+  if (error) return saveLocalDeckBrief(item, "Could not save right now. Your deck is still available in saved decks.");
   return { data: item, mode: "account" };
 }
 
@@ -205,7 +205,7 @@ export async function listDeckBriefs(): Promise<StoreResult<AnyRecord[]>> {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { data: readLocal(DECK_LOCAL_KEY), mode: "local", message: "Could not load account saves. Showing local saves." };
+    return { data: readLocal(DECK_LOCAL_KEY), mode: "local", message: "Could not load saved decks right now." };
   }
 
   return {

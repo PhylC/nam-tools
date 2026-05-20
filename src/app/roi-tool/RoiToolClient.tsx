@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ProductSectionTabs, useAptMode } from "../components/AptMode";
+import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import {
   deleteRoiPlan,
@@ -9,7 +9,6 @@ import {
   listRoiPlans,
   loadRoiPlan,
   saveRoiPlan,
-  type SaveMode,
 } from "../../lib/saveStore";
 
 type SupportMode = "soa" | "promoInvoice";
@@ -789,7 +788,6 @@ function SavedRoiPlansPanel({
   groups,
   isLoading,
   saveMessage,
-  saveMode,
   onDelete,
   onDuplicate,
   onLoad,
@@ -798,7 +796,6 @@ function SavedRoiPlansPanel({
   groups: SavedRoiGroup[];
   isLoading: boolean;
   saveMessage: string;
-  saveMode: SaveMode;
   onDelete: (id: string) => void | Promise<void>;
   onDuplicate: (id: string) => void | Promise<void>;
   onLoad: (id: string) => void | Promise<void>;
@@ -808,8 +805,8 @@ function SavedRoiPlansPanel({
     <details className="saved-plans-details">
       <summary>Load or manage saved ROI plans</summary>
       <aside className="saved-panel saved-panel-compact">
-        <div>
-          <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
+      <div>
+        <p>Save your work and return to it later.</p>
           {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
           {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
         </div>
@@ -846,7 +843,6 @@ export function RoiProPlanner() {
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
-  const [saveMode, setSaveMode] = useState<SaveMode>("local");
   const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
@@ -856,7 +852,6 @@ export function RoiProPlanner() {
   async function refreshSavedGroups() {
     const result = await listRoiPlans();
     setSavedGroups(result.data as SavedRoiGroup[]);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
   }
 
@@ -882,14 +877,12 @@ export function RoiProPlanner() {
       updated_at: now,
     };
     const result = await saveRoiPlan(snapshot);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
   }
 
   async function loadSavedGroup(groupId: string) {
     const result = await loadRoiPlan(groupId);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     const saved = result.data as SavedRoiGroup | null;
     if (!saved) return;
@@ -908,7 +901,6 @@ export function RoiProPlanner() {
     if (!saved) return;
     const now = new Date().toISOString();
     const result = await saveRoiPlan({ ...saved, name, group_name: name, savedAt: now, updatedAt: now, updated_at: now });
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
     setPlannerState((current) => ({
@@ -919,7 +911,6 @@ export function RoiProPlanner() {
 
   async function duplicateSavedGroup(groupId: string) {
     const result = await duplicateRoiPlan(groupId);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     const copy = result.data as SavedRoiGroup | null;
     if (!copy) return;
@@ -933,7 +924,6 @@ export function RoiProPlanner() {
 
   async function deleteSavedGroup(groupId: string) {
     const result = await deleteRoiPlan(groupId);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
   }
@@ -1061,7 +1051,7 @@ export function RoiProPlanner() {
   return (
     <section className="shell section">
       <div className="section-header">
-        <p className="eyebrow">Pro Preview</p>
+        <p className="eyebrow">Pro</p>
         <h2>ROI planner</h2>
         <p className="section-lead">
           Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
@@ -1070,7 +1060,7 @@ export function RoiProPlanner() {
       <article className="card roi-planner">
         <div className="roi-plan-header">
           <div>
-            <span className="pill pro-pill">Pro workflow preview</span>
+            <span className="pill pro-pill">Pro</span>
             <label className="field inline-plan-name">
               <span>Plan name</span>
               <input
@@ -1099,7 +1089,6 @@ export function RoiProPlanner() {
           groups={savedGroups}
           isLoading={isLoading}
           saveMessage={saveMessage}
-          saveMode={saveMode}
           onDelete={deleteSavedGroup}
           onDuplicate={duplicateSavedGroup}
           onLoad={loadSavedGroup}
@@ -1133,7 +1122,7 @@ export function RoiProPlanner() {
 
         <ScenarioComparison scenarios={activeScenarios} />
         <p className="planning-disclaimer">
-          {saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."} Account saving will be used automatically when Pro login is active.
+          Save your work and return to it later.
         </p>
       </article>
     </section>
@@ -1145,9 +1134,6 @@ export function RoiToolProduct() {
 
   return (
     <>
-      <section className="shell section">
-        <ProductSectionTabs />
-      </section>
       {aptMode === "pro" ? (
         <RoiProPlanner />
       ) : (
@@ -1156,14 +1142,14 @@ export function RoiToolProduct() {
           <section className="shell section">
             <article className="card split-band">
               <div>
-                <p className="eyebrow">Pro Preview</p>
+                <p className="eyebrow">Pro</p>
                 <h2>Plan one SKU or a full multi-line promotion in one table.</h2>
                 <p>
-                  Switch the header toggle to Pro Preview to try CSV upload,
-                  scenario comparison, editable table rows, CSV export and device-only saving.
+                  Switch the header toggle to Pro to use CSV upload,
+                  scenario comparison, editable table rows, CSV export and saved plans.
                 </p>
               </div>
-              <span className="pill pro-pill">Future account feature</span>
+              <span className="pill pro-pill">Pro</span>
             </article>
           </section>
         </>

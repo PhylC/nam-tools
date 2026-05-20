@@ -444,7 +444,7 @@ p {
   margin-top: -0.75rem;
 }
 
-.placeholder-image-card {
+.product-image-card {
   position: relative;
   display: grid;
   min-height: 240px;
@@ -457,14 +457,14 @@ p {
   box-shadow: var(--shadow);
 }
 
-.placeholder-image-card img {
+.product-image-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.placeholder-image-card figcaption {
+.product-image-card figcaption {
   position: absolute;
   left: 1rem;
   right: 1rem;
@@ -479,15 +479,15 @@ p {
   padding: 0.8rem;
 }
 
-.placeholder-image-card figcaption .pill {
+.product-image-card figcaption .pill {
   width: fit-content;
 }
 
-.placeholder-image-card figcaption strong {
+.product-image-card figcaption strong {
   font-size: 1rem;
 }
 
-.placeholder-image-card figcaption small {
+.product-image-card figcaption small {
   color: var(--muted);
   line-height: 1.4;
 }
@@ -1450,19 +1450,19 @@ p {
 .related-card,
 .judgement-card,
 .insight-panel,
-.pro-preview {
+.pro-panel {
   display: grid;
   gap: 0.75rem;
 }
 
-.pro-preview {
+.pro-panel {
   border: 1px dashed #aac6c2;
   border-radius: 8px;
   background: #f4fbfa;
   padding: 1.1rem;
 }
 
-.pro-preview h2 {
+.pro-panel h2 {
   font-size: 1.25rem;
 }
 
@@ -1625,7 +1625,7 @@ p {
   transform: none;
 }
 
-.payment-note {
+.billing-note {
   margin-top: 1rem;
 }
 
@@ -1847,7 +1847,7 @@ p {
   .template-hero-previews figure,
   .section-header,
   .template-preview,
-  .placeholder-image-card,
+  .product-image-card,
   .mini-card {
     min-width: 0;
     max-width: 100%;
@@ -1905,11 +1905,11 @@ p {
     width: 100%;
   }
 
-  .placeholder-image-card {
+  .product-image-card {
     min-height: 210px;
   }
 
-  .placeholder-image-card figcaption {
+  .product-image-card figcaption {
     position: static;
     border-width: 1px 0 0;
     border-radius: 0;

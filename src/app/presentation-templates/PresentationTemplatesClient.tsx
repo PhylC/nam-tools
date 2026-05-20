@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { ProductSectionTabs, useAptMode } from "../components/AptMode";
+import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import {
   deleteDeckBrief,
   duplicateDeckBrief,
   listDeckBriefs,
   saveDeckBrief,
-  type SaveMode,
 } from "../../lib/saveStore";
 
 type DeckBrief = {
@@ -209,13 +208,11 @@ export function PresentationTemplatesFree() {
   const [activeTemplateSlug, setActiveTemplateSlug] = useState("");
   const [brief, setBrief] = useState<DeckBrief>(() => blankBrief(freeTemplates[0]));
   const [savedBriefs, setSavedBriefs] = useState<DeckBrief[]>([]);
-  const [saveMode, setSaveMode] = useState<SaveMode>("local");
   const [saveMessage, setSaveMessage] = useState("");
 
   useEffect(() => {
     listDeckBriefs().then((result) => {
       setSavedBriefs(result.data as DeckBrief[]);
-      setSaveMode(result.mode);
       setSaveMessage(result.message ?? "");
     });
   }, [isAuthenticated]);
@@ -229,7 +226,6 @@ export function PresentationTemplatesFree() {
   async function refreshBriefs() {
     const result = await listDeckBriefs();
     setSavedBriefs(result.data as DeckBrief[]);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
   }
 
@@ -251,7 +247,6 @@ export function PresentationTemplatesFree() {
     };
     const result = await saveDeckBrief(item);
     setBrief(result.data as DeckBrief);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     await refreshBriefs();
   }
@@ -265,7 +260,6 @@ export function PresentationTemplatesFree() {
 
   async function duplicateBrief(id: string) {
     const result = await duplicateDeckBrief(id);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     if (result.data) {
       setBrief(result.data as DeckBrief);
@@ -276,7 +270,6 @@ export function PresentationTemplatesFree() {
 
   async function deleteBrief(id: string) {
     const result = await deleteDeckBrief(id);
-    setSaveMode(result.mode);
     setSaveMessage(result.message ?? "");
     await refreshBriefs();
     if (brief.id === id) {
@@ -299,7 +292,6 @@ export function PresentationTemplatesFree() {
           briefs={savedBriefs}
           isLoading={isLoading}
           saveMessage={saveMessage}
-          saveMode={saveMode}
           onDelete={deleteBrief}
           onDuplicate={duplicateBrief}
           onLoad={loadBrief}
@@ -310,13 +302,14 @@ export function PresentationTemplatesFree() {
           <div className="template-card-wrap" key={template.title}>
             <article className="card template-card">
               <div className="badge-row">
+                <span className="pill">Free</span>
                 <span className="pill">Editable</span>
-                <span className="pill">APT template</span>
+                <span className="pill">PowerPoint</span>
                 <span className="pill">Example data included</span>
               </div>
               <div className="template-preview">
                 <Image
-                  alt={`${template.title} preview`}
+                  alt={`${template.title} thumbnail`}
                   height={270}
                   src={`/templates/${template.slug}/preview.svg`}
                   width={480}
@@ -340,7 +333,7 @@ export function PresentationTemplatesFree() {
                     Build custom deck
                   </button>
                 ) : (
-                  <span className="pill pro-pill">Build custom deck in Pro Preview</span>
+                  <span className="pill pro-pill">Pro</span>
                 )}
                 <button className="button button-secondary" onClick={() => copyOutline(template.slug)} type="button">
                   Copy outline
@@ -374,7 +367,6 @@ function SavedDeckBriefsPanel({
   briefs,
   isLoading,
   saveMessage,
-  saveMode,
   onDelete,
   onDuplicate,
   onLoad,
@@ -382,7 +374,6 @@ function SavedDeckBriefsPanel({
   briefs: DeckBrief[];
   isLoading: boolean;
   saveMessage: string;
-  saveMode: SaveMode;
   onDelete: (id: string) => void;
   onDuplicate: (id: string) => void;
   onLoad: (id: string) => void;
@@ -390,9 +381,9 @@ function SavedDeckBriefsPanel({
   return (
     <aside className="card saved-panel">
       <div>
-        <span className="pill pro-pill">Pro Preview</span>
+        <span className="pill pro-pill">Pro</span>
         <h3>Saved custom decks</h3>
-        <p>{saveMode === "account" ? "Saved to your account." : "Saved locally on this device for now."}</p>
+        <p>Save your work and return to it later.</p>
         {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
         {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
       </div>
@@ -450,7 +441,7 @@ function CustomDeckBuilder({
     <section className="card custom-deck-builder">
       <div className="output-header">
         <div>
-          <span className="pill pro-pill">Pro Preview</span>
+          <span className="pill pro-pill">Pro</span>
           <h2>Build custom {template.title}</h2>
           <p>Use your agenda, customer context and data to create a stronger first draft.</p>
         </div>
@@ -468,7 +459,7 @@ function CustomDeckBuilder({
             <span>Upload supporting data</span>
             <input type="file" />
           </label>
-          <p className="empty-state">Future account feature will connect files, style matching and saved templates.</p>
+          <p className="empty-state">Add your files to shape the deck brief, charts and style direction.</p>
         </article>
         <article className="mini-card">
           <h3>Chart options</h3>
@@ -604,22 +595,19 @@ export function PresentationTemplatesProduct() {
 
   return (
     <>
-      <section className="shell section">
-        <ProductSectionTabs />
-      </section>
       <PresentationTemplatesFree />
       {aptMode !== "pro" ? (
         <section className="shell section">
           <article className="card split-band">
             <div>
-              <p className="eyebrow">Pro Preview</p>
+              <p className="eyebrow">Pro</p>
               <h2>Build a custom deck from any template.</h2>
               <p>
-                Switch the header toggle to Pro Preview to open a template-specific
+                Switch the header toggle to Pro to open a template-specific
                 custom deck brief directly from each template card.
               </p>
             </div>
-            <span className="pill pro-pill">Future account feature</span>
+            <span className="pill pro-pill">Pro</span>
           </article>
         </section>
       ) : null}

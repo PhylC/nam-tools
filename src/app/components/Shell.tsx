@@ -159,14 +159,14 @@ export function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
 export function ProPlaceholder() {
   return (
     <aside className="card pro-card">
-      <span className="pill">Pro later</span>
-      <h2>Future Pro version</h2>
+      <span className="pill">Pro</span>
+      <h2>Pro tools</h2>
       <p>
-        Planned upgrades include saved scenarios, exportable summaries, team
-        templates and richer commercial commentary. Payments are not live yet.
+        Pro includes saved scenarios, exportable summaries, team templates and
+        richer commercial commentary.
       </p>
       <Link className="button button-secondary" href="/pricing">
-        View pricing placeholder
+        View pricing
       </Link>
     </aside>
   );
@@ -184,10 +184,10 @@ export function PlaceholderImage({
   aspectRatio?: string;
 }) {
   return (
-    <figure className="placeholder-image-card" style={{ aspectRatio }}>
+    <figure className="product-image-card" style={{ aspectRatio }}>
       <img alt={`${title}: ${description}`} src={filename} />
       <figcaption>
-        <span className="pill">Image placeholder</span>
+        <span className="pill">Product visual</span>
         <strong>{title}</strong>
         <small>{description}</small>
       </figcaption>
@@ -221,8 +221,8 @@ export function ToolPage({
         <section className="shell visual-section">
           <PlaceholderImage
             aspectRatio="16 / 9"
-            description="Future Excel-style scenario comparison and commercial dashboard visual."
-            filename="/images/commercial-deal-calculator-placeholder.svg"
+            description="Excel-style scenario comparison and commercial dashboard visual."
+            filename="/images/commercial-deal-calculator.svg"
             title="Calculator scenario view"
           />
         </section>

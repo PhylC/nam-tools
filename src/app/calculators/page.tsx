@@ -37,7 +37,7 @@ export default function CalculatorsPage() {
         <PlaceholderImage
           aspectRatio="16 / 9"
           description="Future Excel-style scenario comparison and calculator dashboard visual."
-          filename="/images/commercial-deal-calculator-placeholder.svg"
+          filename="/images/commercial-deal-calculator.svg"
           title="Free calculator workspace"
         />
       </section>
@@ -98,7 +98,7 @@ export default function CalculatorsPage() {
 
       <section className="shell section">
         <article className="card judgement-card">
-          <h2>Free to use, no login required.</h2>
+          <h2>Free to use.</h2>
           <p>
             Calculator outputs are planning estimates. Validate all figures,
             assumptions, tax treatment and customer context before making

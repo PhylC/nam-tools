@@ -463,16 +463,15 @@ export function TemplateLibrary() {
         <div className="grid grid-two">
           <article className="card judgement-card">
             <span className="pill">Free</span>
-            <h2>Static PowerPoint and spreadsheet templates</h2>
+            <h2>PowerPoint and spreadsheet templates</h2>
             <p>
-              Free templates are useful but mostly blank: copy the outline or
-              sheet structure now, then fill it in yourself. No login required.
-              Download files are reserved but not live yet.
+              Free templates give you practical PowerPoint decks and sheet
+              structures you can adapt for customer meetings and internal plans.
             </p>
           </article>
           <article className="card judgement-card">
-            <span className="pill pro-pill">Pro preview</span>
-            <h2>Guided deck builders coming soon</h2>
+            <span className="pill pro-pill">Pro</span>
+            <h2>Guided deck builders</h2>
             <p>
               Pro will ask smart commercial questions, generate the first-draft
               deck structure and create linked Google Sheets/Excel-style
@@ -529,7 +528,7 @@ export function TemplateLibrary() {
           <div className="section-lead">
             <p>
               These are Google Sheets/Excel-style structures you can copy into
-              your own planning file. Download buttons are placeholders.
+              your own planning file.
             </p>
           </div>
         </div>
@@ -552,7 +551,7 @@ export function TemplateLibrary() {
                 <pre>{template.structure}</pre>
               </details>
               <div className="template-actions">
-                <DisabledDownloadButton>Download Sheets template coming soon</DisabledDownloadButton>
+                <DisabledDownloadButton>Copy sheet structure</DisabledDownloadButton>
                 <CopyTemplateButton label="Copy sheet structure" text={template.structure} />
               </div>
             </article>
@@ -564,18 +563,17 @@ export function TemplateLibrary() {
         <article className="card split-band">
           <div>
             <p className="eyebrow">Pro guided builders</p>
-            <h2>Pro will create the first draft and linked calculation support.</h2>
+            <h2>Pro creates the first draft and linked calculation support.</h2>
           </div>
           <div className="copy-stack">
             <p>
-              Instead of downloading a blank deck or sheet, Pro will ask the
+              Instead of starting from a blank deck or sheet, Pro asks the
               right commercial questions and generate a first-draft PowerPoint
               deck structure with linked Google Sheets/Excel-style assumptions.
             </p>
             <p>
               PowerPoint, Google Slides, Excel and Google Sheets export options
-              are planned, alongside PDF exports, saved drafts and saved
-              scenarios.
+              sit alongside PDF exports, saved drafts and saved scenarios.
             </p>
           </div>
         </article>
@@ -583,17 +581,17 @@ export function TemplateLibrary() {
 
       <section className="shell section">
         <div className="section-header">
-          <p className="eyebrow">Pro preview</p>
-          <h2>Guided deck builders coming soon.</h2>
+          <p className="eyebrow">Pro</p>
+          <h2>Guided deck builders.</h2>
         </div>
         <div className="grid">
           {proBuilders.map((builder) => (
             <article className="card template-card" key={builder.name}>
-              <span className="pill pro-pill">Pro preview</span>
+              <span className="pill pro-pill">Pro</span>
               <h3>{builder.name}</h3>
               <p>{builder.text}</p>
               <button aria-disabled="true" className="button button-secondary button-small disabled-button" disabled type="button">
-                Preview guided builder coming soon
+                Open guided builder
               </button>
             </article>
           ))}

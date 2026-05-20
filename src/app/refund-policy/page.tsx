@@ -4,20 +4,20 @@ import { LegalPage } from "../legal";
 export const metadata: Metadata = {
   title: "Refund Policy",
   description:
-    "Refund policy placeholder for future paid NAM Tools digital products and subscriptions.",
+    "Refund policy for NAM Tools digital products and subscriptions.",
 };
 
 export default function Page() {
   return (
     <LegalPage
       title="Refund policy"
-      intro="Payments are not live yet. This policy explains the placeholder position before paid digital products launch."
+      intro="This policy explains how refunds are handled for NAM Tools purchases."
       body={[
-        "NAM Tools does not currently accept payments, subscriptions or paid digital product purchases. There is therefore nothing to refund at this stage.",
-        "Future paid products may include Pro features, digital templates, exports, saved plans or team workspaces. The refund policy will be reviewed and updated before any paid launch.",
-        "For future digital products, refund rights and cancellation terms may depend on the product type, access status, applicable UK consumer rules and business purchase terms.",
-        "No Stripe checkout or live payment processing is integrated in the current MVP.",
-        "Questions about future paid access can be sent to hello@namtools.co.uk.",
+        "Digital products may include Pro features, digital templates, exports, saved plans or team workspaces.",
+        "Refund rights and cancellation terms may depend on the product type, access status, applicable UK consumer rules and business purchase terms.",
+        "If you believe a charge or subscription has been made in error, contact hello@namtools.co.uk with the email address used for purchase and the relevant order details.",
+        "Approved refunds will be returned through the original purchase method where possible.",
+        "Questions about paid access can be sent to hello@namtools.co.uk.",
       ]}
     />
   );

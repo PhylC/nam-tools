@@ -256,7 +256,7 @@ function addScorecard(slide, pptx, deck, seed) {
     valign: "mid",
   });
   slide.addShape(pptx.ShapeType.rect, { x: 6.65, y: 2.14, w: 5.8, h: 2.55, fill: { color: "F8FBFA" }, line: { color: palette.border } });
-  slide.addText("Editable chart placeholder", { x: 6.95, y: 2.42, w: 2.8, h: 0.28, fontFace: "Aptos", fontSize: 10, bold: true, color: palette.teal });
+  slide.addText("Editable chart area", { x: 6.95, y: 2.42, w: 2.8, h: 0.28, fontFace: "Aptos", fontSize: 10, bold: true, color: palette.teal });
   [2.95, 3.35, 3.75, 4.15].forEach((y, index) => {
     slide.addShape(pptx.ShapeType.rect, { x: 7.0, y, w: 1.1 + index * 0.75 + seed / 12, h: 0.18, fill: { color: index % 2 ? palette.amber : palette.teal }, line: { color: index % 2 ? palette.amber : palette.teal } });
     slide.addText(["Q1", "Q2", "Q3", "Q4"][index], { x: 10.75, y: y - 0.04, w: 0.4, h: 0.18, fontFace: "Aptos", fontSize: 7.5, color: palette.muted });

@@ -26,7 +26,7 @@ function subscribeToAptMode(onStoreChange: () => void) {
 }
 
 export function AptModeProvider({ children }: { children: React.ReactNode }) {
-  // Temporary preview mode. Replace with authenticated user plan when login/payment is added.
+  // Temporary plan selector. Replace with authenticated user plan later.
   const aptMode: AptMode = useSyncExternalStore(subscribeToAptMode, readStoredAptMode, () => "free" as AptMode);
 
   function setAptMode(mode: AptMode) {
@@ -51,7 +51,7 @@ export function PlanModeToggle() {
   const { aptMode, setAptMode } = useAptMode();
 
   return (
-    <div className="plan-toggle" aria-label="Free or Pro Preview mode">
+    <div className="plan-toggle" aria-label="Free or Pro mode">
       <button
         aria-pressed={aptMode === "free"}
         className={aptMode === "free" ? "plan-toggle-active" : ""}
@@ -66,25 +66,12 @@ export function PlanModeToggle() {
         onClick={() => setAptMode("pro")}
         type="button"
       >
-        Pro Preview
+        Pro
       </button>
     </div>
   );
 }
 
 export function ProductSectionTabs() {
-  const { aptMode } = useAptMode();
-
-  return (
-    <div className="product-mode-note">
-      <span className={aptMode === "pro" ? "pill pro-pill" : "pill"}>
-        {aptMode === "pro" ? "Pro Preview" : "Free"}
-      </span>
-      <p>
-        {aptMode === "pro"
-          ? "You are viewing Pro workflow previews. No login, payment or gated access is active yet."
-          : "You are viewing the free product experience. Calculators remain free to use."}
-      </p>
-    </div>
-  );
+  return null;
 }

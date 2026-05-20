@@ -21,8 +21,8 @@ export default function AboutPage() {
       <section className="shell visual-section">
         <PlaceholderImage
           aspectRatio="16 / 9"
-          description="Future commercial planning and account review workspace visual."
-          filename="/images/about-commercial-planning-placeholder.svg"
+          description="Commercial planning and account review workspace visual."
+          filename="/images/about-commercial-planning-workspace.svg"
           title="Commercial planning workspace"
         />
       </section>
@@ -57,10 +57,6 @@ export default function AboutPage() {
             drafts. Users should validate all figures, assumptions and wording
             before using anything with customers, employers or retailers.
           </p>
-          <p>
-            Payments are not live yet. The current version is deliberately
-            no-login while the core tools and template ideas are shaped.
-          </p>
           <Link className="button" href="/tools">
             Start with tools
           </Link>
@@ -68,18 +64,18 @@ export default function AboutPage() {
       </section>
       <section className="shell section">
         <article className="card">
-          <SectionHeader eyebrow="Launch checklist" title="Before a proper launch.">
+          <SectionHeader eyebrow="Product focus" title="What keeps improving.">
             <p>
-              The MVP is ready to test in-browser, but these setup jobs should
-              be completed before a wider public launch or paid release.
+              NAM Tools keeps improving around the practical jobs commercial
+              teams repeat every week.
             </p>
           </SectionHeader>
           <ul className="checklist">
-            <li>Domain to connect</li>
-            <li>Stripe to add</li>
-            <li>Analytics to add</li>
-            <li>Search Console to add</li>
-            <li>Real contact email to add</li>
+            <li>Cleaner calculators</li>
+            <li>Sharper templates</li>
+            <li>Better saved work</li>
+            <li>Clearer exports</li>
+            <li>Stronger deck briefs</li>
           </ul>
         </article>
       </section>

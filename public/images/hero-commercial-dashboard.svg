@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800" role="img" aria-labelledby="title desc">
-  <title id="title">Commercial dashboard placeholder</title>
-  <desc id="desc">Placeholder illustration for a commercial dashboard and calculator screenshot.</desc>
+  <title id="title">Commercial dashboard</title>
+  <desc id="desc">Illustration for a commercial dashboard and calculator workspace.</desc>
   <rect width="1200" height="800" rx="36" fill="#f7f5ef"/>
   <rect x="70" y="70" width="1060" height="660" rx="28" fill="#ffffff" stroke="#ded9cf" stroke-width="4"/>
   <rect x="110" y="115" width="980" height="80" rx="16" fill="#16202a"/>
@@ -16,5 +16,5 @@
   <rect x="690" y="520" width="330" height="20" rx="10" fill="#0f766e"/>
   <rect x="690" y="570" width="260" height="20" rx="10" fill="#aac6c2"/>
   <rect x="690" y="620" width="300" height="20" rx="10" fill="#ded9cf"/>
-  <text x="110" y="710" fill="#5c6773" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Dashboard screenshot placeholder</text>
+  <text x="110" y="710" fill="#5c6773" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Commercial dashboard</text>
 </svg>

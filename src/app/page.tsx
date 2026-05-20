@@ -17,13 +17,13 @@ const startHere = [
   },
   {
     title: "Plan promotion ROI",
-    text: "Use the free ROI tool for one-line checks, or preview multi-SKU scenario planning in Pro Preview.",
+    text: "Use the free ROI tool for one-line checks, or use Pro for multi-SKU scenario planning.",
     href: "/roi-tool",
     cta: "Open ROI Tool",
   },
   {
     title: "Build a customer deck",
-    text: "Copy free deck templates or preview a guided Pro deck builder for customer-ready first drafts.",
+    text: "Download free deck templates or use Pro to build customer-ready first drafts.",
     href: "/presentation-templates",
     cta: "Open templates",
   },
@@ -73,15 +73,15 @@ export default function Home() {
       <section className="shell visual-section hero-visual">
         <PlaceholderImage
           aspectRatio="3 / 2"
-          description="Future dashboard/calculator screenshot style visual."
-          filename="/images/hero-commercial-dashboard-placeholder.svg"
+          description="Dashboard and calculator workspace visual."
+          filename="/images/hero-commercial-dashboard.svg"
           title="Commercial dashboard"
         />
       </section>
 
       <section className="shell trust-strip" aria-label="NAM Tools highlights">
         <span>Built for retail suppliers</span>
-        <span>No-login tools</span>
+        <span>Fast browser tools</span>
         <span>Commercial planning first</span>
       </section>
 
@@ -89,7 +89,7 @@ export default function Home() {
         <SectionHeader eyebrow="Product sections" title="Calculators, ROI planning and presentation templates.">
           <p>
             Calculators remain free forever. ROI Tool and Presentation Templates
-            have useful free workflows plus Pro Preview areas for saved work,
+            have useful free workflows plus Pro tools for saved work,
             scenario planning and guided deck building.
           </p>
         </SectionHeader>
@@ -101,15 +101,15 @@ export default function Home() {
             <Link className="text-link" href="/calculators">Open calculators</Link>
           </article>
           <article className="card tool-card">
-            <span className="pill pro-pill">Free + Pro Preview</span>
+            <span className="pill pro-pill">Free + Pro</span>
             <h3>ROI Tool</h3>
-            <p>Single-line ROI checks today, multi-SKU scenario planning and CSV export in Pro Preview.</p>
+            <p>Single-line ROI checks, multi-SKU scenario planning and CSV export.</p>
             <Link className="text-link" href="/roi-tool">Open ROI Tool</Link>
           </article>
           <article className="card tool-card">
-            <span className="pill pro-pill">Free + Pro Preview</span>
+            <span className="pill pro-pill">Free + Pro</span>
             <h3>Presentation Templates</h3>
-            <p>Free deck outlines now, with a guided deck builder workflow preview for richer planning.</p>
+            <p>Free PowerPoint templates plus a guided deck builder for richer planning.</p>
             <Link className="text-link" href="/presentation-templates">Open templates</Link>
           </article>
         </div>
@@ -219,15 +219,14 @@ export default function Home() {
 
       <section className="section shell split-band">
         <div>
-          <p className="eyebrow">Free now, Pro later</p>
-          <h2>Keep the current tools open while Pro features take shape.</h2>
+          <p className="eyebrow">Free and Pro</p>
+          <h2>Start quickly, then go deeper when the work needs it.</h2>
         </div>
         <div className="card muted-card">
           <p>
-            NAM Tools is no-login and free to use today. Future paid plans are
-            planned to support saved work, linked spreadsheet assumptions,
-            guided deck builders, scenario comparison and customer-ready deck
-            outputs. Payments and Pro are coming soon, not live yet.
+            Free tools help with fast checks and reusable templates. Pro adds
+            saved work, linked spreadsheet assumptions, guided deck builders,
+            scenario comparison and customer-ready deck outputs.
           </p>
           <ul className="compact-list">
             {proFeatures.map((feature) => (
@@ -235,13 +234,13 @@ export default function Home() {
             ))}
           </ul>
           <Link className="text-link" href="/pricing">
-            See pricing placeholders
+            See pricing
           </Link>
           <PlaceholderImage
             aspectRatio="16 / 10"
-            description="Future Pro workflow preview showing saved scenarios and exports."
-            filename="/images/pricing-pro-placeholder.svg"
-            title="Pro workflow preview"
+            description="Pro workflow showing saved scenarios and exports."
+            filename="/images/pricing-pro-workflow.svg"
+            title="Pro workflow"
           />
         </div>
       </section>

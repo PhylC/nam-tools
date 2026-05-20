@@ -2,7 +2,7 @@ import { Hero } from "./components/Shell";
 
 export function LegalPage({
   title,
-  intro = "Plain-English placeholder copy for the NAM Tools MVP.",
+  intro = "Plain-English information for NAM Tools users.",
   body,
 }: {
   title: string;

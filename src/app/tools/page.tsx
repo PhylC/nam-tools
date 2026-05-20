@@ -40,7 +40,7 @@ export default function ToolsPage() {
         <PlaceholderImage
           aspectRatio="16 / 9"
           description="Future commercial tools and cards overview visual."
-          filename="/images/tools-grid-placeholder.svg"
+          filename="/images/tools-grid.svg"
           title="Tools overview"
         />
       </section>
@@ -54,7 +54,7 @@ export default function ToolsPage() {
             <p>
               Use free calculators for fast maths, the ROI Tool for promotion
               return planning, and Presentation Templates for customer-ready
-              deck structures and Pro deck builder previews.
+              deck structures and Pro deck builders.
             </p>
             <div className="cta-row">
               <Link className="button" href="/calculators">
@@ -101,19 +101,15 @@ export default function ToolsPage() {
       <section className="shell section">
         <article className="card split-band">
           <div>
-            <p className="eyebrow">Pro preview</p>
-            <h2>Saved scenarios and deck-ready outputs are planned, not live.</h2>
+            <p className="eyebrow">Pro</p>
+            <h2>Saved scenarios and deck-ready outputs for deeper work.</h2>
           </div>
           <div className="copy-stack">
             <p>
-              The free tools give quick answers today. Future Pro features are
-              intended for repeatable work: import or paste Excel data,
-              compare scenarios, save plans, use guided deck builders, export
-              Excel summaries and create fuller customer-ready write-ups.
-            </p>
-            <p>
-              There is no login, database, Stripe integration or real file
-              upload processing in this MVP.
+              The free tools give quick answers. Pro supports repeatable work:
+              import or paste Excel data, compare scenarios, save plans, use
+              guided deck builders, export Excel summaries and create fuller
+              customer-ready write-ups.
             </p>
           </div>
         </article>
