@@ -31,9 +31,9 @@ export default function ToolsPage() {
         <p>
           NAM Tools gives National Account Managers, Key Account Managers,
           Commercial Managers and Sales Directors a faster way to structure
-          account plans, buyer meetings, JBPs and customer reviews. Calculators
-          now have their own free landing page for promo ROI, retailer margin,
-          SOA, trade spend, invoice price and investment checks.
+          account plans, buyer meetings, JBPs and customer reviews. Calculators,
+          ROI planning and presentation templates now have dedicated product
+          areas so each workflow stays focused.
         </p>
       </Hero>
       <section className="shell visual-section">
@@ -47,21 +47,24 @@ export default function ToolsPage() {
       <section className="shell section">
         <article className="card split-band">
           <div>
-            <p className="eyebrow">Free calculators</p>
-            <h2>Need a number before you build the plan?</h2>
+            <p className="eyebrow">Product areas</p>
+            <h2>Need a number, ROI plan or customer deck?</h2>
           </div>
           <div className="copy-stack">
             <p>
-              Use the dedicated calculator hub for commercial deal modelling,
-              quick SOA checks, retailer margin, invoice price, trade spend and
-              investment ask calculations.
+              Use free calculators for fast maths, the ROI Tool for promotion
+              return planning, and Presentation Templates for customer-ready
+              deck structures and Pro deck builder previews.
             </p>
             <div className="cta-row">
               <Link className="button" href="/calculators">
                 View free calculators
               </Link>
-              <Link className="button button-secondary" href="/tools/commercial-deal-calculator">
-                Open deal calculator
+              <Link className="button button-secondary" href="/roi-tool">
+                Open ROI Tool
+              </Link>
+              <Link className="button button-secondary" href="/presentation-templates">
+                Open templates
               </Link>
             </div>
           </div>

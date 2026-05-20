@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { AptModeProvider, PlanModeToggle } from "./AptMode";
 import { relatedTools, tools } from "../data/tools";
 
 const footerLinks = [
@@ -13,7 +14,7 @@ const footerLinks = [
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <AptModeProvider>
       <header className="site-header">
         <div className="shell header-inner">
           <Link className="brand" href="/" aria-label="NAM Tools home">
@@ -28,15 +29,14 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           </Link>
           <nav className="main-nav" aria-label="Main navigation">
             <Link href="/calculators">Calculators</Link>
+            <Link href="/roi-tool">ROI Tool</Link>
+            <Link href="/presentation-templates">Presentation Templates</Link>
             <Link href="/tools">Tools</Link>
-            <Link href="/templates">Templates</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </nav>
-          <Link className="button button-small" href="/tools/commercial-deal-calculator">
-            Free calculator
-          </Link>
+          <PlanModeToggle />
         </div>
       </header>
       <main>{children}</main>
@@ -69,8 +69,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <h2>Site</h2>
             <Link href="/calculators">Calculators</Link>
             <Link href="/calculators/quick-calculators">Quick calculators</Link>
+            <Link href="/roi-tool">ROI Tool</Link>
             <Link href="/tools">All tools</Link>
-            <Link href="/templates">Templates</Link>
+            <Link href="/presentation-templates">Presentation Templates</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
@@ -97,7 +98,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <span>Tools are estimates for general commercial planning only.</span>
         </div>
       </footer>
-    </>
+    </AptModeProvider>
   );
 }
 

@@ -7,6 +7,8 @@ const routes = [
   "",
   "/calculators",
   "/calculators/quick-calculators",
+  "/roi-tool",
+  "/presentation-templates",
   "/tools",
   "/tools/quick-commercial-calculators",
   "/tools/commercial-deal-calculator",

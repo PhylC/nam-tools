@@ -10,22 +10,22 @@ const featuredTools = [
 
 const startHere = [
   {
-    title: "Check a promotion",
-    text: "Use quick SOA, invoice, sales tax / VAT / IVA and retailer margin calculators for fast commercial checks.",
-    href: "/calculators/quick-calculators",
-    cta: "Open quick calculators",
+    title: "Use free calculators",
+    text: "Quick calculators stay free. Use them for fast checks, pricing maths and simple commercial decisions.",
+    href: "/calculators",
+    cta: "Open calculators",
   },
   {
-    title: "Build a customer plan",
-    text: "Turn performance notes, opportunities and risks into a structured account plan.",
-    href: "/tools/account-plan-generator",
-    cta: "Build account plan",
+    title: "Plan promotion ROI",
+    text: "Use the free ROI tool for one-line checks, or preview multi-SKU scenario planning in Pro Preview.",
+    href: "/roi-tool",
+    cta: "Open ROI Tool",
   },
   {
-    title: "Prep for a buyer meeting",
-    text: "Create a sharper meeting opener, commercial story, objections and follow-up note.",
-    href: "/tools/buyer-meeting-prep",
-    cta: "Prep meeting",
+    title: "Build a customer deck",
+    text: "Copy free deck templates or preview a guided Pro deck builder for customer-ready first drafts.",
+    href: "/presentation-templates",
+    cta: "Open templates",
   },
 ];
 
@@ -55,8 +55,8 @@ export default function Home() {
             <Link className="button" href="/calculators">
               Start with calculators
             </Link>
-            <Link className="button button-secondary" href="/tools">
-              View tools
+            <Link className="button button-secondary" href="/roi-tool">
+              Open ROI Tool
             </Link>
           </>
         }
@@ -83,6 +83,36 @@ export default function Home() {
         <span>Built for retail suppliers</span>
         <span>No-login tools</span>
         <span>Commercial planning first</span>
+      </section>
+
+      <section className="section shell">
+        <SectionHeader eyebrow="Product sections" title="Calculators, ROI planning and presentation templates.">
+          <p>
+            Calculators remain free forever. ROI Tool and Presentation Templates
+            have useful free workflows plus Pro Preview areas for saved work,
+            scenario planning and guided deck building.
+          </p>
+        </SectionHeader>
+        <div className="grid">
+          <article className="card tool-card">
+            <span className="pill">Free forever</span>
+            <h3>Calculators</h3>
+            <p>Fast commercial maths for SOA, invoice price, retailer margin, tax and trade spend.</p>
+            <Link className="text-link" href="/calculators">Open calculators</Link>
+          </article>
+          <article className="card tool-card">
+            <span className="pill pro-pill">Free + Pro Preview</span>
+            <h3>ROI Tool</h3>
+            <p>Single-line ROI checks today, multi-SKU scenario planning and CSV export in Pro Preview.</p>
+            <Link className="text-link" href="/roi-tool">Open ROI Tool</Link>
+          </article>
+          <article className="card tool-card">
+            <span className="pill pro-pill">Free + Pro Preview</span>
+            <h3>Presentation Templates</h3>
+            <p>Free deck outlines now, with a guided deck builder workflow preview for richer planning.</p>
+            <Link className="text-link" href="/presentation-templates">Open templates</Link>
+          </article>
+        </div>
       </section>
 
       <section className="section shell">
@@ -226,7 +256,7 @@ export default function Home() {
           <Link className="button" href="/tools">
             Start with tools
           </Link>
-          <Link className="button button-secondary" href="/templates">
+          <Link className="button button-secondary" href="/presentation-templates">
             Copy free templates
           </Link>
         </div>

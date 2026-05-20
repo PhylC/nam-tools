@@ -29,7 +29,7 @@ export default function CalculatorsPage() {
         <p>
           Quickly check promo ROI, retailer margin, SOA, trade spend, invoice
           price and commercial investment before you build the full customer
-          plan.
+          plan. Calculators are free to use.
         </p>
       </Hero>
 
