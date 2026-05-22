@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AptModeProvider, PlanModeToggle } from "./AptMode";
+import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
 
 const footerLinks = [
@@ -37,6 +38,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <Link href="/contact">Contact</Link>
           </nav>
           <PlanModeToggle />
+          <MobileNav />
         </div>
       </header>
       <main>{children}</main>

@@ -13,7 +13,7 @@ export default function RoiToolPage() {
     <div className="page-stack">
       <Hero
         eyebrow="ROI Tool"
-        title="Practical account planning tools for NAMs, sales teams and commercial leaders."
+        title="Practical account planning tools for NAMs"
         visual={
           <PlaceholderImage
             aspectRatio="16 / 9"
@@ -24,9 +24,8 @@ export default function RoiToolPage() {
         }
       >
         <p>
-          Use the free ROI tool for fast single-line promotion checks. Pro
-          helps you plan multi-SKU promotions, compare scenarios and
-          export the numbers for internal sign-off.
+          Use the ROI tool for quick promo checks. Pro adds multi-SKU
+          planning, scenarios and export-ready outputs.
         </p>
       </Hero>
       <RoiToolProduct />
