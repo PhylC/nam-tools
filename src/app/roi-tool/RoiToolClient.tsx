@@ -483,6 +483,127 @@ function TableInput({
   );
 }
 
+function MobileField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: "text" | "number";
+}) {
+  return (
+    <label className="roi-mobile-field">
+      <span>{label}</span>
+      <input
+        inputMode={type === "number" ? "decimal" : undefined}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+function RoiMobileLineBuilder({
+  lines,
+  onChangeLines,
+  lineActions,
+}: {
+  lines: RoiLine[];
+  onChangeLines: (lines: RoiLine[]) => void;
+  lineActions: boolean;
+}) {
+  function changeLine(id: string, patch: Partial<RoiLine>) {
+    onChangeLines(updateLine(lines, id, patch));
+  }
+
+  function duplicateLine(id: string) {
+    if (!lineActions) return;
+    const index = lines.findIndex((line) => line.id === id);
+    if (index < 0) return;
+    onChangeLines([...lines.slice(0, index + 1), copyLine(lines[index]), ...lines.slice(index + 1)]);
+  }
+
+  function deleteLine(id: string) {
+    if (!lineActions) return;
+    onChangeLines(lines.length > 1 ? lines.filter((item) => item.id !== id) : [blankLine()]);
+  }
+
+  return (
+    <div className="roi-mobile-builder">
+      {lines.map((line, index) => {
+        const calc = calculateLine(line);
+        const supportField =
+          line.supportMode === "soa" ? (
+            <MobileField label="SOA/support" type="number" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} />
+          ) : (
+            <MobileField label="Promo invoice price" type="number" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} />
+          );
+
+        return (
+          <article className="roi-mobile-line-card" key={line.id}>
+            <div className="roi-mobile-line-header">
+              <h4>Line {index + 1}</h4>
+              <div className="roi-mobile-line-actions">
+                {lineActions ? (
+                  <>
+                    <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
+                    <button className="table-action" onClick={() => deleteLine(line.id)} type="button">Delete</button>
+                  </>
+                ) : (
+                  <span className="pill">Available in Pro</span>
+                )}
+              </div>
+            </div>
+
+            <div className="roi-mobile-field-grid">
+              <MobileField label="SKU / Item" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
+              <MobileField label="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} />
+              <MobileField label="Current invoice price" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
+              <MobileField label="Current volume" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
+              <label className="roi-mobile-field">
+                <span>Promo input</span>
+                <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
+                  <option value="promoInvoice">Promo invoice price</option>
+                  <option value="soa">SOA/support per unit</option>
+                </select>
+              </label>
+              {supportField}
+              <MobileField label="Promo volume" type="number" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} />
+            </div>
+
+            <details className="roi-mobile-advanced">
+              <summary>Show advanced inputs</summary>
+              <div className="roi-mobile-field-grid">
+                <MobileField label="COGS" type="number" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} />
+                <MobileField label="Fixed support" type="number" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} />
+                <MobileField label="Current SRP" type="number" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} />
+                <MobileField label="Promo SRP" type="number" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} />
+                <MobileField label="VAT rate" type="number" value={line.vatRate} onChange={(value) => changeLine(line.id, { vatRate: value })} />
+                <MobileField label="Currency" value={line.currency} onChange={(value) => changeLine(line.id, { currency: value })} />
+                <label className="roi-mobile-field roi-mobile-field-full">
+                  <span>Notes</span>
+                  <textarea value={line.notes} onChange={(event) => changeLine(line.id, { notes: event.target.value })} />
+                </label>
+              </div>
+            </details>
+
+            <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
+              <div><span>Inc revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
+              <div><span>Support</span><strong>{money(calc.supportCost)}</strong></div>
+              <div><span>Profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add COGS"}</strong></div>
+              <div><span>ROI</span><strong>{pct(calc.profitRoi ?? calc.revenueRoi)}</strong></div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function RoiEditableTable({
   lines,
   onChangeLines,
@@ -508,7 +629,7 @@ function RoiEditableTable({
 
   return (
     <>
-      <div className="roi-table-scroll">
+      <div className="roi-table-scroll roi-desktop-table">
         <table className="roi-planner-table">
           <thead>
             <tr>
@@ -564,6 +685,7 @@ function RoiEditableTable({
           </tbody>
         </table>
       </div>
+      <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} />
       <button
         className={newLineProOnly ? "button button-secondary new-line-button pro-only-button" : "button button-secondary new-line-button"}
         onClick={onAddLine}
@@ -599,6 +721,13 @@ function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
           </div>
         ))}
       </div>
+      <div className="roi-mobile-summary" aria-label={`${scenario.name} mobile summary`}>
+        <div><span>Incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
+        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact) : "Add COGS to see profit ROI"}</strong></div>
+        <div><span>ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
+        <div><span>Base revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
+        <div><span>Promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
+      </div>
     </div>
   );
 }
@@ -633,7 +762,7 @@ function minBy<T>(items: T[], selector: (item: T) => number | null) {
   }, null);
 }
 
-function ScenarioComparison({ scenarios }: { scenarios: RoiScenario[] }) {
+function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenario[]; onAddScenario: () => void }) {
   const metrics = scenarios.map(scenarioMetrics);
   const bestRevenue = maxBy(metrics, (item) => item.summary.revenueImpact);
   const bestProfit = maxBy(metrics, (item) => (item.summary.profitRows ? item.summary.profitImpact : null));
@@ -652,21 +781,61 @@ function ScenarioComparison({ scenarios }: { scenarios: RoiScenario[] }) {
 
   return (
     <section className="card scenario-comparison">
-      <div>
-        <span className="pill pro-pill">Scenario comparison</span>
-        <h3>Scenario comparison</h3>
-        <p>{narrative}</p>
-      </div>
-      {scenarios.length > 1 ? (
-        <div className="comparison-chip-row">
-          <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
-          <div className="kpi-chip"><span>Best profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
-          <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
-          <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
-          <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
-          <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+      <div className="scenario-comparison-desktop">
+        <div>
+          <span className="pill pro-pill">Scenario comparison</span>
+          <h3>Scenario comparison</h3>
+          <p>{narrative}</p>
         </div>
-      ) : null}
+        {scenarios.length > 1 ? (
+          <div className="comparison-chip-row">
+            <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="roi-mobile-comparison">
+        <h3>Scenario comparison</h3>
+        {scenarios.length < 2 ? (
+          <div className="roi-mobile-comparison-empty">
+            <p>Add another scenario to compare options.</p>
+            <button className="button button-secondary" onClick={onAddScenario} type="button">+ New scenario</button>
+          </div>
+        ) : (
+          <>
+            <p>{narrative}</p>
+            <div className="roi-mobile-comparison-list">
+              {metrics.map((item) => {
+                const badges = [
+                  bestRevenue?.scenario.id === item.scenario.id ? "Best revenue" : "",
+                  bestProfit?.scenario.id === item.scenario.id ? "Best profit" : "",
+                  bestRoi?.scenario.id === item.scenario.id ? "Best ROI" : "",
+                  recommended?.scenario.id === item.scenario.id ? "Recommended" : "",
+                ].filter(Boolean);
+
+                return (
+                  <article className="roi-mobile-comparison-card" key={item.scenario.id}>
+                    <div>
+                      <h4>{item.scenario.name}</h4>
+                      {badges.length ? <span>{badges.join(" · ")}</span> : null}
+                    </div>
+                    <dl>
+                      <div><dt>Inc revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
+                      <div><dt>ROI</dt><dd>{pct(item.profitRoi ?? item.revenueRoi)}</dd></div>
+                      <div><dt>Profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add COGS"}</dd></div>
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -1095,8 +1264,27 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
                       <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
                       <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
                     </>
-                  ) : null}
+                  ) : (
+                    <span className="pill">Available in Pro</span>
+                  )}
                 </div>
+                <details className="roi-mobile-actions">
+                  <summary>Scenario actions</summary>
+                  <div>
+                    <label className="roi-mobile-field">
+                      <span>Rename scenario</span>
+                      <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
+                    </label>
+                    {isPro ? (
+                      <div className="summary-actions">
+                        <button className="button button-secondary button-small" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
+                        <button className="button button-secondary button-small" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
+                      </div>
+                    ) : (
+                      <p className="empty-state">Duplicate and delete are available in Pro.</p>
+                    )}
+                  </div>
+                </details>
               </div>
               <RoiEditableTable
                 lines={scenario.lines}
@@ -1117,8 +1305,9 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
         >
           + New scenario{isPro ? "" : " · Pro"}
         </button>
+        {isPro ? null : <p className="form-note">Compare multiple promo options in Pro.</p>}
 
-        {isPro ? <ScenarioComparison scenarios={activeScenarios} /> : <FreeProPrompt onSwitchToPro={() => setAptMode("pro")} />}
+        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt onSwitchToPro={() => setAptMode("pro")} />}
         {isPro ? <p className="planning-disclaimer">Save your work and return to it later.</p> : null}
       </article>
     </section>

@@ -1062,6 +1062,13 @@ p {
   -webkit-overflow-scrolling: touch;
 }
 
+.roi-mobile-builder,
+.roi-mobile-summary,
+.roi-mobile-actions,
+.roi-mobile-comparison {
+  display: none;
+}
+
 .roi-planner-table {
   width: max-content;
   min-width: 1420px;
@@ -1263,6 +1270,11 @@ p {
 .comparison-chip-row .kpi-chip {
   min-width: 132px;
   background: #ffffff;
+}
+
+.scenario-comparison-desktop {
+  display: grid;
+  gap: 0.65rem;
 }
 
 .saved-plans-details {
@@ -1865,6 +1877,266 @@ p {
   }
 }
 
+@media (max-width: 760px) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .section:has(.roi-planner) {
+    padding: 1.1rem 0 1.6rem;
+  }
+
+  .section:has(.roi-planner) .section-header {
+    margin-bottom: 0.85rem;
+  }
+
+  .roi-planner {
+    gap: 0.9rem;
+    padding: 1rem;
+  }
+
+  .roi-plan-header {
+    gap: 0.85rem;
+  }
+
+  .roi-action-bar {
+    gap: 0.45rem;
+  }
+
+  .roi-desktop-table,
+  .scenario-comparison-desktop {
+    display: none;
+  }
+
+  .roi-mobile-builder {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .roi-mobile-line-card {
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #fbfdfc;
+    padding: 1rem;
+  }
+
+  .roi-mobile-line-header,
+  .roi-mobile-line-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  .roi-mobile-line-header h4 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .roi-mobile-line-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .roi-mobile-field-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+    min-width: 0;
+  }
+
+  .roi-mobile-field {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+    color: var(--foreground);
+    font-size: 0.86rem;
+    font-weight: 900;
+  }
+
+  .roi-mobile-field input,
+  .roi-mobile-field select,
+  .roi-mobile-field textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--foreground);
+    font-size: 16px;
+    padding: 0.68rem 0.75rem;
+  }
+
+  .roi-mobile-field textarea {
+    min-height: 88px;
+    resize: vertical;
+  }
+
+  .roi-mobile-advanced {
+    border-top: 1px solid var(--border);
+    padding-top: 0.2rem;
+  }
+
+  .roi-mobile-advanced summary,
+  .roi-mobile-actions summary {
+    cursor: pointer;
+    color: var(--accent-dark);
+    font-weight: 900;
+    padding: 0.55rem 0;
+  }
+
+  .roi-mobile-line-results,
+  .roi-mobile-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .roi-mobile-line-results div,
+  .roi-mobile-summary div {
+    display: grid;
+    gap: 0.18rem;
+    min-width: 0;
+    border: 1px solid #dce7e4;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 0.55rem 0.6rem;
+  }
+
+  .roi-mobile-line-results span,
+  .roi-mobile-summary span,
+  .roi-mobile-comparison-card dt {
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-transform: uppercase;
+  }
+
+  .roi-mobile-line-results strong,
+  .roi-mobile-summary strong,
+  .roi-mobile-comparison-card dd {
+    color: var(--foreground);
+    font-size: 0.96rem;
+    font-weight: 900;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .scenario-card {
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .scenario-card-header {
+    display: grid;
+    align-items: stretch;
+  }
+
+  .scenario-card-actions {
+    display: none;
+  }
+
+  .roi-mobile-actions {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-soft);
+    padding: 0 0.75rem;
+  }
+
+  .roi-mobile-actions > div {
+    display: grid;
+    gap: 0.65rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .scenario-summary {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.7rem;
+  }
+
+  .scenario-summary h4 {
+    white-space: normal;
+  }
+
+  .scenario-summary .kpi-strip {
+    display: none;
+  }
+
+  .new-line-button,
+  .new-scenario-button {
+    width: 100%;
+  }
+
+  .scenario-comparison {
+    padding: 1rem;
+  }
+
+  .roi-mobile-comparison {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .roi-mobile-comparison h3,
+  .roi-mobile-comparison p {
+    margin: 0;
+  }
+
+  .roi-mobile-comparison p {
+    color: var(--muted);
+    font-size: 0.94rem;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+
+  .roi-mobile-comparison-empty,
+  .roi-mobile-comparison-list,
+  .roi-mobile-comparison-card {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .roi-mobile-comparison-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 0.75rem;
+  }
+
+  .roi-mobile-comparison-card h4 {
+    margin: 0;
+  }
+
+  .roi-mobile-comparison-card span {
+    color: var(--accent-dark);
+    font-size: 0.8rem;
+    font-weight: 900;
+  }
+
+  .roi-mobile-comparison-card dl {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    margin: 0;
+  }
+
+  .roi-mobile-comparison-card div {
+    min-width: 0;
+  }
+
+  .roi-mobile-comparison-card dd {
+    margin: 0;
+  }
+}
+
 @media (max-width: 620px) {
   .shell {
     width: calc(100vw - 24px);
@@ -1940,6 +2212,10 @@ p {
 
   .scenario-tabs .tab-button {
     flex: 0 0 auto;
+  }
+
+  .scenario-card-actions {
+    display: none;
   }
 
   .scenario-summary {
