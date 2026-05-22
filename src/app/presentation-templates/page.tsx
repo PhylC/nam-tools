@@ -4,19 +4,18 @@ import { Hero } from "../components/Shell";
 import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 
 export const metadata: Metadata = {
-  title: "Presentation Templates",
+  title: "Presentations",
   description:
-    "Free account planning presentation templates and Pro guided deck builder for NAMs and commercial teams.",
+    "Buyer-ready and internal presentation templates with Pro guided deck builders for NAMs and commercial teams.",
 };
 
 export default function PresentationTemplatesPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="Presentation Templates" title="Free deck templates and Pro custom deck building.">
+      <Hero eyebrow="Presentations" title="Buyer-ready presentations and planning templates">
         <p>
-          Download or copy practical customer deck structures for JBPs, QBRs,
-          promo proposals, range reviews and launches. Pro helps you build
-          custom customer decks from your agenda, data and commercial story.
+          Turn account plans, promo proposals and customer reviews into clear,
+          structured outputs for buyer meetings and internal sign-off.
         </p>
       </Hero>
       <section className="shell visual-section template-hero-previews" aria-label="Template thumbnails">

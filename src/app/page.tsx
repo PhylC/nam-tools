@@ -25,7 +25,7 @@ const startHere = [
     title: "Build a customer deck",
     text: "Download free deck templates or use Pro to build customer-ready first drafts.",
     href: "/presentation-templates",
-    cta: "Open templates",
+    cta: "Open presentations",
   },
 ];
 
@@ -64,9 +64,8 @@ export default function Home() {
         <p>
           NAM Tools helps National Account Managers, Key Account Managers,
           Commercial Managers and Sales Directors structure commercial thinking
-          faster, from deal ROI, trade spend and retailer/customer economics to
-          customer plans, JBPs, buyer meeting prep and free PowerPoint and
-          spreadsheet templates.
+          faster, from promo ROI and retailer/customer economics to quick
+          calculations and buyer-ready presentation outputs.
         </p>
       </Hero>
 
@@ -86,11 +85,10 @@ export default function Home() {
       </section>
 
       <section className="section shell">
-        <SectionHeader eyebrow="Product sections" title="Calculators, ROI planning and presentation templates.">
+        <SectionHeader eyebrow="Product sections" title="Numbers, calculators and outputs.">
           <p>
-            Calculators remain free forever. ROI Tool and Presentation Templates
-            have useful free workflows plus Pro tools for saved work,
-            scenario planning and guided deck building.
+            Build promo ROI plans, run quick commercial calculations and turn
+            planning work into buyer-ready or internal sign-off outputs.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -108,9 +106,9 @@ export default function Home() {
           </article>
           <article className="card tool-card">
             <span className="pill pro-pill">Free + Pro</span>
-            <h3>Presentation Templates</h3>
-            <p>Free PowerPoint templates plus a guided deck builder for richer planning.</p>
-            <Link className="text-link" href="/presentation-templates">Open templates</Link>
+            <h3>Presentations</h3>
+            <p>Create buyer-ready and internal sign-off outputs from your planning work.</p>
+            <Link className="text-link" href="/presentation-templates">Open presentations</Link>
           </article>
         </div>
       </section>
@@ -119,7 +117,7 @@ export default function Home() {
         <SectionHeader eyebrow="Start here" title="Pick the job in front of you.">
           <p>
             Start with one of the common account management moments, then move
-            into the full toolkit when you need a deeper planning view.
+            into the right workflow when you need a deeper planning view.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -196,10 +194,10 @@ export default function Home() {
       </section>
 
       <section className="section shell">
-        <SectionHeader eyebrow="Core tools" title="Useful immediately, without a login.">
+        <SectionHeader eyebrow="Presentations" title="Buyer-ready outputs without starting from blank pages.">
           <p>
-            Planning tools focus on practical commercial documents: account
-            plans, JBPs, buyer meeting prep and customer review outputs.
+            Buyer meeting prep, customer review and JBP structures now sit
+            inside the Presentations workflow.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -208,11 +206,11 @@ export default function Home() {
           ))}
         </div>
         <div className="cta-row">
-          <Link className="button" href="/tools">
-            View all tools
+          <Link className="button" href="/presentation-templates">
+            Open presentations
           </Link>
-          <Link className="button button-secondary" href="/tools/joint-business-plan-builder">
-            Build a JBP
+          <Link className="button button-secondary" href="/tools">
+            View all resources
           </Link>
         </div>
       </section>
@@ -224,7 +222,7 @@ export default function Home() {
         </div>
         <div className="card muted-card">
           <p>
-            Free tools help with fast checks and reusable templates. Pro adds
+            Free tools help with fast checks and reusable presentation templates. Pro adds
             saved work, linked spreadsheet assumptions, guided deck builders,
             scenario comparison and customer-ready deck outputs.
           </p>
@@ -252,11 +250,11 @@ export default function Home() {
           draft a customer review without opening a blank document first.
         </p>
         <div className="hero-actions">
-          <Link className="button" href="/tools">
-            Start with tools
+          <Link className="button" href="/roi-tool">
+            Start with ROI Tool
           </Link>
           <Link className="button button-secondary" href="/presentation-templates">
-            Copy free templates
+            Open presentations
           </Link>
         </div>
       </section>

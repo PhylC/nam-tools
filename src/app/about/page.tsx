@@ -57,8 +57,8 @@ export default function AboutPage() {
             drafts. Users should validate all figures, assumptions and wording
             before using anything with customers, employers or retailers.
           </p>
-          <Link className="button" href="/tools">
-            Start with tools
+          <Link className="button" href="/roi-tool">
+            Start with ROI Tool
           </Link>
         </article>
       </section>

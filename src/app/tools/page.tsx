@@ -4,9 +4,9 @@ import { Hero, PlaceholderImage, SectionHeader, ToolCard } from "../components/S
 import { getTool, tools } from "../data/tools";
 
 export const metadata: Metadata = {
-  title: "Commercial Tools for NAMs and KAMs",
+  title: "Commercial Planning Resources for NAMs and KAMs",
   description:
-    "No-login planning tools and generators for account plans, JBPs, buyer meetings and customer reviews, with free calculators available separately.",
+    "A resource hub for promo ROI planning, quick calculators and presentation outputs for retail supplier teams.",
 };
 
 const groups = [
@@ -27,21 +27,18 @@ const groups = [
 export default function ToolsPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="Tools" title="Planning tools and generators for retail supplier teams.">
+      <Hero eyebrow="All resources" title="Commercial planning tools for retail supplier teams">
         <p>
-          NAM Tools gives National Account Managers, Key Account Managers,
-          Commercial Managers and Sales Directors a faster way to structure
-          account plans, buyer meetings, JBPs and customer reviews. Calculators,
-          ROI planning and presentation templates now have dedicated product
-          areas so each workflow stays focused.
+          Choose the right tool for the job: build a promo ROI plan, run a quick
+          commercial calculation, or create a buyer-ready presentation.
         </p>
       </Hero>
       <section className="shell visual-section">
         <PlaceholderImage
           aspectRatio="16 / 9"
-          description="Future commercial tools and cards overview visual."
+          description="Commercial planning resources and workflow cards overview."
           filename="/images/tools-grid.svg"
-          title="Tools overview"
+          title="Resources overview"
         />
       </section>
       <section className="shell section">
@@ -52,9 +49,9 @@ export default function ToolsPage() {
           </div>
           <div className="copy-stack">
             <p>
-              Use free calculators for fast maths, the ROI Tool for promotion
-              return planning, and Presentation Templates for customer-ready
-              deck structures and Pro deck builders.
+              Use Calculators for fast maths, the ROI Tool for promotion return
+              planning, and Presentations for buyer-ready and internal sign-off
+              outputs.
             </p>
             <div className="cta-row">
               <Link className="button" href="/calculators">
@@ -64,7 +61,7 @@ export default function ToolsPage() {
                 Open ROI Tool
               </Link>
               <Link className="button button-secondary" href="/presentation-templates">
-                Open templates
+                Open presentations
               </Link>
             </div>
           </div>
@@ -77,7 +74,7 @@ export default function ToolsPage() {
 
         return (
           <section className="shell section" key={group.title}>
-            <SectionHeader eyebrow="Toolkit" title={group.title}>
+            <SectionHeader eyebrow="Resources" title={group.title}>
               <p>{group.intro}</p>
             </SectionHeader>
             <div className="grid">

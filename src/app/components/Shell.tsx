@@ -29,13 +29,10 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             />
           </Link>
           <nav className="main-nav" aria-label="Main navigation">
-            <Link href="/calculators">Calculators</Link>
             <Link href="/roi-tool">ROI Tool</Link>
-            <Link href="/presentation-templates">Presentation Templates</Link>
-            <Link href="/tools">Tools</Link>
+            <Link href="/calculators">Calculators</Link>
+            <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
           </nav>
           <PlanModeToggle />
           <MobileNav />
@@ -60,7 +57,10 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
           <nav aria-label="Tool links">
-            <h2>Tools</h2>
+            <h2>Resources</h2>
+            <Link href="/roi-tool">ROI Tool</Link>
+            <Link href="/calculators">Calculators</Link>
+            <Link href="/presentation-templates">Presentations</Link>
             {tools.slice(0, 5).map((tool) => (
               <Link key={tool.slug} href={tool.href}>
                 {tool.shortTitle}
@@ -70,11 +70,10 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <nav aria-label="Site links">
             <h2>Site</h2>
             <Link href="/calculators">Calculators</Link>
-            <Link href="/calculators/quick-calculators">Calculators</Link>
             <Link href="/roi-tool">ROI Tool</Link>
-            <Link href="/tools">All tools</Link>
-            <Link href="/presentation-templates">Presentation Templates</Link>
+            <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/tools">All resources</Link>
             <Link href="/about">About</Link>
             <Link href="/contact">Contact</Link>
           </nav>

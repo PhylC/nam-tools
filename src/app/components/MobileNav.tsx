@@ -5,20 +5,19 @@ import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 
 const mobileLinks = [
-  { href: "/calculators", label: "Calculators", match: ["/calculators"] },
   { href: "/roi-tool", label: "ROI Tool", match: ["/roi-tool"] },
-  { href: "/presentation-templates", label: "Presentation Templates", match: ["/presentation-templates"] },
-  { href: "/presentation-templates#template-buyer-meeting", label: "Buyer Meeting Templates", match: ["/tools/buyer-meeting-prep"] },
-  { href: "/presentation-templates#template-joint-business-plan", label: "Account Planning Templates", match: ["/templates"] },
+  { href: "/calculators", label: "Calculators", match: ["/calculators"] },
+  { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates", "/tools/buyer-meeting-prep", "/tools/customer-review-template", "/tools/joint-business-plan-builder"] },
   { href: "/pricing", label: "Pricing", match: ["/pricing"] },
-  { href: "/about", label: "About", match: ["/about"] },
 ];
 
 function currentLabel(pathname: string) {
   if (pathname.startsWith("/roi-tool")) return "ROI Tool";
-  if (pathname.startsWith("/presentation-templates")) return "Presentation Templates";
-  if (pathname.startsWith("/tools/buyer-meeting-prep")) return "Buyer Meeting Templates";
-  if (pathname.startsWith("/templates")) return "Account Planning Templates";
+  if (pathname.startsWith("/presentation-templates")) return "Presentations";
+  if (pathname.startsWith("/tools/buyer-meeting-prep")) return "Presentations";
+  if (pathname.startsWith("/tools/customer-review-template")) return "Presentations";
+  if (pathname.startsWith("/tools/joint-business-plan-builder")) return "Presentations";
+  if (pathname.startsWith("/templates")) return "Presentations";
   if (pathname.startsWith("/pricing")) return "Pricing";
   if (pathname.startsWith("/about")) return "About";
   if (pathname.startsWith("/calculators")) return "Calculators";

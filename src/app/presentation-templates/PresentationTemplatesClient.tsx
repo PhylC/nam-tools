@@ -324,10 +324,12 @@ export function PresentationTemplatesFree() {
   return (
     <section className="shell section">
       <div className="section-header">
-        <p className="eyebrow">Free editable templates</p>
-        <h2>Free editable deck templates.</h2>
+        <p className="eyebrow">Presentations</p>
+        <h2>Choose the output you need.</h2>
         <p className="section-lead">
-          Download real editable PowerPoint templates with APT branding, structured slides and fictional UK retail example data you can adapt for customer meetings.
+          Create buyer-ready and internal sign-off outputs from your planning work.
+          Buyer meeting decks, account reviews, JBP plans, promo proposals and range
+          reviews all live here.
         </p>
       </div>
       {aptMode === "pro" ? (

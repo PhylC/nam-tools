@@ -12,10 +12,10 @@ const plans = [
   {
     name: "Free",
     price: "£0",
-    detail: "Core tools for day-to-day commercial planning.",
+    detail: "Simple free tools for day-to-day commercial planning.",
     status: "Live now",
     features: [
-      "Use all core tools",
+      "Run quick commercial checks",
       "Static PowerPoint templates",
       "Static Google Sheets/Excel-style templates",
       "Core calculators",
@@ -24,8 +24,8 @@ const plans = [
       "Fast browser-based workflows",
       "No setup required",
     ],
-    href: "/tools",
-    cta: "Use free tools",
+    href: "/calculators",
+    cta: "Use free calculators",
   },
   {
     name: "Pro",
@@ -43,7 +43,7 @@ const plans = [
       "Customer-ready charts and summaries",
     ],
     href: "/presentation-templates",
-    cta: "Open Pro tools",
+    cta: "Open Pro workflows",
   },
   {
     name: "Team",
@@ -67,7 +67,7 @@ const freeVsPro = [
     title: "Free",
     badge: "Live now",
     items: [
-      "Use all core tools",
+      "Use core calculators and templates",
       "Static PowerPoint templates",
       "Static Google Sheets/Excel-style templates",
       "Core calculators",
@@ -97,8 +97,8 @@ export default function PricingPage() {
     <div className="page-stack">
       <Hero eyebrow="Pricing" title="Choose the workflow depth you need.">
         <p>
-          NAM Tools gives commercial teams a practical Free toolkit and a Pro
-          workflow for deeper planning, saved work, deck building and exports.
+          Start with simple free tools. Upgrade to Pro for multi-SKU planning,
+          scenario comparison, saving and exports.
         </p>
       </Hero>
       <section className="shell visual-section">

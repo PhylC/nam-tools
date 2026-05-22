@@ -24,6 +24,10 @@ The Promo ROI / ROI Tool planner uses a spreadsheet-style table on desktop and a
 
 Mobile navigation intentionally uses a compact menu and current-tool selector instead of the desktop nav pill row. This avoids horizontal overflow on small screens while keeping the Free / Pro plan toggle visible near the top of the page.
 
+## Primary Navigation Note
+
+Primary navigation is intentionally limited to ROI Tool, Calculators, Presentations and Pricing. Buyer meeting templates sit within Presentations rather than appearing as a separate top-level product area.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
