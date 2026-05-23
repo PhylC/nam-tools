@@ -739,7 +739,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
       <section className="deal-input-panel" aria-label="Shared commercial deal inputs">
         <div>
           <span className="pill">60-second inputs</span>
-          <h2>Start with the few numbers most NAMs already have.</h2>
+          <h2>Start with the few numbers most account managers already have.</h2>
           <p className="form-intro">
             Required fields are enough for a quick result. Optional fields
             improve the estimate.

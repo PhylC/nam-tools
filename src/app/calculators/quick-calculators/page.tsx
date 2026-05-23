@@ -4,7 +4,7 @@ import { Hero, SectionHeader } from "../../components/Shell";
 import { quickCalculatorGroups, quickCalculators } from "../../data/quickCalculators";
 
 export const metadata: Metadata = {
-  title: "Commercial Calculators for NAMs",
+  title: "Commercial Calculators for Account Managers",
   description:
     "Quick SOA, retailer margin, invoice price, promo invoice, sales tax, VAT, IVA, markup and margin calculators for account managers.",
 };
@@ -24,7 +24,7 @@ export default function QuickCalculatorsIndexPage() {
       <Hero eyebrow="Calculators" title="Choose the commercial calculation you need.">
         <p>
           Fast retail price, margin, invoice, SOA, support percentage and sales
-          tax / VAT / IVA calculators for common NAM and KAM checks.
+          tax / VAT / IVA calculators for common account manager and KAM checks.
         </p>
       </Hero>
 

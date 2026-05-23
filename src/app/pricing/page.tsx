@@ -5,7 +5,7 @@ import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Free and Pro NAM Tools plans for guided deck builders, linked spreadsheet assumptions, saved drafts and exports.",
+    "Free and Pro Account Planning Tools plans for guided deck builders, linked spreadsheet assumptions, saved drafts and exports.",
 };
 
 const plans = [
@@ -30,7 +30,7 @@ const plans = [
   {
     name: "Pro",
     price: "£19/month",
-    detail: "For individual NAMs who want reusable outputs.",
+    detail: "For individual account managers who want reusable outputs.",
     status: "Pro",
     features: [
       "Upload or paste Excel data",

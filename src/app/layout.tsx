@@ -3,17 +3,17 @@ import { SiteShell } from "./components/Shell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://namtools.co.uk"),
+  metadataBase: new URL("https://accountplanningtools.co.uk"),
   title: {
-    default: "NAM Tools | Practical commercial tools for account managers",
-    template: "%s | NAM Tools",
+    default: "Account Planning Tools | Practical commercial tools for account managers",
+    template: "%s | Account Planning Tools",
   },
   description:
     "No-login calculators, planning tools and templates for National Account Managers, Key Account Managers and commercial teams.",
-  applicationName: "NAM Tools",
-  authors: [{ name: "NAM Tools" }],
-  creator: "NAM Tools",
-  publisher: "NAM Tools",
+  applicationName: "Account Planning Tools",
+  authors: [{ name: "Account Planning Tools" }],
+  creator: "Account Planning Tools",
+  publisher: "Account Planning Tools",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -46,9 +46,9 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_GB",
-    url: "https://namtools.co.uk",
-    siteName: "NAM Tools",
-    title: "NAM Tools | Practical commercial tools for account managers",
+    url: "https://accountplanningtools.co.uk",
+    siteName: "Account Planning Tools",
+    title: "Account Planning Tools | Practical commercial tools for account managers",
     description:
       "No-login commercial calculators and planning tools for promotion reviews, trade spend, margin, account plans, JBPs and buyer meetings.",
     images: [
@@ -62,9 +62,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NAM Tools | Practical commercial tools for account managers",
+    title: "Account Planning Tools | Practical commercial tools for account managers",
     description:
-      "No-login commercial calculators and planning tools for NAMs, KAMs and commercial teams.",
+      "No-login commercial calculators and planning tools for account managers, KAMs and commercial teams.",
     images: [
       {
         url: "/images/branding/og-image.png",

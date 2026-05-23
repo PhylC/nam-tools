@@ -4,9 +4,9 @@ import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
 import { quickCalculators } from "../data/quickCalculators";
 
 export const metadata: Metadata = {
-  title: "Free Commercial Calculators for NAMs",
+  title: "Free Commercial Calculators for Account Managers",
   description:
-    "Free promo ROI, retailer margin, SOA, invoice price, trade spend and commercial investment calculators for National Account Managers and account managers.",
+    "Free promo ROI, retailer margin, SOA, invoice price, trade spend and commercial investment calculators for national account managers and commercial teams.",
 };
 
 export default function CalculatorsPage() {
@@ -14,7 +14,7 @@ export default function CalculatorsPage() {
     <div className="page-stack">
       <Hero
         eyebrow="Free calculators"
-        title="Free commercial calculators for NAMs and account managers"
+        title="Free commercial calculators for account managers"
         actions={
           <>
             <Link className="button" href="/roi-tool">

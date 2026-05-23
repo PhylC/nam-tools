@@ -3,9 +3,9 @@ import Link from "next/link";
 import { ToolPage } from "../../components/Shell";
 
 export const metadata: Metadata = {
-  title: "Commercial Calculators for NAMs | NAM Tools",
+  title: "Commercial Calculators for Account Managers | Account Planning Tools",
   description:
-    "Fast SOA, invoice price, retail margin, sales tax / VAT / IVA and promotion calculators for National Account Managers and commercial teams.",
+    "Fast SOA, invoice price, retail margin, sales tax / VAT / IVA and promotion calculators for national account managers and commercial teams.",
 };
 
 export default function Page() {

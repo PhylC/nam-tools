@@ -3,9 +3,9 @@ import Link from "next/link";
 import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
-  title: "About NAM Tools",
+  title: "About Account Planning Tools",
   description:
-    "NAM Tools helps account managers and commercial teams turn messy commercial thinking into clearer account plans, promo reviews and buyer meeting prep.",
+    "Account Planning Tools helps account managers and commercial teams turn messy commercial thinking into clearer account plans, promo reviews and buyer meeting prep.",
 };
 
 export default function AboutPage() {
@@ -13,7 +13,7 @@ export default function AboutPage() {
     <div className="page-stack">
       <Hero eyebrow="About" title="Built to make commercial planning less blank-page heavy.">
         <p>
-          NAM Tools is a small, practical toolkit for people who need to turn
+          Account Planning Tools is a small, practical toolkit for people who need to turn
           messy commercial thinking into clearer plans, reviews and buyer
           conversations.
         </p>
@@ -31,7 +31,7 @@ export default function AboutPage() {
           <SectionHeader title="Why it exists">
             <p>
               A lot of account management work starts with scattered notes,
-              half-remembered formulas and a blank document. NAM Tools gives
+              half-remembered formulas and a blank document. Account Planning Tools gives
               that work a starting structure so National Account Managers, Key
               Account Managers, Commercial Managers and Sales Directors can move
               faster.
@@ -52,7 +52,7 @@ export default function AboutPage() {
         <article className="card legal-copy">
           <h2>The standard</h2>
           <p>
-            NAM Tools should feel useful quickly, but it should not pretend to
+            Account Planning Tools should feel useful quickly, but it should not pretend to
             replace commercial judgement. Outputs are estimates and first
             drafts. Users should validate all figures, assumptions and wording
             before using anything with customers, employers or retailers.
@@ -66,7 +66,7 @@ export default function AboutPage() {
         <article className="card">
           <SectionHeader eyebrow="Product focus" title="What keeps improving.">
             <p>
-              NAM Tools keeps improving around the practical jobs commercial
+              Account Planning Tools keeps improving around the practical jobs commercial
               teams repeat every week.
             </p>
           </SectionHeader>

@@ -3,14 +3,22 @@ import Image from "next/image";
 import { AptModeProvider, PlanModeToggle } from "./AptMode";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
+import type { Tool } from "../data/tools";
 
-const footerLinks = [
-  { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/cookie-policy", label: "Cookie policy" },
-  { href: "/disclaimer", label: "Disclaimer" },
-  { href: "/copyright", label: "Copyright" },
-  { href: "/refund-policy", label: "Refund policy" },
+const footerResourceLinks = [
+  { href: "/roi-tool", label: "ROI Tool" },
+  { href: "/calculators", label: "Calculators" },
+  { href: "/presentation-templates", label: "Presentations" },
+  { href: "/tools/promotion-roi-calculator", label: "Promotion ROI" },
+  { href: "/tools/trade-spend-calculator", label: "Trade Spend" },
+  { href: "/tools/gross-margin-calculator", label: "Gross Margin" },
+];
+
+const footerSiteLinks = [
+  { href: "/pricing", label: "Pricing" },
+  { href: "/tools", label: "All resources" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/terms", label: "Terms of Use" },
 ];
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
@@ -18,7 +26,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
     <AptModeProvider>
       <header className="site-header">
         <div className="shell header-inner">
-          <Link className="brand" href="/" aria-label="NAM Tools home">
+          <Link className="brand" href="/" aria-label="Account Planning Tools home">
             <Image
               alt="APT Account Planning Tools logo"
               className="brand-logo"
@@ -58,44 +66,23 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           </div>
           <nav aria-label="Tool links">
             <h2>Resources</h2>
-            <Link href="/roi-tool">ROI Tool</Link>
-            <Link href="/calculators">Calculators</Link>
-            <Link href="/presentation-templates">Presentations</Link>
-            {tools.slice(0, 5).map((tool) => (
-              <Link key={tool.slug} href={tool.href}>
-                {tool.shortTitle}
+            {footerResourceLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                {link.label}
               </Link>
             ))}
           </nav>
           <nav aria-label="Site links">
             <h2>Site</h2>
-            <Link href="/calculators">Calculators</Link>
-            <Link href="/roi-tool">ROI Tool</Link>
-            <Link href="/presentation-templates">Presentations</Link>
-            <Link href="/pricing">Pricing</Link>
-            <Link href="/tools">All resources</Link>
-            <Link href="/about">About</Link>
-            <Link href="/contact">Contact</Link>
-          </nav>
-          <nav aria-label="Compliance links">
-            <h2>Compliance</h2>
-            {footerLinks.map((link) => (
+            {footerSiteLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 {link.label}
               </Link>
             ))}
           </nav>
         </div>
-        <div className="shell footer-cta">
-          <Link className="button" href="/calculators">
-            Free calculators
-          </Link>
-          <Link className="button button-secondary" href="/tools/promotion-roi-calculator">
-            Check a promotion
-          </Link>
-        </div>
         <div className="shell footer-bottom">
-          <span>© 2026 NAM Tools. All rights reserved.</span>
+          <span>© 2026 Account Planning Tools. All rights reserved.</span>
           <span>Tools are estimates for general commercial planning only.</span>
         </div>
       </footer>
@@ -147,7 +134,7 @@ export function SectionHeader({
   );
 }
 
-export function ToolCard({ tool }: { tool: (typeof tools)[number] }) {
+export function ToolCard({ tool }: { tool: Tool }) {
   return (
     <article className="card tool-card">
       <span className="pill">{tool.category}</span>

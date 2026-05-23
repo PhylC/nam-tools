@@ -6,7 +6,7 @@ import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 export const metadata: Metadata = {
   title: "Presentations",
   description:
-    "Buyer-ready and internal presentation templates with Pro guided deck builders for NAMs and commercial teams.",
+    "Buyer-ready and internal presentation templates with Pro guided deck builders for account managers and commercial teams.",
 };
 
 export default function PresentationTemplatesPage() {

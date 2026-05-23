@@ -4,7 +4,7 @@ import { Hero, PlaceholderImage, SectionHeader, ToolCard } from "../components/S
 import { getTool, tools } from "../data/tools";
 
 export const metadata: Metadata = {
-  title: "Commercial Planning Resources for NAMs and KAMs",
+  title: "Commercial Planning Resources for Account Managers and KAMs",
   description:
     "A resource hub for promo ROI planning, quick calculators and presentation outputs for retail supplier teams.",
 };

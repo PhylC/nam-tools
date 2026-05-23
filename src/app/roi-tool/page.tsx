@@ -5,7 +5,7 @@ import { RoiToolProduct } from "./RoiToolClient";
 export const metadata: Metadata = {
   title: "ROI Tool",
   description:
-    "Free single-line ROI calculator and Pro multi-SKU ROI planner for NAMs and account managers.",
+    "Free single-line ROI calculator and Pro multi-SKU ROI planner for account managers and commercial teams.",
 };
 
 export default function RoiToolPage() {
@@ -13,7 +13,7 @@ export default function RoiToolPage() {
     <div className="page-stack">
       <Hero
         eyebrow="ROI Tool"
-        title="Practical account planning tools for NAMs"
+        title="Practical account planning tools for account managers"
         visual={
           <PlaceholderImage
             aspectRatio="16 / 9"

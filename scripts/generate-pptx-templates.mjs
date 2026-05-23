@@ -169,7 +169,7 @@ function addBrand(slide, pptx, deck, section) {
   slide.background = { color: palette.white };
   slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: 0.12, fill: { color: palette.teal }, line: { color: palette.teal } });
   if (fs.existsSync(logoPath)) {
-    slide.addImage({ path: logoPath, x: 0.45, y: 0.28, w: 1.25, h: 0.38 });
+    slide.addImage({ path: logoPath, altText: "APT logo", x: 0.45, y: 0.28, w: 1.25, h: 0.38 });
   } else {
     slide.addText("APT", { x: 0.45, y: 0.25, w: 1, h: 0.3, fontFace: "Aptos Display", fontSize: 18, bold: true, color: palette.teal });
   }
@@ -224,10 +224,10 @@ function addCover(pptx, deck) {
   const slide = pptx.addSlide();
   addBrand(slide, pptx, deck, deck.type);
   slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0.12, w: 13.333, h: 7.38, fill: { color: "F7FAF9", transparency: 0 }, line: { color: "F7FAF9" } });
-  if (fs.existsSync(logoPath)) slide.addImage({ path: logoPath, x: 0.62, y: 0.58, w: 1.48, h: 0.45 });
+  if (fs.existsSync(logoPath)) slide.addImage({ path: logoPath, altText: "APT logo", x: 0.62, y: 0.58, w: 1.48, h: 0.45 });
   slide.addText(deck.type, { x: 0.65, y: 1.35, w: 4.6, h: 0.26, fontFace: "Aptos", fontSize: 10, bold: true, color: palette.teal });
   slide.addText(deck.title, { x: 0.62, y: 1.78, w: 6.35, h: 1.14, fontFace: "Aptos Display", fontSize: 33, bold: true, color: palette.ink, breakLine: false, fit: "shrink" });
-  slide.addText(`${deck.customer}\nPrepared with editable fictional data for NAM and commercial planning.`, { x: 0.66, y: 3.08, w: 5.8, h: 0.72, fontFace: "Aptos", fontSize: 13, color: palette.muted, breakLine: false });
+  slide.addText(`${deck.customer}\nPrepared with editable fictional data for account and commercial planning.`, { x: 0.66, y: 3.08, w: 5.8, h: 0.72, fontFace: "Aptos", fontSize: 13, color: palette.muted, breakLine: false });
   slide.addShape(pptx.ShapeType.rect, { x: 8.2, y: 1.1, w: 3.95, h: 4.55, fill: { color: palette.white }, line: { color: palette.border } });
   slide.addText("Editable deck starter", { x: 8.55, y: 1.42, w: 3.3, h: 0.35, fontFace: "Aptos Display", fontSize: 19, bold: true, color: palette.ink });
   slide.addText("Use these slides as a practical customer-facing first draft. Replace the example data, narrative and actions with your own account plan.", { x: 8.55, y: 1.95, w: 3.1, h: 1.2, fontFace: "Aptos", fontSize: 12, color: palette.muted, breakLine: false, valign: "mid" });

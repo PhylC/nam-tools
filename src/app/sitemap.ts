@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { quickCalculators } from "./data/quickCalculators";
 
-const baseUrl = "https://namtools.co.uk";
+const baseUrl = "https://accountplanningtools.co.uk";
 
 const routes = [
   "",

@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "NAM Tools",
-    short_name: "NAM Tools",
+    name: "Account Planning Tools",
+    short_name: "APT",
     description:
       "No-login commercial calculators, planning tools and templates for account managers.",
     start_url: "/",

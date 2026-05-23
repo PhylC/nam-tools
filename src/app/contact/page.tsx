@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import { Hero, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
-  title: "Contact NAM Tools",
+  title: "Contact Account Planning Tools",
   description:
-    "Contact NAM Tools for feedback, partnerships, template requests and tool suggestions.",
+    "Contact Account Planning Tools for feedback, partnerships, template requests and tool suggestions.",
 };
 
 const reasons = [
   "Feedback on a calculator or planning tool",
   "Partnership or commercial collaboration ideas",
   "Template requests for future packs",
-  "Suggestions for new NAM, KAM or commercial tools",
+  "Suggestions for new account manager, KAM or commercial tools",
 ];
 
 export default function ContactPage() {
@@ -20,8 +20,8 @@ export default function ContactPage() {
       <Hero eyebrow="Contact" title="Share feedback, requests or tool ideas.">
         <p>
           Email{" "}
-          <a className="text-link" href="mailto:hello@namtools.co.uk">
-            hello@namtools.co.uk
+          <a className="text-link" href="mailto:hello@accountplanningtools.co.uk">
+            hello@accountplanningtools.co.uk
           </a>{" "}
           for feedback, partnership ideas, template requests or suggestions for
           future tools.

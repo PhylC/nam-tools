@@ -48,7 +48,7 @@ export default function Home() {
   return (
     <div className="page-stack">
       <Hero
-        eyebrow="NAM Tools"
+        eyebrow="Account Planning Tools"
         title="Commercial tools for better account plans, promo reviews and buyer meetings."
         actions={
           <>
@@ -62,7 +62,7 @@ export default function Home() {
         }
       >
         <p>
-          NAM Tools helps National Account Managers, Key Account Managers,
+          Account Planning Tools helps National Account Managers, Key Account Managers,
           Commercial Managers and Sales Directors structure commercial thinking
           faster, from promo ROI and retailer/customer economics to quick
           calculations and buyer-ready presentation outputs.
@@ -78,7 +78,7 @@ export default function Home() {
         />
       </section>
 
-      <section className="shell trust-strip" aria-label="NAM Tools highlights">
+      <section className="shell trust-strip" aria-label="Account Planning Tools highlights">
         <span>Built for retail suppliers</span>
         <span>Fast browser tools</span>
         <span>Commercial planning first</span>
@@ -146,7 +146,7 @@ export default function Home() {
               from scratch.
             </p>
             <p>
-              NAM Tools gives the thinking a starting shape: the numbers to
+              Account Planning Tools gives the thinking a starting shape: the numbers to
               test, the questions to challenge and the sections a credible
               customer plan needs.
             </p>

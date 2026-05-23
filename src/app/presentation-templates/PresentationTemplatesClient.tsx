@@ -55,7 +55,7 @@ const freeTemplates = [
     pptx: "joint-business-plan-template.pptx",
     deckType: "Joint Business Plan",
     for: "Align annual customer objectives, growth pillars, investment and measures of success.",
-    audience: "NAMs, KAMs, Sales Directors and customer-facing category teams",
+    audience: "Account managers, KAMs, Sales Directors and customer-facing category teams",
     slides: "11 slides",
   },
   {
@@ -82,7 +82,7 @@ const freeTemplates = [
     pptx: "range-review-template.pptx",
     deckType: "Range Review",
     for: "Structure distribution, rate of sale, opportunity gaps and recommended range changes.",
-    audience: "NAMs, category teams and range review stakeholders",
+    audience: "Account managers, category teams and range review stakeholders",
     slides: "9 slides",
   },
   {
@@ -100,7 +100,7 @@ const freeTemplates = [
     pptx: "annual-planning-template.pptx",
     deckType: "Annual Planning",
     for: "Turn the full-year review, targets, investment priorities and quarterly roadmap into one planning deck.",
-    audience: "NAMs, sales leads, commercial finance and customer leadership",
+    audience: "Account managers, sales leads, commercial finance and customer leadership",
     slides: "7 slides",
   },
   {
@@ -109,7 +109,7 @@ const freeTemplates = [
     pptx: "buyer-meeting-prep-template.pptx",
     deckType: "Buyer Meeting Prep",
     for: "Prepare the meeting objective, buyer priorities, talking points, objections and follow-up actions.",
-    audience: "NAMs, KAMs and customer-facing commercial teams",
+    audience: "Account managers, KAMs and customer-facing commercial teams",
     slides: "8 slides",
   },
   {
@@ -118,7 +118,7 @@ const freeTemplates = [
     pptx: "category-opportunity-deck-template.pptx",
     deckType: "Category Opportunity",
     for: "Size a category opportunity with shopper trends, competitor benchmarking and practical recommendations.",
-    audience: "NAMs, category managers, buyers and commercial leaders",
+    audience: "Account managers, category managers, buyers and commercial leaders",
     slides: "7 slides",
   },
 ];
