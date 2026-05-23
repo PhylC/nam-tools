@@ -21,6 +21,7 @@ const routes = [
   "/tools/terms-investment-calculator",
   "/tools/customer-review-template",
   "/templates",
+  "/settings",
   "/pricing",
   "/about",
   "/contact",

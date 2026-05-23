@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     template: "%s | Account Planning Tools",
   },
   description:
-    "No-login calculators, planning tools and templates for National Account Managers, Key Account Managers and commercial teams.",
+    "Commercial planning tools for account managers. Run promo ROI, margin and support checks with clearer outputs for retailer meetings and account planning.",
   applicationName: "Account Planning Tools",
   authors: [{ name: "Account Planning Tools" }],
   creator: "Account Planning Tools",
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     siteName: "Account Planning Tools",
     title: "Account Planning Tools | Practical commercial tools for account managers",
     description:
-      "No-login commercial calculators and planning tools for promotion reviews, trade spend, margin, account plans, JBPs and buyer meetings.",
+      "Run promo ROI, margin and support checks with clearer outputs for retailer meetings, internal reviews and account planning.",
     images: [
       {
         url: "/images/branding/og-image.png",
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Account Planning Tools | Practical commercial tools for account managers",
     description:
-      "No-login commercial calculators and planning tools for account managers, KAMs and commercial teams.",
+      "Commercial planning tools for account managers, sales leads and commercial teams.",
     images: [
       {
         url: "/images/branding/og-image.png",

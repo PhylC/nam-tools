@@ -1,6 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Hero, PlaceholderImage, SectionHeader, ToolCard } from "./components/Shell";
 import { getTool, tools } from "./data/tools";
+
+export const metadata: Metadata = {
+  description:
+    "Commercial planning tools for account managers. Run promo ROI, margin and support checks with clearer outputs for retailer meetings and account planning.",
+};
 
 const featuredTools = [
   "account-plan-generator",
@@ -30,14 +36,14 @@ const startHere = [
 ];
 
 const proFeatures = [
-  "Scenario comparison for deeper planning",
-  "Saved plans and saved work",
+  "Save and reopen commercial scenarios",
+  "Compare different versions of a deal",
   "Excel import/export for repeatable reviews",
   "Free PowerPoint and spreadsheet templates",
-  "Guided deck builders from template workflows",
+  "Build custom deck briefs from templates",
   "PDF/deck-ready exports",
-  "Advanced templates",
-  "Team review packs",
+  "Account-level calculator defaults",
+  "Company logo, disclaimer and presentation template",
 ];
 
 export default function Home() {
@@ -49,24 +55,24 @@ export default function Home() {
     <div className="page-stack">
       <Hero
         eyebrow="Account Planning Tools"
-        title="Commercial tools for better account plans, promo reviews and buyer meetings."
+        title="Commercial planning tools for account managers"
         actions={
           <>
             <Link className="button" href="/calculators">
-              Start with calculators
+              Try the calculators
             </Link>
-            <Link className="button button-secondary" href="/roi-tool">
-              Open ROI Tool
+            <Link className="button button-secondary" href="/pricing">
+              Compare Free and Pro
             </Link>
           </>
         }
       >
         <p>
-          Account Planning Tools helps National Account Managers, Key Account Managers,
-          Commercial Managers and Sales Directors structure commercial thinking
-          faster, from promo ROI and retailer/customer economics to quick
-          calculations and buyer-ready presentation outputs.
+          Run quick promo, margin and support checks — then turn the numbers
+          into cleaner summaries for retailer meetings, internal reviews and
+          account planning.
         </p>
+        <p>APT helps you move faster when the question is simple but the spreadsheet never is.</p>
       </Hero>
 
       <section className="shell visual-section hero-visual">
@@ -87,8 +93,9 @@ export default function Home() {
       <section className="section shell">
         <SectionHeader eyebrow="Product sections" title="Numbers, calculators and outputs.">
           <p>
-            Build promo ROI plans, run quick commercial calculations and turn
-            planning work into buyer-ready or internal sign-off outputs.
+            Build promo ROI plans, run quick commercial calculations and turn the
+            answer into something useful for a retailer conversation or internal
+            sign-off.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -116,8 +123,9 @@ export default function Home() {
       <section className="section shell">
         <SectionHeader eyebrow="Start here" title="Pick the job in front of you.">
           <p>
-            Start with one of the common account management moments, then move
-            into the right workflow when you need a deeper planning view.
+            Start with one of the common account management moments: a buyer ask,
+            a margin question, a support calculation or a deck that needs to be
+            clearer by tomorrow.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -141,14 +149,14 @@ export default function Home() {
           </div>
           <div className="copy-stack">
             <p>
-              Commercial teams often know the customer context, but lose time
-              rebuilding the same calculators, meeting notes and plan structures
-              from scratch.
+              Commercial teams usually know the customer context. The lost time
+              comes from rebuilding the same calculators, assumptions and deck
+              structures from scratch.
             </p>
             <p>
-              Account Planning Tools gives the thinking a starting shape: the numbers to
-              test, the questions to challenge and the sections a credible
-              customer plan needs.
+              Account Planning Tools gives the work a starting shape: the
+              numbers to test, the questions to challenge and the sections a
+              credible customer plan needs.
             </p>
           </div>
         </div>
@@ -196,8 +204,8 @@ export default function Home() {
       <section className="section shell">
         <SectionHeader eyebrow="Presentations" title="Buyer-ready outputs without starting from blank pages.">
           <p>
-            Buyer meeting prep, customer review and JBP structures now sit
-            inside the Presentations workflow.
+            Buyer meeting prep, customer review and JBP structures live together
+            so the numbers can become a clearer meeting story.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -222,9 +230,9 @@ export default function Home() {
         </div>
         <div className="card muted-card">
           <p>
-            Free tools help with fast checks and reusable presentation templates. Pro adds
-            saved work, linked spreadsheet assumptions, guided deck builders,
-            scenario comparison and customer-ready deck outputs.
+            Free tools are useful for quick one-off checks. APT Pro is for the
+            regular work: saving scenarios, comparing versions, keeping your
+            default setup and turning results into cleaner outputs.
           </p>
           <ul className="compact-list">
             {proFeatures.map((feature) => (
@@ -236,9 +244,9 @@ export default function Home() {
           </Link>
           <PlaceholderImage
             aspectRatio="16 / 10"
-            description="Pro workflow showing saved scenarios and exports."
+            description="Pro planning view showing saved scenarios and exports."
             filename="/images/pricing-pro-workflow.svg"
-            title="Pro workflow"
+            title="Pro planning"
           />
         </div>
       </section>

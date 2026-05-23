@@ -105,8 +105,8 @@ export default function ToolsPage() {
             <p>
               The free tools give quick answers. Pro supports repeatable work:
               import or paste Excel data, compare scenarios, save plans, use
-              guided deck builders, export Excel summaries and create fuller
-              customer-ready write-ups.
+              deck builders, export spreadsheet summaries and create fuller
+              meeting-ready write-ups.
             </p>
           </div>
         </article>

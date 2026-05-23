@@ -12,7 +12,7 @@ export default function Page() {
   return (
     <ToolPage
       slug="commercial-deal-calculator"
-      intro="Model supplier view and retailer/customer view from one shared set of assumptions, then switch between promo ROI, gross margin, trade spend and investment ask tabs."
+      intro="Use this when a retailer asks for support, a lower promo price or more funding and you need to quickly understand whether the deal still makes sense."
       interpretation={
         <p>
           Use this as the ROI tool when a promotion has more than one

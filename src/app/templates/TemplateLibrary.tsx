@@ -473,9 +473,9 @@ export function TemplateLibrary() {
             <span className="pill pro-pill">Pro</span>
             <h2>Guided deck builders</h2>
             <p>
-              Pro will ask smart commercial questions, generate the first-draft
-              deck structure and create linked Google Sheets/Excel-style
-              calculation support.
+              Pro helps you turn a brief, customer context and supporting data
+              into a clearer first-draft deck structure with calculation
+              support.
             </p>
           </article>
         </div>
@@ -567,13 +567,13 @@ export function TemplateLibrary() {
           </div>
           <div className="copy-stack">
             <p>
-              Instead of starting from a blank deck or sheet, Pro asks the
-              right commercial questions and generate a first-draft PowerPoint
-              deck structure with linked Google Sheets/Excel-style assumptions.
+              Instead of starting from a blank deck or sheet, Pro helps you
+              answer the right commercial questions and build a first-draft
+              PowerPoint structure with supporting assumptions.
             </p>
             <p>
-              PowerPoint, Google Slides, Excel and Google Sheets export options
-              sit alongside PDF exports, saved drafts and saved scenarios.
+              PowerPoint and spreadsheet exports sit alongside saved drafts,
+              saved scenarios and reusable commercial inputs.
             </p>
           </div>
         </article>

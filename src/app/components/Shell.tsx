@@ -60,8 +60,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               />
             </Link>
             <p>
-              Practical commercial tools for account managers preparing plans,
-              reviews, buyer conversations and investment asks.
+              Practical commercial planning tools for account managers dealing
+              with promo ROI, margin questions, retailer asks and meeting
+              outputs.
             </p>
           </div>
           <nav aria-label="Tool links">
@@ -83,7 +84,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="shell footer-bottom">
           <span>© 2026 Account Planning Tools. All rights reserved.</span>
-          <span>Tools are estimates for general commercial planning only.</span>
+          <span>Calculations are estimates based on the inputs provided.</span>
         </div>
       </footer>
     </AptModeProvider>
@@ -226,9 +227,9 @@ export function ToolPage({
           <aside className="card judgement-card">
             <h2>Commercial judgement matters</h2>
             <p>
-              These tools use your inputs to produce planning estimates. Verify
-              the figures, assumptions, customer context and internal approval
-              rules before making business decisions.
+              Retail selling prices are at the sole discretion of the retailer.
+              Calculations are estimates based on the inputs provided and should
+              be checked against your own internal process.
             </p>
           </aside>
           {children}

@@ -5,7 +5,7 @@ import { RoiToolProduct } from "./RoiToolClient";
 export const metadata: Metadata = {
   title: "ROI Tool",
   description:
-    "Free single-line ROI calculator and Pro multi-SKU ROI planner for account managers and commercial teams.",
+    "Use the ROI tool for quick promo checks, multi-SKU planning, scenario comparison and clearer commercial recommendations.",
 };
 
 export default function RoiToolPage() {
@@ -13,7 +13,7 @@ export default function RoiToolPage() {
     <div className="page-stack">
       <Hero
         eyebrow="ROI Tool"
-        title="Practical account planning tools for account managers"
+        title="Promo ROI checks without rebuilding the spreadsheet"
         visual={
           <PlaceholderImage
             aspectRatio="16 / 9"
@@ -24,8 +24,10 @@ export default function RoiToolPage() {
         }
       >
         <p>
-          Use the ROI tool for quick promo checks. Pro adds multi-SKU
-          planning, scenarios and export-ready outputs.
+          Use this when a retailer asks for support, a lower promo price or more
+          funding and you need to quickly understand whether the deal still
+          makes sense. Pro adds multi-SKU planning, scenarios and export-ready
+          outputs.
         </p>
       </Hero>
       <RoiToolProduct />

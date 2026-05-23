@@ -12,7 +12,7 @@ export default function Page() {
   return (
     <ToolPage
       slug="quick-commercial-calculators"
-      intro="Fast retail, margin, invoice and SOA calculators for quick commercial checks."
+      intro="Use these for quick revenue, margin, invoice and support checks when you do not need a full scenario plan."
       interpretation={
         <p>
           Use these for fast lookups when you only have two to four numbers.

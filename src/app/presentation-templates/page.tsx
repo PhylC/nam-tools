@@ -6,7 +6,7 @@ import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 export const metadata: Metadata = {
   title: "Presentations",
   description:
-    "Buyer-ready and internal presentation templates with Pro guided deck builders for account managers and commercial teams.",
+    "Buyer-ready and internal presentation templates for turning account plans, promo proposals and customer reviews into clearer meeting outputs.",
 };
 
 export default function PresentationTemplatesPage() {
@@ -14,8 +14,9 @@ export default function PresentationTemplatesPage() {
     <div className="page-stack">
       <Hero eyebrow="Presentations" title="Buyer-ready presentations and planning templates">
         <p>
-          Turn account plans, promo proposals and customer reviews into clear,
-          structured outputs for buyer meetings and internal sign-off.
+          Use this when you have the numbers but still need to turn them into a
+          clean, meeting-ready story for a buyer conversation or internal
+          sign-off.
         </p>
       </Hero>
       <section className="shell visual-section template-hero-previews" aria-label="Template thumbnails">

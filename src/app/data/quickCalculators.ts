@@ -28,7 +28,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Retail Selling Price Calculator",
     h1: "Retail Selling Price Calculator",
     description:
-      "Estimate the retail/sale price from invoice price and target retailer margin.",
+      "Use this to check how invoice price, retail price and VAT/tax affect retailer margin before you commit to a deal.",
     group: "Retail price and margin",
     choice: "Estimate retail price from invoice and target margin",
     whenToUse: [
@@ -47,7 +47,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Actual Retailer Margin Calculator",
     h1: "Actual Retailer Margin Calculator",
     description:
-      "Estimate the margin a retailer or customer makes from invoice price, SOA, promo invoice and retail selling price.",
+      "Use this to check how invoice price, promo support, retail price and VAT/tax affect retailer margin before you commit to a deal.",
     group: "Retail price and margin",
     choice: "What margin is the retailer actually making?",
     whenToUse: [
@@ -66,7 +66,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Invoice Price Calculator",
     h1: "Invoice Price Calculator from Retail Price and Margin",
     description:
-      "Calculate the implied retailer invoice/buy price from retail price and target margin.",
+      "Use this to back-solve the invoice price implied by a retail price and target margin.",
     group: "Retail price and margin",
     choice: "Calculate invoice price from retail price and target margin",
     whenToUse: [
@@ -85,7 +85,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Markup vs Margin Calculator",
     h1: "Markup vs Margin Calculator",
     description:
-      "Compare margin and markup from invoice cost and retail selling price.",
+      "Use this to check whether a deal conversation is using margin or markup before the numbers get confused.",
     group: "Retail price and margin",
     choice: "What is the difference between markup and margin?",
     whenToUse: [
@@ -105,7 +105,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Required SOA Calculator",
     h1: "Required SOA Calculator",
     description:
-      "Calculate the supplier support or SOA needed to reach a target retailer margin from invoice price and promo retail price.",
+      "Use this when a retailer asks for support and you need to estimate the SOA needed to reach a target margin.",
     group: "SOA and supplier support",
     choice: "What SOA do I need to hit a margin?",
     whenToUse: [
@@ -125,7 +125,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Promo Invoice Calculator",
     h1: "Promo Invoice Calculator",
     description:
-      "Calculate effective promotional invoice price after SOA or supplier support.",
+      "Use this to turn SOA or support per unit into a clearer promotional invoice price and total support view.",
     group: "SOA and supplier support",
     choice: "What is my promo invoice after SOA?",
     whenToUse: [
@@ -144,7 +144,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "SOA / Support % Calculator",
     h1: "SOA / Support % Calculator",
     description:
-      "Calculate supplier support as a percentage of invoice price and retail selling price.",
+      "Use this to turn SOA, fixed funding or trade spend into a clearer view of total deal support.",
     group: "SOA and supplier support",
     choice: "What percentage support am I giving?",
     whenToUse: [
@@ -163,7 +163,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Sales Tax / VAT / IVA Retail Price Calculator",
     h1: "Sales Tax, VAT and IVA Retail Price Calculator",
     description:
-      "Convert retail prices between including and excluding sales tax, VAT or IVA.",
+      "Use this when retail prices include VAT, sales tax or IVA but margin needs to be checked excluding tax.",
     group: "Tax and price conversion",
     choice: "Convert inc/ex sales tax, VAT or IVA",
     whenToUse: [

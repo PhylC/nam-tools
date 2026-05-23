@@ -6,7 +6,7 @@ import { quickCalculators } from "../data/quickCalculators";
 export const metadata: Metadata = {
   title: "Free Commercial Calculators for Account Managers",
   description:
-    "Free promo ROI, retailer margin, SOA, invoice price, trade spend and commercial investment calculators for national account managers and commercial teams.",
+    "Free promo ROI, margin, SOA, invoice price and support calculators for account managers who need quick commercial checks.",
 };
 
 export default function CalculatorsPage() {
@@ -35,17 +35,18 @@ export default function CalculatorsPage() {
         }
       >
         <p>
-          Quickly check promo ROI, retailer margin, SOA, trade spend, invoice
-          price and commercial investment before you build the full customer
-          plan. Calculators are free to use.
+          Use these when a retailer asks for support, a lower promo price or a
+          quick margin view and you need to understand whether the numbers still
+          make sense. Calculators are free to use.
         </p>
       </Hero>
 
       <section className="shell section">
         <SectionHeader eyebrow="Main calculator" title="One calculator for the full ROI picture.">
           <p>
-            Use one set of inputs to compare the supplier view, retailer/customer
-            view, trade spend and investment ask.
+            Use the ROI tool when a buyer asks for more funding, a lower promo
+            price or a different mechanic and you need a quick read before the
+            conversation moves on.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -53,8 +54,8 @@ export default function CalculatorsPage() {
             <span className="pill">Free</span>
             <h3>ROI Tool</h3>
             <p>
-              Model one SKU or a full multi-line promotion, compare scenarios
-              and export the numbers.
+              Model one SKU in Free, or use APT Pro for multi-line promotions,
+              scenario comparison and export-ready summaries.
             </p>
             <Link className="text-link" href="/roi-tool">
               Open ROI tool
@@ -64,8 +65,8 @@ export default function CalculatorsPage() {
             <span className="pill">Free</span>
             <h3>Calculators</h3>
             <p>
-              A grouped index of fast SOA, retailer margin, invoice price, tax
-              and markup calculators.
+              Quick checks for SOA, retailer margin, invoice price, tax and
+              markup when you only have a few numbers.
             </p>
             <Link className="text-link" href="/calculators/quick-calculators">
               Browse calculators
@@ -77,8 +78,8 @@ export default function CalculatorsPage() {
       <section className="shell section">
         <SectionHeader eyebrow="Popular calculators" title="Fast answers from two to four numbers.">
           <p>
-            Jump straight to high-intent calculators, each with its own formula
-            notes and related checks.
+            Jump straight to the calculation you need, with short formula notes
+            and related checks nearby.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -99,9 +100,9 @@ export default function CalculatorsPage() {
         <article className="card judgement-card">
           <h2>Free to use.</h2>
           <p>
-            Calculator outputs are planning estimates. Validate all figures,
-            assumptions, tax treatment and customer context before making
-            commitments.
+            Retail selling prices are at the sole discretion of the retailer.
+            Calculations are estimates based on the inputs provided and should
+            be checked against your own internal process.
           </p>
         </article>
       </section>

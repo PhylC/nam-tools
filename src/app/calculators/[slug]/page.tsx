@@ -13,37 +13,37 @@ const metadataBySlug: Record<string, Metadata> = {
   "required-soa-calculator": {
     title: "Required SOA Calculator",
     description:
-      "Calculate the supplier support or SOA needed to reach a target retailer margin from invoice price and promo retail price.",
+      "Use this when a retailer asks for support and you need to estimate the SOA needed to reach a target margin.",
   },
   "retail-selling-price-calculator": {
     title: "Retail Selling Price Calculator",
     description:
-      "Estimate the retail/sale price from invoice price and target retailer margin.",
+      "Check how invoice price, retail price and VAT or tax affect margin before you commit to a deal.",
   },
   "actual-retailer-margin-calculator": {
     title: "Actual Retailer Margin Calculator",
     description:
-      "Estimate the margin a retailer or customer makes from invoice price, SOA, promo invoice and retail selling price.",
+      "Check how invoice price, promo support, retail price and VAT or tax affect retailer margin.",
   },
   "invoice-price-calculator": {
     title: "Invoice Price Calculator from Retail Price and Margin",
     description:
-      "Calculate the implied retailer invoice/buy price from retail price and target margin.",
+      "Back-solve the invoice price implied by a retail price and target margin.",
   },
   "promo-invoice-calculator": {
     title: "Promo Invoice Calculator",
     description:
-      "Calculate effective promotional invoice price after SOA or supplier support.",
+      "Turn SOA or support per unit into a promotional invoice price and total support view.",
   },
   "sales-tax-vat-iva-calculator": {
     title: "Sales Tax, VAT and IVA Retail Price Calculator",
     description:
-      "Convert retail prices between including and excluding sales tax, VAT or IVA.",
+      "Convert retail prices when margin needs to be checked excluding VAT, sales tax or IVA.",
   },
   "markup-vs-margin-calculator": {
     title: "Markup vs Margin Calculator",
     description:
-      "Compare margin and markup from invoice cost and retail selling price.",
+      "Check whether a deal conversation is using margin or markup before the numbers get confused.",
   },
 };
 
@@ -97,8 +97,9 @@ export default async function CalculatorPage({
           <article className="card judgement-card">
             <h2>Pricing caveat</h2>
             <p>
-              Pricing is at the sole discretion of the retailer. Outputs are
-              estimates for planning only.
+              Retail selling prices are at the sole discretion of the retailer.
+              Calculations are estimates based on the inputs provided and should
+              be checked against your own internal process.
             </p>
           </article>
         </div>

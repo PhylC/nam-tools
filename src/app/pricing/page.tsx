@@ -3,57 +3,55 @@ import Link from "next/link";
 import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
-  title: "Pricing",
-  description:
-    "Free and Pro Account Planning Tools plans for guided deck builders, linked spreadsheet assumptions, saved drafts and exports.",
+  title: "Pricing | Free vs APT Pro",
+    description:
+    "Compare Free and APT Pro. Use free calculators for quick checks, or upgrade to save, compare and export commercial scenarios.",
 };
 
 const plans = [
   {
     name: "Free",
     price: "£0",
-    detail: "Simple free tools for day-to-day commercial planning.",
+    detail: "Best for quick checks.",
     status: "Live now",
     features: [
-      "Run quick commercial checks",
-      "Static PowerPoint templates",
-      "Static Google Sheets/Excel-style templates",
+      "Single-product, single-scenario checks",
       "Core calculators",
       "Free single-line ROI Tool",
-      "Copy basic summaries",
-      "Fast browser-based workflows",
+      "Copy a basic summary",
+      "Download a simple CSV",
+      "Remember last-used values on this device",
       "No setup required",
     ],
     href: "/calculators",
     cta: "Use free calculators",
   },
   {
-    name: "Pro",
+    name: "APT Pro",
     price: "£19/month",
-    detail: "For individual account managers who want reusable outputs.",
+    detail: "Best for regular commercial planning.",
     status: "Pro",
     features: [
-      "Upload or paste Excel data",
-      "Guided deck builders",
+      "Save scenarios and reopen them later",
+      "Compare different versions of a deal",
       "Multi-SKU ROI scenario planner",
-      "First-draft PowerPoint/Google Slides outputs",
-      "Linked Excel/Google Sheets assumptions",
-      "Build and compare multiple scenarios",
-      "Saved drafts",
-      "Customer-ready charts and summaries",
+      "Upload or paste spreadsheet data",
+      "Account-level calculator defaults",
+      "Save your company logo, disclaimer and presentation template",
+      "Cleaner exports for meetings and reviews",
     ],
-    href: "/presentation-templates",
-    cta: "Open Pro workflows",
+    href: "/settings",
+    cta: "Open Pro settings",
   },
   {
     name: "Team",
     price: "Custom",
-    detail: "For commercial teams standardising planning quality.",
+    detail: "For teams that need shared planning standards.",
     status: "Coming soon",
     features: [
       "Shared customer plans",
       "Team scenario libraries",
-      "Manager review workflow",
+      "Manager review process",
       "Standardised templates",
       "Shared export packs",
     ],
@@ -62,60 +60,44 @@ const plans = [
   },
 ];
 
-const freeVsPro = [
-  {
-    title: "Free",
-    badge: "Live now",
-    items: [
-      "Use core calculators and templates",
-      "Static PowerPoint templates",
-      "Static Google Sheets/Excel-style templates",
-      "Core calculators",
-      "Free ROI Tool",
-      "Copy basic summaries",
-      "Fast browser-based workflows",
-    ],
-  },
-  {
-    title: "Pro",
-    badge: "Pro",
-    items: [
-      "Upload or paste Excel data",
-      "Guided deck builders",
-      "Multi-SKU ROI scenarios",
-      "First-draft PowerPoint/Google Slides outputs",
-      "Linked Excel/Google Sheets assumptions",
-      "Compare scenarios",
-      "Saved drafts",
-      "Customer-ready charts and summaries",
-    ],
-  },
+const comparisonRows = [
+  ["Quick calculators", "Included", "Included"],
+  ["Products per calculation", "1 product", "Multiple products"],
+  ["Scenarios", "1 scenario", "Save, duplicate and compare scenarios"],
+  ["Result summary", "Basic summary", "Advanced commercial summary"],
+  ["Copy summary", "Included", "Included"],
+  ["CSV download", "Current calculation only", "Included, plus richer exports"],
+  ["Excel export", "Not included", "Export workbook"],
+  ["PowerPoint export", "Not included", "Export presentation-ready summaries"],
+  ["Company branding", "Not included", "Logo, company details and disclaimer"],
+  ["Presentation template upload", "Not included", "Use your own .pptx template"],
+  ["Calculator defaults", "Remembered on this device", "Saved to your account"],
+  ["Best for", "Quick one-off checks", "Repeated commercial planning and retailer meetings"],
 ];
 
 export default function PricingPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="Pricing" title="Choose the workflow depth you need.">
+      <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
-          Start with simple free tools. Upgrade to Pro for multi-SKU planning,
-          scenario comparison, saving and exports.
+          Start free for quick one-off checks. Upgrade to APT Pro when you need
+          to save, compare and export commercial scenarios regularly.
         </p>
       </Hero>
       <section className="shell visual-section">
         <PlaceholderImage
           aspectRatio="16 / 9"
-          description="Pro workflow, export and saved scenario workspace."
+          description="Pro planning view with saved scenarios and exports."
           filename="/images/pricing-pro-workflow.svg"
-          title="Pro workflow and export"
+          title="Pro planning and export"
         />
       </section>
       <section className="shell section">
-        <SectionHeader eyebrow="Plans" title="Built around practical commercial workflows.">
+        <SectionHeader eyebrow="Plans" title="Useful for quick checks. Stronger for repeat work.">
           <p>
-            The free plan covers quick commercial checks and reusable templates.
-            Pro focuses on guided deck builders, first-draft PowerPoint/Google
-            Slides outputs, linked spreadsheet assumptions, scenario comparison
-            and customer-ready charts.
+            Use the core calculators for single-product, single-scenario
+            checks. APT Pro adds saved scenarios, account-level defaults and
+            cleaner exports for meetings, reviews and planning.
           </p>
         </SectionHeader>
         <div className="grid">
@@ -138,32 +120,56 @@ export default function PricingPage() {
         </div>
       </section>
       <section className="shell section">
-        <SectionHeader eyebrow="Free vs Pro" title="Free tools should build trust. Pro should deepen the workflow.">
+        <SectionHeader eyebrow="Free vs APT Pro" title="Compare Free and APT Pro">
           <p>
-            The free version stays useful: quick inputs, instant answers and
-            copyable summaries. Pro is reserved for saving, comparing and
-            producing customer-ready packs.
+            Free is built for quick one-off checks. APT Pro is for saving,
+            comparing and exporting commercial scenarios.
           </p>
         </SectionHeader>
-        <div className="grid grid-two">
-          {freeVsPro.map((plan) => (
-            <article className="card pricing-card" key={plan.title}>
-              <span className={`pill ${plan.title === "Pro" ? "pro-pill" : ""}`}>{plan.badge}</span>
-              <h2>{plan.title}</h2>
-              <ul className="compact-list">
-                {plan.items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
+        <div className="comparison-table-wrap">
+          <table className="pricing-comparison-table">
+            <caption>Free and APT Pro feature comparison</caption>
+            <thead>
+              <tr>
+                <th scope="col">Feature</th>
+                <th scope="col">Free</th>
+                <th className="pro-column" scope="col">
+                  <span>APT Pro</span>
+                  <span className="pill pro-pill recommended-pill">Recommended</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map(([feature, free, pro]) => (
+                <tr key={feature}>
+                  <th scope="row">{feature}</th>
+                  <td data-label="Free">{free}</td>
+                  <td className="pro-column" data-label="APT Pro">{pro}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
+        <article className="card comparison-cta">
+          <div>
+            <h3>Use Free for quick checks.</h3>
+            <p>Upgrade to APT Pro when you need to save, compare and export your work.</p>
+          </div>
+          <div className="cta-row">
+            <Link className="button" href="/settings">
+              Start with APT Pro
+            </Link>
+            <Link className="button button-secondary" href="/calculators">
+              Try free calculators
+            </Link>
+          </div>
+        </article>
       </section>
       <section className="shell section">
         <article className="card split-band">
           <div>
-            <p className="eyebrow">Why Pro will exist</p>
-            <h2>Quick checks are free. Repeatable planning needs more structure.</h2>
+            <p className="eyebrow">Why Pro</p>
+            <h2>APT Pro is for when the work does not stop at one calculation.</h2>
           </div>
           <div className="copy-stack">
             <p>
@@ -171,10 +177,9 @@ export default function PricingPage() {
               a margin sense-check, or a first draft of a buyer meeting plan.
             </p>
             <p>
-              Pro will exist for repeatable planning: guided deck builders,
-              first-draft PowerPoint/Google Slides outputs, linked
-              Excel/Google Sheets assumptions, scenario comparison, saved drafts
-              and customer-ready charts.
+              Pro is for the real workflow: saving scenarios, comparing
+              versions, keeping your default setup, and turning results into
+              cleaner outputs for meetings and reviews.
             </p>
           </div>
         </article>
