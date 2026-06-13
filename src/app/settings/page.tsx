@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function SettingsPage() {
   return (
     <div className="page-stack">
-      <Hero eyebrow="Settings" title="Settings">
+      <Hero title="Settings">
         <p>
           Save your usual calculator and export setup so APT starts closer to the way you work.
         </p>

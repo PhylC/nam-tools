@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
+import { MobileAuthLinks } from "./AuthNav";
 
 const mobileLinks = [
   { href: "/roi-tool", label: "ROI Tool", match: ["/roi-tool"] },
@@ -79,6 +80,7 @@ export function MobileNav() {
             {link.label}
           </Link>
         ))}
+        <MobileAuthLinks onNavigate={closeMenu} />
       </nav>
     </>
   );

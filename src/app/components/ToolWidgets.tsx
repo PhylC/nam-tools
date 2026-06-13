@@ -12,6 +12,7 @@ import {
   saveCalculatorDefaults,
   vatBasisToRetailTaxBasis,
 } from "../../lib/proSettings";
+import { saveAnalysis } from "../../lib/saveStore";
 
 const currency = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -471,6 +472,99 @@ function DownloadCsvButton({
   );
 }
 
+function rowsToRecord(rows: CsvRow[] | undefined) {
+  return (rows ?? []).reduce<Record<string, string | number>>((record, row) => {
+    record[row.label] = row.value;
+    return record;
+  }, {});
+}
+
+function SaveAnalysisAction({
+  calculatorId,
+  calculatorName,
+  defaultTitle,
+  inputs,
+  outputs,
+  summaryText,
+  sourcePath,
+}: {
+  calculatorId: string;
+  calculatorName: string;
+  defaultTitle: string;
+  inputs?: CsvRow[];
+  outputs: CsvRow[];
+  summaryText: string;
+  sourcePath: string;
+}) {
+  const { aptMode } = useAptMode();
+  const isPro = aptMode === "pro";
+  const [isOpen, setIsOpen] = useState(false);
+  const [analysisName, setAnalysisName] = useState(defaultTitle);
+  const [message, setMessage] = useState("");
+  const [savedId, setSavedId] = useState("");
+
+  function openPanel() {
+    if (!isPro) {
+      setMessage("Saving analyses is included with APT Pro.");
+      return;
+    }
+    setAnalysisName(defaultTitle);
+    setMessage("");
+    setIsOpen(true);
+  }
+
+  async function saveCurrentAnalysis() {
+    const title = analysisName.trim() || defaultTitle;
+    const result = await saveAnalysis({
+      calculatorId,
+      calculatorName,
+      title,
+      inputs: rowsToRecord(inputs),
+      outputs: rowsToRecord(outputs),
+      defaults: {},
+      summaryText,
+      sourcePath,
+    });
+    setSavedId(String(result.data.id ?? ""));
+    setMessage("Analysis saved.");
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="save-work-action">
+      <button className="button button-secondary copy-button" onClick={openPanel} type="button">
+        Save analysis
+        {!isPro ? <span className="roi-pro-badge">APT Pro</span> : null}
+      </button>
+      {message ? (
+        <div className="save-work-message" role="status">
+          <strong>{message}</strong>
+          {isPro && savedId ? (
+            <>
+              <a className="text-link" href="/workspace#analyses">View in workspace</a>
+              <button className="text-button" onClick={() => setMessage("")} type="button">Keep working</button>
+            </>
+          ) : (
+            <a className="text-link" href="/pricing">See APT Pro</a>
+          )}
+        </div>
+      ) : null}
+      {isOpen ? (
+        <div className="save-work-panel">
+          <label className="field">
+            <span>Analysis name</span>
+            <input value={analysisName} onChange={(event) => setAnalysisName(event.target.value)} />
+          </label>
+          <div className="summary-actions">
+            <button className="button button-small" onClick={saveCurrentAnalysis} type="button">Save analysis</button>
+            <button className="button button-secondary button-small" onClick={() => setIsOpen(false)} type="button">Cancel</button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function LockedProActions() {
   const { aptMode } = useAptMode();
   const [message, setMessage] = useState("");
@@ -806,7 +900,9 @@ function ContextualCalculatorSettings({
 
   function handleCreateAccountClick() {
     saveDefaults();
-    setSavedMessage("Defaults saved on this device. Create a free account flow will connect here.");
+    if (typeof window !== "undefined") {
+      window.location.href = `/create-account?returnTo=${encodeURIComponent(window.location.pathname)}`;
+    }
   }
 
   return (
@@ -1548,6 +1644,12 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     { label: "Summary", value: simpleSummaries[activeTab] },
     { label: "Disclaimer", value: DISCLAIMER_LINE },
   ];
+  const dealSourcePaths: Record<DealTab, string> = {
+    promo: "/tools/promotion-roi-calculator",
+    margin: "/tools/gross-margin-calculator",
+    spend: "/tools/trade-spend-calculator",
+    investment: "/tools/terms-investment-calculator",
+  };
 
   return (
     <article className="card tool-form commercial-deal-calculator">
@@ -1768,6 +1870,15 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <div className="summary-actions">
               <CopyButton text={simpleSummaries[activeTab]} label="Copy summary" />
               <DownloadCsvButton filename={`apt-${slugifyFilename(dealTabTitle(activeTab))}-summary.csv`} rows={dealCsvRows} />
+              <SaveAnalysisAction
+                calculatorId={`commercial-deal-${activeTab}`}
+                calculatorName={dealTabTitle(activeTab)}
+                defaultTitle={dealTabTitle(activeTab)}
+                inputs={dealInputsForCsv}
+                outputs={dealOutputsForCsv[activeTab]}
+                summaryText={simpleSummaries[activeTab]}
+                sourcePath={dealSourcePaths[activeTab]}
+              />
             </div>
           </div>
           <RetailerPricingCaveat />
@@ -2008,6 +2119,15 @@ function QuickCalculatorCard({
               <div className="summary-actions">
                 <CopyButton text={summary} label="Copy summary" />
                 <DownloadCsvButton filename={`apt-${slugifyFilename(title)}-summary.csv`} rows={csvRows} />
+                <SaveAnalysisAction
+                  calculatorId={id ?? slugifyFilename(title)}
+                  calculatorName={title}
+                  defaultTitle={title}
+                  inputs={inputs}
+                  outputs={results.map((item) => ({ label: item.label, value: item.value }))}
+                  summaryText={summary}
+                  sourcePath={id ? `/calculators/${id}` : "/calculators/quick-calculators"}
+                />
               </div>
             </div>
             <section className="result-explanation">

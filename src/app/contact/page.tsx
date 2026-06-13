@@ -33,7 +33,7 @@ export default function ContactPage() {
         </p>
       </Hero>
       <section className="shell section split-band">
-        <article className="card">
+        <article className="legal-copy">
           <SectionHeader eyebrow="Contact reasons" title="Useful things to send.">
             <ul className="compact-list">
               {reasons.map((reason) => (

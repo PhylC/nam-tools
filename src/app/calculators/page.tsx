@@ -3,6 +3,11 @@ import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { quickCalculators } from "../data/quickCalculators";
 
+function iconForCalculator(group: string) {
+  if (group === "SOA and supplier support") return "/images/apt/apt-icon-support.svg";
+  return "/images/apt/apt-icon-margin.svg";
+}
+
 export const metadata: Metadata = {
   title: "Free Commercial Calculators for Account Managers",
   description:
@@ -13,7 +18,6 @@ export default function CalculatorsPage() {
   return (
     <div className="page-stack">
       <Hero
-        eyebrow="Free calculators"
         title="Free commercial calculators for account managers"
         actions={
           <>
@@ -28,9 +32,10 @@ export default function CalculatorsPage() {
         visual={
           <ProductVisual
             aspectRatio="16 / 9"
-            description="Calculator workspace showing ROI inputs and summary outputs."
-            filename="/images/commercial-deal-calculator.svg"
-            title="Free calculator workspace"
+            alt="APT ROI planner showing product lines and scenario summary"
+            description="Clean ROI planner view with product lines and scenario summary."
+            filename="/images/apt/apt-roi-planner-clean-preview.webp"
+            title="ROI planner preview"
           />
         }
       >
@@ -51,6 +56,7 @@ export default function CalculatorsPage() {
         </SectionHeader>
         <div className="grid">
           <article className="card tool-card">
+            <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-promo-roi.svg" />
             <h3>ROI Tool</h3>
             <p>
               Model one SKU in Free, or use APT Pro for multi-line promotions,
@@ -61,6 +67,7 @@ export default function CalculatorsPage() {
             </Link>
           </article>
           <article className="card tool-card">
+            <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-support.svg" />
             <h3>Calculators</h3>
             <p>
               Quick checks for SOA, retailer margin, invoice price, tax and
@@ -83,6 +90,7 @@ export default function CalculatorsPage() {
         <div className="grid">
           {quickCalculators.map((calculator) => (
             <article className="card tool-card" key={calculator.slug}>
+              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={iconForCalculator(calculator.group)} />
               <h3>{calculator.title}</h3>
               <p>{calculator.description}</p>
               <Link className="text-link" href={`/calculators/${calculator.slug}`}>

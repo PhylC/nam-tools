@@ -7,7 +7,9 @@ import {
   deleteRoiPlan,
   duplicateRoiPlan,
   listRoiPlans,
+  loadSavedScenario,
   loadRoiPlan,
+  saveScenario,
   saveRoiPlan,
 } from "../../lib/saveStore";
 
@@ -54,6 +56,95 @@ type SavedRoiGroup = RoiGroup & {
 };
 
 type RoiPlannerMode = "free" | "pro";
+
+type RoiFieldKey =
+  | "sku"
+  | "product"
+  | "currentInvoice"
+  | "promoInvoice"
+  | "soa"
+  | "baselineUnits"
+  | "promoUnits"
+  | "cogs"
+  | "fixedSupport"
+  | "currentSrp"
+  | "promoSrp"
+  | "vatRate"
+  | "currency"
+  | "notes";
+
+const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info: string }> = {
+  sku: {
+    label: "SKU / item",
+    required: false,
+    info: "Use this to name the product, SKU or line being modelled.",
+  },
+  product: {
+    label: "Product",
+    required: false,
+    info: "Add the product name if you want a clearer summary or export.",
+  },
+  currentInvoice: {
+    label: "Current invoice",
+    required: true,
+    info: "The current invoice or buy price charged to the retailer per unit.",
+  },
+  promoInvoice: {
+    label: "Promo invoice",
+    required: false,
+    info: "The promotional invoice price during the deal. Leave blank if you are modelling support separately.",
+  },
+  soa: {
+    label: "SOA/support",
+    required: false,
+    info: "Supplier-funded support per unit, such as saving on allowance, off-invoice support or promotional funding.",
+  },
+  baselineUnits: {
+    label: "Baseline units",
+    required: true,
+    info: "Expected units sold in the normal comparison period before the promotion.",
+  },
+  promoUnits: {
+    label: "Promo units",
+    required: true,
+    info: "Expected units sold during the promotion or deal period.",
+  },
+  cogs: {
+    label: "COGS",
+    required: false,
+    info: "Your estimated cost of goods per unit. Leave blank if you only want a revenue-based view.",
+  },
+  fixedSupport: {
+    label: "Fixed support",
+    required: false,
+    info: "Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding.",
+  },
+  currentSrp: {
+    label: "Current SRP",
+    required: false,
+    info: "Normal consumer selling price. Use this for extra context where retail price matters.",
+  },
+  promoSrp: {
+    label: "Promo SRP",
+    required: false,
+    info: "Promotional consumer selling price. Use this for extra context where retail price matters.",
+  },
+  vatRate: {
+    label: "VAT rate",
+    required: false,
+    info: "Optional tax rate for retail-price context. ROI calculations use invoice, support and volume inputs.",
+  },
+  currency: {
+    label: "Currency",
+    required: false,
+    info: "Used for notes and export context. The planner currently formats results in GBP.",
+  },
+  notes: {
+    label: "Notes",
+    required: false,
+    info: "Add any assumptions or buyer context you want to keep with this line.",
+  },
+};
 
 function initialRoiPlannerState() {
   const group = blankGroup();
@@ -206,6 +297,45 @@ function copyScenario(scenario: RoiScenario): RoiScenario {
   };
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function restoreSavedLine(value: unknown): RoiLine {
+  const line = isRecord(value) ? value : {};
+  const supportMode = line.supportMode === "soa" || line.supportMode === "promoInvoice" ? line.supportMode : "promoInvoice";
+  return {
+    ...blankLine(),
+    id: typeof line.id === "string" ? line.id : crypto.randomUUID(),
+    sku: typeof line.sku === "string" ? line.sku : "",
+    product: typeof line.product === "string" ? line.product : "",
+    notes: typeof line.notes === "string" ? line.notes : "",
+    currentInvoice: typeof line.currentInvoice === "string" ? line.currentInvoice : "",
+    promoInvoice: typeof line.promoInvoice === "string" ? line.promoInvoice : "",
+    soa: typeof line.soa === "string" ? line.soa : "",
+    currentSrp: typeof line.currentSrp === "string" ? line.currentSrp : "",
+    promoSrp: typeof line.promoSrp === "string" ? line.promoSrp : "",
+    baselineUnits: typeof line.baselineUnits === "string" ? line.baselineUnits : "",
+    promoUnits: typeof line.promoUnits === "string" ? line.promoUnits : "",
+    cogs: typeof line.cogs === "string" ? line.cogs : "",
+    fixedSupport: typeof line.fixedSupport === "string" ? line.fixedSupport : "",
+    vatRate: typeof line.vatRate === "string" ? line.vatRate : "",
+    currency: typeof line.currency === "string" ? line.currency : "",
+    supportMode,
+  };
+}
+
+function restoreSavedScenario(value: unknown, fallbackName = "ROI scenario"): RoiScenario | null {
+  const scenario = isRecord(value) ? value : {};
+  const rawLines = Array.isArray(scenario.lines) ? scenario.lines : [];
+  const lines = rawLines.length ? rawLines.map(restoreSavedLine) : [blankLine()];
+  return {
+    id: typeof scenario.id === "string" ? scenario.id : crypto.randomUUID(),
+    name: typeof scenario.name === "string" && scenario.name.trim() ? scenario.name : fallbackName,
+    lines,
+  };
+}
+
 function limitGroupsForFree(nextGroups: RoiGroup[]) {
   const group = nextGroups[0] ?? blankGroup();
   const scenario = group.scenarios[0] ?? blankScenario();
@@ -276,9 +406,9 @@ function parseCsv(text: string) {
 
 // These required/optional fields may change as the ROI model evolves.
 const inputTemplateHeaders = [
-  "scenario_name REQUIRED",
-  "sku_model_item_number REQUIRED",
-  "product_name REQUIRED",
+  "scenario_name OPTIONAL",
+  "sku_model_item_number OPTIONAL",
+  "product_name OPTIONAL",
   "current_invoice_price REQUIRED",
   "promo_invoice_price OPTIONAL",
   "support_per_unit_soa OPTIONAL",
@@ -343,8 +473,6 @@ function validateUploadRows(rows: Record<string, string>[]) {
   const errors: string[] = [];
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    if (!has(row.sku_model_item_number ?? "")) errors.push(`Row ${rowNumber}: sku_model_item_number is required.`);
-    if (!has(row.product_name ?? "")) errors.push(`Row ${rowNumber}: product_name is required.`);
     if (!has(row.current_invoice_price ?? "")) errors.push(`Row ${rowNumber}: current_invoice_price is required.`);
     if (!has(row.baseline_units ?? "")) errors.push(`Row ${rowNumber}: baseline_units is required.`);
     if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
@@ -483,6 +611,32 @@ function ProOnlyAction({
   );
 }
 
+function RoiFieldLabel({
+  field,
+  compact = false,
+}: {
+  field: RoiFieldKey;
+  compact?: boolean;
+}) {
+  const meta = roiFieldMeta[field];
+  const status = meta.required ? "Required" : "Optional";
+
+  return (
+    <span className={compact ? "roi-field-label roi-field-label-compact" : "roi-field-label"}>
+      <span className="roi-field-label-text">{meta.label}</span>
+      <span className={meta.required ? "field-status field-required calc-required-badge" : "field-status calc-optional-badge"}>
+        {status}
+      </span>
+      <span aria-label={`${meta.label}: ${meta.info}`} className="info-dot calc-info-button" tabIndex={0} title={meta.info}>
+        i
+        <span className="info-tooltip" role="tooltip">
+          {meta.info}
+        </span>
+      </span>
+    </span>
+  );
+}
+
 function TableInput({
   ariaLabel,
   value,
@@ -503,20 +657,23 @@ function TableInput({
 }
 
 function MobileField({
-  label,
+  field,
   value,
   onChange,
   type = "text",
 }: {
-  label: string;
+  field: RoiFieldKey;
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "number";
 }) {
+  const meta = roiFieldMeta[field];
+
   return (
     <label className="roi-mobile-field">
-      <span>{label}</span>
+      <RoiFieldLabel field={field} />
       <input
+        aria-label={meta.label}
         inputMode={type === "number" ? "decimal" : undefined}
         type={type}
         value={value}
@@ -557,9 +714,9 @@ function RoiMobileLineBuilder({
         const calc = calculateLine(line);
         const supportField =
           line.supportMode === "soa" ? (
-            <MobileField label="SOA/support" type="number" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} />
+            <MobileField field="soa" type="number" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} />
           ) : (
-            <MobileField label="Promo invoice price" type="number" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} />
+            <MobileField field="promoInvoice" type="number" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} />
           );
 
         return (
@@ -577,10 +734,10 @@ function RoiMobileLineBuilder({
             </div>
 
             <div className="roi-mobile-field-grid">
-              <MobileField label="SKU / Item" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
-              <MobileField label="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} />
-              <MobileField label="Current invoice price" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
-              <MobileField label="Current volume" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
+              <MobileField field="sku" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
+              <MobileField field="product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} />
+              <MobileField field="currentInvoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
+              <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
               <label className="roi-mobile-field">
                 <span>Promo input</span>
                 <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
@@ -589,20 +746,20 @@ function RoiMobileLineBuilder({
                 </select>
               </label>
               {supportField}
-              <MobileField label="Promo volume" type="number" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} />
+              <MobileField field="promoUnits" type="number" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} />
             </div>
 
             <details className="roi-mobile-advanced">
               <summary>Show advanced inputs</summary>
               <div className="roi-mobile-field-grid">
-                <MobileField label="COGS" type="number" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} />
-                <MobileField label="Fixed support" type="number" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} />
-                <MobileField label="Current SRP" type="number" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} />
-                <MobileField label="Promo SRP" type="number" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} />
-                <MobileField label="VAT rate" type="number" value={line.vatRate} onChange={(value) => changeLine(line.id, { vatRate: value })} />
-                <MobileField label="Currency" value={line.currency} onChange={(value) => changeLine(line.id, { currency: value })} />
+                <MobileField field="cogs" type="number" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} />
+                <MobileField field="fixedSupport" type="number" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} />
+                <MobileField field="currentSrp" type="number" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} />
+                <MobileField field="promoSrp" type="number" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} />
+                <MobileField field="vatRate" type="number" value={line.vatRate} onChange={(value) => changeLine(line.id, { vatRate: value })} />
+                <MobileField field="currency" value={line.currency} onChange={(value) => changeLine(line.id, { currency: value })} />
                 <label className="roi-mobile-field roi-mobile-field-full">
-                  <span>Notes</span>
+                  <RoiFieldLabel field="notes" />
                   <textarea value={line.notes} onChange={(event) => changeLine(line.id, { notes: event.target.value })} />
                 </label>
               </div>
@@ -650,15 +807,15 @@ function RoiEditableTable({
         <table className="roi-planner-table">
           <thead>
             <tr>
-              <th className="sticky-col">SKU / Item</th>
-              <th>Product</th>
-              <th>Current invoice</th>
-              <th>Promo invoice</th>
-              <th>SOA/support</th>
-              <th>Baseline units</th>
-              <th>Promo units</th>
-              <th>COGS optional</th>
-              <th>Fixed support optional</th>
+              <th className="sticky-col"><RoiFieldLabel compact field="sku" /></th>
+              <th><RoiFieldLabel compact field="product" /></th>
+              <th><RoiFieldLabel compact field="currentInvoice" /></th>
+              <th><RoiFieldLabel compact field="promoInvoice" /></th>
+              <th><RoiFieldLabel compact field="soa" /></th>
+              <th><RoiFieldLabel compact field="baselineUnits" /></th>
+              <th><RoiFieldLabel compact field="promoUnits" /></th>
+              <th><RoiFieldLabel compact field="cogs" /></th>
+              <th><RoiFieldLabel compact field="fixedSupport" /></th>
               <th>Incremental revenue</th>
               <th>Support cost</th>
               <th>Profit impact</th>
@@ -681,8 +838,8 @@ function RoiEditableTable({
                   <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
                   <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
                   <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
-                  <td><TableInput ariaLabel="COGS optional" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
-                  <td><TableInput ariaLabel="Fixed support optional" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
+                  <td><TableInput ariaLabel="COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
+                  <td><TableInput ariaLabel="Fixed support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
                   <td>{money(calc.incrementalRevenue)}</td>
                   <td>{money(calc.supportCost)}</td>
                   <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
@@ -942,13 +1099,50 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
   const [saveMessage, setSaveMessage] = useState("");
   const [proMessage, setProMessage] = useState("");
+  const [savingScenarioId, setSavingScenarioId] = useState("");
+  const [scenarioSaveName, setScenarioSaveName] = useState("");
+  const [scenarioSaveMessage, setScenarioSaveMessage] = useState("");
+  const [scenarioMessageId, setScenarioMessageId] = useState("");
+  const [savedScenarioId, setSavedScenarioId] = useState("");
 
   useEffect(() => {
     if (isPro) refreshSavedGroups();
   }, [isAuthenticated, isPro]);
 
-  function showProMessage() {
-    setProMessage("Available in Pro.");
+  useEffect(() => {
+    if (!isPro || typeof window === "undefined") return;
+    const savedId = new URLSearchParams(window.location.search).get("saved");
+    if (!savedId) return;
+
+    let isMounted = true;
+    loadSavedScenario(savedId).then((result) => {
+      if (!isMounted) return;
+      setSaveMessage(result.message ?? "");
+      const saved = result.data;
+      if (!saved) {
+        setProMessage("Could not find that saved scenario.");
+        return;
+      }
+      const scenario = restoreSavedScenario(saved.scenarioData, String(saved.title ?? "ROI scenario"));
+      if (!scenario) return;
+      const group = blankGroup(String(saved.title ?? "Saved ROI scenario"));
+      const nextGroup = { ...group, scenarios: [scenario] };
+      setPlannerState({
+        groups: [nextGroup],
+        activeGroupId: nextGroup.id,
+        activeScenarioId: scenario.id,
+      });
+      setScenarioSaveMessage("Loaded saved scenario.");
+      setScenarioMessageId(scenario.id);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isPro]);
+
+  function showProMessage(message = "Available with APT Pro.") {
+    setProMessage(message);
   }
 
   async function refreshSavedGroups() {
@@ -986,6 +1180,50 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
     const result = await saveRoiPlan(snapshot);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
+  }
+
+  function openSaveScenario(scenario: RoiScenario) {
+    if (!isPro) {
+      showProMessage("Saving scenarios is included with APT Pro.");
+      return;
+    }
+    setSavingScenarioId(scenario.id);
+    setScenarioSaveName(scenario.name || "ROI scenario");
+    setScenarioSaveMessage("");
+    setScenarioMessageId("");
+    setSavedScenarioId("");
+  }
+
+  async function saveCurrentScenario(scenario: RoiScenario) {
+    if (!isPro) {
+      showProMessage("Saving scenarios is included with APT Pro.");
+      return;
+    }
+    const title = scenarioSaveName.trim() || scenario.name || "ROI scenario";
+    const total = aggregate(scenario.lines);
+    const result = await saveScenario({
+      title,
+      toolId: "roi-tool",
+      toolName: "ROI planner",
+      scenarioData: { ...scenario, name: title },
+      inputs: { lines: scenario.lines },
+      outputs: {
+        baselineRevenue: money(total.baselineRevenue),
+        promoRevenue: money(total.promoRevenue),
+        incrementalRevenue: money(total.revenueImpact),
+        support: money(total.supportCost),
+        profit: total.profitRows ? money(total.profitImpact) : "n/a",
+        revenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
+        profitRoi: total.profitRows && total.supportCost > 0 ? pct(total.profitImpact / total.supportCost) : "n/a",
+        lines: scenario.lines.length,
+      },
+      defaults: {},
+      sourcePath: "/roi-tool",
+    });
+    setSavedScenarioId(String(result.data.id ?? ""));
+    setScenarioSaveMessage("Scenario saved.");
+    setScenarioMessageId(scenario.id);
+    setSavingScenarioId("");
   }
 
   async function loadSavedGroup(groupId: string) {
@@ -1196,10 +1434,9 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
   return (
     <section className="shell section">
       <div className="section-header">
-        <p className="eyebrow">{isPro ? "Pro" : "Free"}</p>
-        <h2>ROI planner</h2>
+        <h2>Build your plan</h2>
         <p className="section-lead">
-          Model one SKU or a full multi-line promotion, compare scenarios and export the numbers.
+          Enter the product line, normal trading position and promotional ask.
         </p>
       </div>
       <article className="card roi-planner">
@@ -1259,24 +1496,33 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
         ) : null}
 
         <div className="scenario-stack">
-          {activeScenarios.map((scenario) => (
+          {activeScenarios.map((scenario) => {
+            const showNumberedHeading = isPro && activeScenarios.length > 1;
+            return (
             <section className="scenario-card" key={scenario.id}>
               <div className="scenario-title-row">
-                <h3>{scenario.name || "Scenario 1"}</h3>
-                {isPro ? null : <span className="pro-action-note">Save scenario with APT Pro</span>}
+                <div>
+                  <h3>{showNumberedHeading ? scenario.name || "Scenario" : "Scenario"}</h3>
+                  {!isPro ? <p>Model one scenario for free. Add and compare scenarios with APT Pro.</p> : null}
+                </div>
               </div>
               <div className="scenario-card-header">
                 <label className="field scenario-name-field">
-                  <span>Scenario name</span>
+                  <span>Name</span>
                   <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
                 </label>
                 <div className="scenario-card-actions">
                   {isPro ? (
                     <>
+                      <button className="table-action" onClick={() => openSaveScenario(scenario)} type="button">Save scenario</button>
                       <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
                       <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
                     </>
-                  ) : null}
+                  ) : (
+                    <button className="table-action" onClick={() => openSaveScenario(scenario)} type="button">
+                      Save scenario <ProBadge />
+                    </button>
+                  )}
                 </div>
                 <details className="roi-mobile-actions">
                   <summary>Scenario actions</summary>
@@ -1287,15 +1533,38 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
                     </label>
                     {isPro ? (
                       <div className="summary-actions">
+                        <button className="button button-secondary button-small" onClick={() => openSaveScenario(scenario)} type="button">Save scenario</button>
                         <button className="button button-secondary button-small" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
                         <button className="button button-secondary button-small" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
                       </div>
                     ) : (
-                      <p className="empty-state">Duplicate and delete are available in Pro.</p>
+                      <div className="summary-actions">
+                        <button className="button button-secondary button-small" onClick={() => openSaveScenario(scenario)} type="button">Save scenario <ProBadge /></button>
+                      </div>
                     )}
                   </div>
                 </details>
               </div>
+              {savingScenarioId === scenario.id ? (
+                <div className="save-work-panel roi-save-panel">
+                  <label className="field scenario-name-field">
+                    <span>Scenario name</span>
+                    <input value={scenarioSaveName} onChange={(event) => setScenarioSaveName(event.target.value)} />
+                  </label>
+                  <div className="summary-actions">
+                    <button className="button button-small" onClick={() => saveCurrentScenario(scenario)} type="button">Save scenario</button>
+                    <button className="button button-secondary button-small" onClick={() => setSavingScenarioId("")} type="button">Cancel</button>
+                  </div>
+                </div>
+              ) : null}
+              {scenarioSaveMessage && scenarioMessageId === scenario.id ? (
+                <div className="save-work-message" role="status">
+                  <strong>{scenarioSaveMessage}</strong>
+                  {savedScenarioId ? <a className="text-link" href="/workspace#scenarios">View in workspace</a> : null}
+                  {savedScenarioId ? <button className="text-button" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button> : null}
+                  <button className="text-button" onClick={() => { setScenarioSaveMessage(""); setScenarioMessageId(""); }} type="button">Keep working</button>
+                </div>
+              ) : null}
               <RoiEditableTable
                 lines={scenario.lines}
                 onAddLine={() => addLineToScenario(scenario.id)}
@@ -1305,7 +1574,8 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
               />
               <ScenarioSummary scenario={scenario} />
             </section>
-          ))}
+          );
+          })}
         </div>
 
         <button

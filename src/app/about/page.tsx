@@ -17,7 +17,7 @@ export default function AboutPage() {
         </p>
       </Hero>
       <section className="shell section">
-        <article className="card legal-copy">
+        <article className="legal-copy">
           <p>
             Most account managers, sales leads and commercial teams are not
             short of spreadsheets. They are short of time, clarity and clean
@@ -36,7 +36,7 @@ export default function AboutPage() {
         </article>
       </section>
       <section className="shell section split-band">
-        <article className="card">
+        <article className="legal-copy">
           <SectionHeader title="Why I built APT">
             <p>
               I have spent years in commercial sales roles where the same
@@ -51,7 +51,7 @@ export default function AboutPage() {
             </p>
           </SectionHeader>
         </article>
-        <article className="card">
+        <article className="legal-copy">
           <SectionHeader title="What APT is — and is not">
             <p>
               APT is a practical planning tool for commercial teams. It can help
@@ -68,7 +68,7 @@ export default function AboutPage() {
         </article>
       </section>
       <section className="shell section">
-        <article className="card legal-copy">
+        <article className="legal-copy">
           <h2>Who it is for</h2>
           <p>
             APT is built for national account managers, key account managers,
@@ -91,7 +91,7 @@ export default function AboutPage() {
         </article>
       </section>
       <section className="shell section">
-        <article className="card">
+        <article className="legal-copy">
           <SectionHeader eyebrow="Product focus" title="What keeps improving.">
             <p>
               Account Planning Tools keeps improving around the practical jobs commercial

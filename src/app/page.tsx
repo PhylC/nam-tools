@@ -14,24 +14,28 @@ const toolChoices = [
     description: "Use promo ROI when you need to compare support, volume and return.",
     href: "/roi-tool",
     cta: "Open Promo ROI",
+    icon: "/images/apt/apt-icon-promo-roi.svg",
   },
   {
     title: "What does this do to margin?",
     description: "Check invoice price, COGS, retail price and tax assumptions.",
     href: "/tools/gross-margin-calculator",
     cta: "Open Margin Calculator",
+    icon: "/images/apt/apt-icon-margin.svg",
   },
   {
     title: "How much support is in the deal?",
     description: "Turn SOA, fixed funding or trade spend into a clearer support view.",
     href: "/calculators/soa-support-percent-calculator",
     cta: "Open Support Calculator",
+    icon: "/images/apt/apt-icon-support.svg",
   },
   {
     title: "I need a meeting-ready summary",
     description: "Use templates and exports to turn the numbers into a cleaner story.",
     href: "/presentation-templates",
     cta: "View Templates",
+    icon: "/images/apt/apt-icon-export.svg",
   },
 ];
 
@@ -41,24 +45,28 @@ const popularTools = [
     description: "Check whether extra volume offsets support and price investment.",
     href: "/tools/promotion-roi-calculator",
     cta: "Open calculator",
+    icon: "/images/apt/apt-icon-promo-roi.svg",
   },
   {
     title: "Gross margin calculator",
     description: "Estimate supplier and retailer margin using invoice, COGS and retail price.",
     href: "/tools/gross-margin-calculator",
     cta: "Open calculator",
+    icon: "/images/apt/apt-icon-margin.svg",
   },
   {
     title: "ROI planner",
     description: "Model one line for free, or compare multi-line scenarios with Pro.",
     href: "/roi-tool",
     cta: "Open planner",
+    icon: "/images/apt/apt-icon-scenario-compare.svg",
   },
   {
     title: "Presentation templates",
     description: "Download editable PowerPoint templates for account planning and reviews.",
     href: "/presentation-templates",
     cta: "View templates",
+    icon: "/images/apt/apt-icon-export.svg",
   },
 ];
 
@@ -144,6 +152,7 @@ export default function Home() {
         <div className="grid">
           {toolChoices.map((item) => (
             <article className="card tool-card" key={item.title}>
+              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={item.icon} />
               <h3>{item.title}</h3>
               <p>{item.description}</p>
               <Link className="text-link" href={item.href}>
@@ -164,6 +173,7 @@ export default function Home() {
         <div className="grid">
           {popularTools.map((tool) => (
             <article className="card tool-card" key={tool.title}>
+              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={tool.icon} />
               <h3>{tool.title}</h3>
               <p>{tool.description}</p>
               <Link className="text-link" href={tool.href}>
@@ -183,6 +193,14 @@ export default function Home() {
             need to save scenarios, compare options, use defaults and export
             cleaner outputs.
           </p>
+          <div className="pro-workflow-home-visual">
+            <ProductVisual
+              alt="APT Pro workflow showing saved scenarios, comparison and export options"
+              description="Saved scenarios, comparison and export workflow."
+              filename="/images/apt/apt-pro-workflow-visual.webp"
+              title="APT Pro workflow"
+            />
+          </div>
         </div>
         <div className="free-pro-columns">
           <article className="card mini-card">

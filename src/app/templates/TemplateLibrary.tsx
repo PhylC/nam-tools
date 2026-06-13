@@ -511,7 +511,7 @@ export function TemplateLibrary() {
                 <a className="button button-secondary" download href={`/templates/${template.file}`}>
                   Download PowerPoint template
                 </a>
-                <CopyTemplateButton label="Copy outline" text={template.outline} />
+                <CopyTemplateButton label="Copy slide outline" text={template.outline} />
               </div>
             </article>
           ))}

@@ -4,6 +4,7 @@ import { ChangeEvent, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { getUserPlan } from "../../lib/userPlan";
 import { uploadDeckTemplate } from "../../lib/storageUploads";
 import {
   CalculatorDefaults,
@@ -48,7 +49,7 @@ export function SettingsClient() {
   const [exportDefaults, setExportDefaults] = useState<ExportDefaults>(() => readExportDefaults());
   const [templateMeta, setTemplateMeta] = useState<PresentationTemplateMeta>(() => readPresentationTemplateMeta());
   const [message, setMessage] = useState<Message>(null);
-  const isPro = aptMode === "pro";
+  const isPro = getUserPlan(aptMode) === "pro";
 
   const uploadedTemplateLabel = useMemo(() => {
     if (!templateMeta) return "No template uploaded";
@@ -147,7 +148,7 @@ export function SettingsClient() {
   function showCreateAccountPrompt() {
     setMessage({
       tone: "info",
-      text: "Use calculators without an account, or create a free account to keep your currency, market and tax defaults across visits.",
+      text: "Defaults are saved on this device. Create a free account to keep your currency, market and tax defaults across visits.",
     });
   }
 
@@ -167,22 +168,36 @@ export function SettingsClient() {
                 <p>Use calculators without an account, or create a free account to keep your currency, market and tax defaults across visits.</p>
               </div>
               <div className="settings-banner-actions">
-                <button className="button button-small" onClick={showCreateAccountPrompt} type="button">
+                <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
                   Create free account
-                </button>
+                </Link>
                 <a className="text-link" href="/calculators">
                   Use calculators without an account
                 </a>
               </div>
+              <img
+                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
+                className="settings-preview-image"
+                loading="lazy"
+                src="/images/apt/apt-settings-simplified-preview.webp"
+              />
             </>
           ) : isPro ? (
-            <div>
-              <h3>Your calculator and export settings can be saved to your account.</h3>
-              <p>Review calculator defaults, export details and presentation template settings below.</p>
-              <Link className="text-link" href="/workspace">
-                Manage saved work in My workspace.
-              </Link>
-            </div>
+            <>
+              <div>
+                <h3>Your calculator and export settings can be saved to your account.</h3>
+                <p>Review calculator defaults, export details and presentation template settings below.</p>
+                <Link className="text-link" href="/workspace">
+                  Manage saved analyses and scenarios in My workspace.
+                </Link>
+              </div>
+              <img
+                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
+                className="settings-preview-image"
+                loading="lazy"
+                src="/images/apt/apt-settings-simplified-preview.webp"
+              />
+            </>
           ) : (
             <>
               <div>
@@ -192,6 +207,12 @@ export function SettingsClient() {
               <button className="button button-small" onClick={showProInfo} type="button">
                 See APT Pro
               </button>
+              <img
+                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
+                className="settings-preview-image"
+                loading="lazy"
+                src="/images/apt/apt-settings-simplified-preview.webp"
+              />
             </>
           )}
         </article>
@@ -376,9 +397,9 @@ export function SettingsClient() {
           {!isAuthenticated ? (
             <div className="settings-save-row">
               <small>Create a free account to save these defaults across visits.</small>
-              <button className="button button-secondary button-small" onClick={showCreateAccountPrompt} type="button">
+              <Link className="button button-secondary button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
                 Create free account
-              </button>
+              </Link>
             </div>
           ) : null}
         </article>

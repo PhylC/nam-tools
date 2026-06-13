@@ -87,7 +87,7 @@ export default async function CalculatorPage({
 
   return (
     <div className="page-stack">
-      <Hero eyebrow="Free calculator" title={calculator.h1}>
+      <Hero title={calculator.h1}>
         <p>{calculator.description}</p>
       </Hero>
 

@@ -18,6 +18,11 @@ const choices = [
   "Convert tax-inclusive and tax-exclusive retail prices",
 ];
 
+function iconForGroup(group: string) {
+  if (group === "SOA and supplier support") return "/images/apt/apt-icon-support.svg";
+  return "/images/apt/apt-icon-margin.svg";
+}
+
 export default function QuickCalculatorsIndexPage() {
   return (
     <div className="page-stack">
@@ -60,6 +65,7 @@ export default function QuickCalculatorsIndexPage() {
             <div className="grid">
               {groupCalculators.map((calculator) => (
                 <article className="card tool-card" key={calculator.slug}>
+                  <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={iconForGroup(calculator.group)} />
                   <h3>{calculator.title}</h3>
                   <p>{calculator.description}</p>
                   <Link className="text-link" href={`/calculators/${calculator.slug}`}>

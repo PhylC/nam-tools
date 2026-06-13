@@ -49,9 +49,14 @@ export function useAptMode() {
 
 export function PlanModeToggle() {
   const { aptMode, setAptMode } = useAptMode();
+  const showTemporaryPlanToggle =
+    process.env.NEXT_PUBLIC_SHOW_PLAN_TOGGLE === "true" || process.env.NODE_ENV !== "production";
+
+  if (!showTemporaryPlanToggle) return null;
 
   return (
-    <div className="plan-toggle" aria-label="Free or Pro mode">
+    <div className="plan-toggle" aria-label="Temporary plan mode">
+      <span className="plan-toggle-label">temporary plan</span>
       <button
         aria-pressed={aptMode === "free"}
         className={aptMode === "free" ? "plan-toggle-active" : ""}

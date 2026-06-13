@@ -4,6 +4,8 @@ import { getSupabaseBrowserClient } from "./supabaseClient";
 
 const ROI_LOCAL_KEY = "apt-roi-saved-groups";
 const DECK_LOCAL_KEY = "apt-deck-briefs";
+const ANALYSIS_LOCAL_KEY = "aptSavedAnalyses";
+const SCENARIO_LOCAL_KEY = "aptSavedScenarios";
 
 export type SaveMode = "local" | "account";
 
@@ -77,6 +79,54 @@ function normalizeDeckBrief(brief: AnyRecord) {
   };
 }
 
+function normalizeSavedAnalysis(analysis: AnyRecord) {
+  const now = nowIso();
+  const title = String(analysis.title ?? analysis.name ?? analysis.calculatorName ?? "Saved analysis");
+  return {
+    version: Number(analysis.version ?? 1),
+    type: "analysis",
+    calculatorId: String(analysis.calculatorId ?? "calculator"),
+    calculatorName: String(analysis.calculatorName ?? "Calculator"),
+    inputs: asRecord(analysis.inputs),
+    outputs: asRecord(analysis.outputs),
+    defaults: asRecord(analysis.defaults),
+    summaryText: String(analysis.summaryText ?? ""),
+    sourcePath: String(analysis.sourcePath ?? "/calculators"),
+    ...analysis,
+    id: analysis.id ?? crypto.randomUUID(),
+    title,
+    name: title,
+    createdAt: analysis.createdAt ?? analysis.created_at ?? now,
+    updatedAt: analysis.updatedAt ?? analysis.updated_at ?? now,
+    created_at: analysis.created_at ?? analysis.createdAt ?? now,
+    updated_at: analysis.updated_at ?? analysis.updatedAt ?? now,
+  };
+}
+
+function normalizeSavedScenario(scenario: AnyRecord) {
+  const now = nowIso();
+  const title = String(scenario.title ?? scenario.name ?? scenario.scenarioName ?? "ROI scenario");
+  return {
+    version: Number(scenario.version ?? 1),
+    type: "scenario",
+    toolId: String(scenario.toolId ?? "roi-tool"),
+    toolName: String(scenario.toolName ?? "ROI planner"),
+    scenarioData: asRecord(scenario.scenarioData),
+    inputs: asRecord(scenario.inputs),
+    outputs: asRecord(scenario.outputs),
+    defaults: asRecord(scenario.defaults),
+    sourcePath: String(scenario.sourcePath ?? "/roi-tool"),
+    ...scenario,
+    id: scenario.id ?? crypto.randomUUID(),
+    title,
+    name: title,
+    createdAt: scenario.createdAt ?? scenario.created_at ?? now,
+    updatedAt: scenario.updatedAt ?? scenario.updated_at ?? now,
+    created_at: scenario.created_at ?? scenario.createdAt ?? now,
+    updated_at: scenario.updated_at ?? scenario.updatedAt ?? now,
+  };
+}
+
 async function getAuthenticatedUser() {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) return { supabase: null, user: null };
@@ -86,7 +136,7 @@ async function getAuthenticatedUser() {
 }
 
 function saveLocalRoiPlan(plan: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // Temporary local save. Replace with database-backed saved groups after auth is added.
+  // Temporary local save. Replace with profile-backed saved groups when backend tables are ready.
   const item = normalizeRoiPlan(plan);
   const current = readLocal<AnyRecord>(ROI_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
@@ -95,12 +145,98 @@ function saveLocalRoiPlan(plan: AnyRecord, message?: string): StoreResult<AnyRec
 }
 
 function saveLocalDeckBrief(brief: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // Temporary local save. Replace with database-backed saved groups after auth is added.
+  // Temporary local save. Replace with profile-backed saved decks when backend tables are ready.
   const item = normalizeDeckBrief(brief);
   const current = readLocal<AnyRecord>(DECK_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
   writeLocal(DECK_LOCAL_KEY, next);
   return { data: item, mode: "local", message };
+}
+
+function saveLocalAnalysis(analysis: AnyRecord, message?: string): StoreResult<AnyRecord> {
+  // TODO: Replace local saved analyses with authenticated profile/Supabase storage for APT Pro accounts.
+  const item = normalizeSavedAnalysis(analysis);
+  const current = readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY);
+  const next = [item, ...current.filter((saved) => saved.id !== item.id)];
+  writeLocal(ANALYSIS_LOCAL_KEY, next);
+  return { data: item, mode: "local", message };
+}
+
+function saveLocalScenario(scenario: AnyRecord, message?: string): StoreResult<AnyRecord> {
+  // TODO: Replace local saved scenarios with authenticated profile/Supabase storage for APT Pro accounts.
+  const item = normalizeSavedScenario(scenario);
+  const current = readLocal<AnyRecord>(SCENARIO_LOCAL_KEY);
+  const next = [item, ...current.filter((saved) => saved.id !== item.id)];
+  writeLocal(SCENARIO_LOCAL_KEY, next);
+  return { data: item, mode: "local", message };
+}
+
+export async function saveAnalysis(analysis: AnyRecord): Promise<StoreResult<AnyRecord>> {
+  return saveLocalAnalysis(analysis);
+}
+
+export async function listSavedAnalyses(): Promise<StoreResult<AnyRecord[]>> {
+  return { data: readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY).map(normalizeSavedAnalysis), mode: "local" };
+}
+
+export async function loadSavedAnalysis(id: string): Promise<StoreResult<AnyRecord | null>> {
+  const listed = await listSavedAnalyses();
+  return { data: listed.data.find((analysis) => analysis.id === id) ?? null, mode: listed.mode, message: listed.message };
+}
+
+export async function duplicateSavedAnalysis(id: string): Promise<StoreResult<AnyRecord | null>> {
+  const loaded = await loadSavedAnalysis(id);
+  if (!loaded.data) return { data: null, mode: loaded.mode, message: loaded.message };
+  const now = nowIso();
+  return saveAnalysis({
+    ...loaded.data,
+    id: crypto.randomUUID(),
+    title: `Copy of ${String(loaded.data.title ?? "Saved analysis")}`,
+    name: `Copy of ${String(loaded.data.title ?? loaded.data.name ?? "Saved analysis")}`,
+    createdAt: now,
+    updatedAt: now,
+    created_at: now,
+    updated_at: now,
+  });
+}
+
+export async function deleteSavedAnalysis(id: string): Promise<StoreResult<boolean>> {
+  writeLocal(ANALYSIS_LOCAL_KEY, readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY).filter((analysis) => analysis.id !== id));
+  return { data: true, mode: "local" };
+}
+
+export async function saveScenario(scenario: AnyRecord): Promise<StoreResult<AnyRecord>> {
+  return saveLocalScenario(scenario);
+}
+
+export async function listSavedScenarios(): Promise<StoreResult<AnyRecord[]>> {
+  return { data: readLocal<AnyRecord>(SCENARIO_LOCAL_KEY).map(normalizeSavedScenario), mode: "local" };
+}
+
+export async function loadSavedScenario(id: string): Promise<StoreResult<AnyRecord | null>> {
+  const listed = await listSavedScenarios();
+  return { data: listed.data.find((scenario) => scenario.id === id) ?? null, mode: listed.mode, message: listed.message };
+}
+
+export async function duplicateSavedScenario(id: string): Promise<StoreResult<AnyRecord | null>> {
+  const loaded = await loadSavedScenario(id);
+  if (!loaded.data) return { data: null, mode: loaded.mode, message: loaded.message };
+  const now = nowIso();
+  return saveScenario({
+    ...loaded.data,
+    id: crypto.randomUUID(),
+    title: `Copy of ${String(loaded.data.title ?? "ROI scenario")}`,
+    name: `Copy of ${String(loaded.data.title ?? loaded.data.name ?? "ROI scenario")}`,
+    createdAt: now,
+    updatedAt: now,
+    created_at: now,
+    updated_at: now,
+  });
+}
+
+export async function deleteSavedScenario(id: string): Promise<StoreResult<boolean>> {
+  writeLocal(SCENARIO_LOCAL_KEY, readLocal<AnyRecord>(SCENARIO_LOCAL_KEY).filter((scenario) => scenario.id !== id));
+  return { data: true, mode: "local" };
 }
 
 export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecord>> {

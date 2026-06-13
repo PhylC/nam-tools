@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { AptModeProvider, PlanModeToggle } from "./AptMode";
+import { HeaderAuthNav } from "./AuthNav";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
 import type { Tool } from "../data/tools";
@@ -46,6 +47,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <Link href="/workspace">My workspace</Link>
             <Link href="/settings">Settings</Link>
           </nav>
+          <HeaderAuthNav />
           <PlanModeToggle />
           <MobileNav />
         </div>

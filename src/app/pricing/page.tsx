@@ -30,9 +30,10 @@ const plans = [
     price: "£19/month",
     detail: "Best for regular commercial planning.",
     features: [
-      "Save scenarios and reopen them later",
+      "Save analyses and scenarios",
+      "Reopen saved work from My workspace",
+      "Duplicate deal versions",
       "Compare different versions of a deal",
-      "Keep saved analyses and decks in My workspace",
       "Multi-SKU ROI scenario planner",
       "Upload or paste spreadsheet data",
       "Account-level calculator defaults",
@@ -70,7 +71,7 @@ const comparisonRows = [
   ["Company branding", "Not included", "Logo, company details and disclaimer"],
   ["Presentation template upload", "Not included", "Use your own .pptx template"],
   ["Calculator defaults", "Saved with a free account", "Saved to your account"],
-  ["Workspace", "Not included", "Saved scenarios, decks and exports"],
+  ["Workspace", "Not included", "Saved analyses, scenarios, decks and exports"],
   ["Best for", "Quick one-off checks", "Repeated commercial planning and retailer meetings"],
 ];
 

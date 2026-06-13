@@ -1,14 +1,12 @@
-Promotional Proposal Template
+Promotional Proposal outline
 
-1. Cover slide
-2. Proposal summary
-3. Promotional mechanic
-4. Commercial rationale
-5. Forecast uplift
-6. ROI assumptions
-7. Retailer benefit
-8. Support requested and recommendation
-
-Example account: Northstar Retail
-Example supplier brand: Orchard & Co Core 6pk
-Core fictional data: 2 for £4 mechanic, +44% unit uplift, £95k incremental supplier revenue, 1.9x revenue ROI.
+1. Title slide
+2. Promotion objective
+3. Customer and shopper context
+4. Proposed mechanic
+5. Pricing and support assumptions
+6. Volume forecast
+7. Financial impact
+8. Retailer benefit
+9. Risks and watchouts
+10. Recommendation and next steps

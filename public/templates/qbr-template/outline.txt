@@ -1,16 +1,12 @@
-Quarterly Business Review Template
+Quarterly Business Review outline
 
-1. Cover slide
-2. Quarter summary
-3. KPI scorecard
-4. Sales performance
+1. Title slide
+2. Executive summary
+3. Performance scorecard
+4. Sales and margin review
 5. Promo performance
-6. Distribution and range updates
-7. Wins and challenges
-8. Competitor activity
-9. Next quarter priorities
-10. Commercial asks
-
-Example account: Northstar Retail
-Example supplier brand: Orchard & Co
-Core fictional data: £5.1m Q3 sales, +7.2% YoY, 2.9m units, promo ROI 1.4x.
+6. Customer/category insights
+7. What worked
+8. Risks and issues
+9. Next-quarter priorities
+10. Actions and owners

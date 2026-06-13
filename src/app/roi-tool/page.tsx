@@ -13,7 +13,7 @@ export default function RoiToolPage() {
     <div className="page-stack">
       <Hero
         eyebrow="ROI Tool"
-        title="Promo ROI checks without rebuilding the spreadsheet"
+        title="ROI planner"
         visual={
           <ProductVisual
             aspectRatio="16 / 9"
@@ -24,10 +24,8 @@ export default function RoiToolPage() {
         }
       >
         <p>
-          Use this when a retailer asks for support, a lower promo price or more
-          funding and you need to quickly understand whether the deal still
-          makes sense. Pro adds multi-SKU planning, scenarios and export-ready
-          outputs.
+          Model one SKU or a full multi-line promotion, compare scenarios and
+          export the numbers.
         </p>
       </Hero>
       <RoiToolProduct />
