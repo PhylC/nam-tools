@@ -1,56 +1,105 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Hero, ProductVisual, SectionHeader, ToolCard } from "./components/Shell";
-import { getTool, tools } from "./data/tools";
+import { Hero, ProductVisual, SectionHeader } from "./components/Shell";
 
 export const metadata: Metadata = {
+  title: "Account Planning Tools | Promo ROI, Margin and Support Calculators",
   description:
-    "Commercial planning tools for account managers. Run promo ROI, margin and support checks with clearer outputs for retailer meetings and account planning.",
+    "Commercial planning tools for account managers. Run promo ROI, margin and support checks, then create cleaner summaries for meetings and account planning.",
 };
 
-const featuredTools = [
-  "account-plan-generator",
-  "joint-business-plan-builder",
-  "buyer-meeting-prep",
+const toolChoices = [
+  {
+    title: "Will this promotion pay back?",
+    description: "Use promo ROI when you need to compare support, volume and return.",
+    href: "/roi-tool",
+    cta: "Open Promo ROI",
+  },
+  {
+    title: "What does this do to margin?",
+    description: "Check invoice price, COGS, retail price and tax assumptions.",
+    href: "/tools/gross-margin-calculator",
+    cta: "Open Margin Calculator",
+  },
+  {
+    title: "How much support is in the deal?",
+    description: "Turn SOA, fixed funding or trade spend into a clearer support view.",
+    href: "/calculators/soa-support-percent-calculator",
+    cta: "Open Support Calculator",
+  },
+  {
+    title: "I need a meeting-ready summary",
+    description: "Use templates and exports to turn the numbers into a cleaner story.",
+    href: "/presentation-templates",
+    cta: "View Templates",
+  },
 ];
 
-const startHere = [
+const popularTools = [
   {
-    title: "Use free calculators",
-    text: "Calculators stay free. Use them for fast checks, pricing maths and simple commercial decisions.",
-    href: "/calculators",
-    cta: "Open calculators",
+    title: "Promo ROI calculator",
+    description: "Check whether extra volume offsets support and price investment.",
+    href: "/tools/promotion-roi-calculator",
+    cta: "Open calculator",
   },
   {
-    title: "Plan promotion ROI",
-    text: "Use the free ROI tool for one-line checks, or use Pro for multi-SKU scenario planning.",
+    title: "Gross margin calculator",
+    description: "Estimate supplier and retailer margin using invoice, COGS and retail price.",
+    href: "/tools/gross-margin-calculator",
+    cta: "Open calculator",
+  },
+  {
+    title: "ROI planner",
+    description: "Model one line for free, or compare multi-line scenarios with Pro.",
     href: "/roi-tool",
-    cta: "Open ROI tool",
+    cta: "Open planner",
   },
   {
-    title: "Build a customer deck",
-    text: "Download free deck templates or use Pro to build customer-ready first drafts.",
+    title: "Presentation templates",
+    description: "Download editable PowerPoint templates for account planning and reviews.",
     href: "/presentation-templates",
-    cta: "Open presentations",
+    cta: "View templates",
   },
+];
+
+const freeFeatures = [
+  "Single product",
+  "Single scenario",
+  "Basic result summary",
+  "Copy summary",
+  "CSV download",
 ];
 
 const proFeatures = [
-  "Save and reopen commercial scenarios",
-  "Compare different versions of a deal",
-  "Excel import/export for repeatable reviews",
-  "Free PowerPoint and spreadsheet templates",
-  "Build custom deck briefs from templates",
-  "PDF/deck-ready exports",
-  "Account-level calculator defaults",
+  "Save and compare scenarios",
+  "Multi-product planning",
+  "Account-level defaults",
+  "PowerPoint and Excel exports",
   "Company logo, disclaimer and presentation template",
 ];
 
-export default function Home() {
-  const featured = featuredTools
-    .map((slug) => getTool(slug))
-    .filter((tool): tool is (typeof tools)[number] => Boolean(tool));
+const templatePreviews = [
+  {
+    title: "JBP",
+    href: "/presentation-templates",
+    src: "/images/apt/apt-template-jbp-preview.webp",
+    alt: "Preview of the APT Joint Business Plan PowerPoint template",
+  },
+  {
+    title: "QBR",
+    href: "/presentation-templates",
+    src: "/images/apt/apt-template-qbr-preview.webp",
+    alt: "Preview of the APT Quarterly Business Review PowerPoint template",
+  },
+  {
+    title: "Promotional Proposal",
+    href: "/presentation-templates",
+    src: "/images/apt/apt-template-promo-proposal-preview.webp",
+    alt: "Preview of the APT Promotional Proposal PowerPoint template",
+  },
+];
 
+export default function Home() {
   return (
     <div className="page-stack">
       <Hero
@@ -58,19 +107,24 @@ export default function Home() {
         title="Commercial planning tools for account managers"
         visual={
           <ProductVisual
+            alt="APT calculator dashboard showing inputs, results and export options"
             aspectRatio="3 / 2"
             description="APT calculator dashboard showing inputs, result summary and export options."
-            filename="/images/hero-commercial-dashboard.svg"
+            filename="/images/apt/apt-homepage-hero-dashboard.webp"
+            loading="eager"
             title="Commercial dashboard"
           />
         }
         actions={
           <>
-            <Link className="button" href="/calculators">
-              Try the calculators
+            <Link className="button" href="#tool-chooser">
+              Find the right tool
             </Link>
-            <Link className="button button-secondary" href="/pricing">
-              Compare Free and Pro
+            <Link className="button button-secondary" href="/calculators">
+              Try free calculators
+            </Link>
+            <Link className="text-link" href="/pricing">
+              See APT Pro
             </Link>
           </>
         }
@@ -80,188 +134,110 @@ export default function Home() {
           into cleaner summaries for retailer meetings, internal reviews and
           account planning.
         </p>
-        <p>APT helps you move faster when the question is simple but the spreadsheet never is.</p>
+        <p>APT helps when the question is simple but the spreadsheet never is.</p>
       </Hero>
 
-      <section className="shell trust-strip" aria-label="Account Planning Tools highlights">
-        <span>Built for retail suppliers</span>
-        <span>Fast browser tools</span>
-        <span>Commercial planning first</span>
-      </section>
-
-      <section className="section shell">
-        <SectionHeader eyebrow="Product sections" title="Numbers, calculators and outputs.">
-          <p>
-            Build promo ROI plans, run quick commercial calculations and turn the
-            answer into something useful for a retailer conversation or internal
-            sign-off.
-          </p>
+      <section className="section shell" id="tool-chooser">
+        <SectionHeader title="What do you need to work out?">
+          <p>Start with the question you need to answer.</p>
         </SectionHeader>
         <div className="grid">
-          <article className="card tool-card">
-            <span className="pill">Free forever</span>
-            <h3>Calculators</h3>
-            <p>Fast commercial maths for SOA, invoice price, retailer margin, tax and trade spend.</p>
-            <Link className="text-link" href="/calculators">Open calculators</Link>
-          </article>
-          <article className="card tool-card">
-            <span className="pill pro-pill">Free + Pro</span>
-            <h3>ROI Tool</h3>
-            <p>Single-line ROI checks, multi-SKU scenario planning and CSV export.</p>
-            <Link className="text-link" href="/roi-tool">Open ROI Tool</Link>
-          </article>
-          <article className="card tool-card">
-            <span className="pill pro-pill">Free + Pro</span>
-            <h3>Presentations</h3>
-            <p>Create buyer-ready and internal sign-off outputs from your planning work.</p>
-            <Link className="text-link" href="/presentation-templates">Open presentations</Link>
-          </article>
-        </div>
-      </section>
-
-      <section className="section shell">
-        <SectionHeader eyebrow="Start here" title="Pick the job in front of you.">
-          <p>
-            Start with one of the common account management moments: a buyer ask,
-            a margin question, a support calculation or a deck that needs to be
-            clearer by tomorrow.
-          </p>
-        </SectionHeader>
-        <div className="grid">
-          {startHere.map((item) => (
-            <article className="card start-card" key={item.title}>
+          {toolChoices.map((item) => (
+            <article className="card tool-card" key={item.title}>
               <h3>{item.title}</h3>
-              <p>{item.text}</p>
+              <p>{item.description}</p>
               <Link className="text-link" href={item.href}>
                 {item.cta}
               </Link>
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="section section-band">
-        <div className="shell split-band">
-          <div>
-            <p className="eyebrow">Why this exists</p>
-            <h2>Too many account plans start from blank documents.</h2>
-          </div>
-          <div className="copy-stack">
-            <p>
-              Commercial teams usually know the customer context. The lost time
-              comes from rebuilding the same calculators, assumptions and deck
-              structures from scratch.
-            </p>
-            <p>
-              Account Planning Tools gives the work a starting shape: the
-              numbers to test, the questions to challenge and the sections a
-              credible customer plan needs.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="section shell">
-        <SectionHeader eyebrow="Calculators" title="Free commercial checks before the customer conversation.">
-          <p>
-            Start with the calculator hub when you need to sense-check promo
-            ROI, retailer margin, SOA, trade spend, invoice price or an
-            investment ask quickly.
-          </p>
-        </SectionHeader>
-        <div className="grid">
-          <article className="card tool-card">
-            <span className="pill">Free</span>
-            <h3>ROI Tool</h3>
-            <p>
-              Model one SKU or a full multi-line promotion, compare scenarios
-              and export the numbers.
-            </p>
-            <Link className="text-link" href="/roi-tool">
-              Open ROI tool
-            </Link>
-          </article>
-          <article className="card tool-card">
-            <span className="pill">Free</span>
-            <h3>Calculators</h3>
-            <p>
-              Use fast SOA, retail price, invoice price, margin, tax and markup
-              calculators when you only have a few numbers.
-            </p>
-            <Link className="text-link" href="/calculators/quick-calculators">
-              Browse calculators
-            </Link>
-          </article>
-        </div>
         <div className="cta-row">
-          <Link className="button" href="/calculators">
-            View all calculators
+          <Link className="button button-secondary" href="/calculators">
+            See all calculators
           </Link>
         </div>
       </section>
 
       <section className="section shell">
-        <SectionHeader eyebrow="Presentations" title="Buyer-ready outputs without starting from blank pages.">
-          <p>
-            Buyer meeting prep, customer review and JBP structures live together
-            so the numbers can become a clearer meeting story.
-          </p>
-        </SectionHeader>
+        <SectionHeader title="Popular tools" />
         <div className="grid">
-          {featured.map((tool) => (
-            <ToolCard key={tool.slug} tool={tool} />
+          {popularTools.map((tool) => (
+            <article className="card tool-card" key={tool.title}>
+              <h3>{tool.title}</h3>
+              <p>{tool.description}</p>
+              <Link className="text-link" href={tool.href}>
+                {tool.cta}
+              </Link>
+            </article>
           ))}
-        </div>
-        <div className="cta-row">
-          <Link className="button" href="/presentation-templates">
-            Open presentations
-          </Link>
-          <Link className="button button-secondary" href="/tools">
-            View all resources
-          </Link>
         </div>
       </section>
 
       <section className="section shell split-band">
         <div>
           <p className="eyebrow">Free and Pro</p>
-          <h2>Start quickly, then go deeper when the work needs it.</h2>
-        </div>
-        <div className="card muted-card">
-          <p>
-            Free tools are useful for quick one-off checks. APT Pro is for the
-            regular work: saving scenarios, comparing versions, keeping your
-            default setup and turning results into cleaner outputs.
+          <h2>Free for quick checks. Pro for repeat work.</h2>
+          <p className="section-lead">
+            Use Free when you need a single calculation. Use APT Pro when you
+            need to save scenarios, compare options, use defaults and export
+            cleaner outputs.
           </p>
-          <ul className="compact-list">
-            {proFeatures.map((feature) => (
-              <li key={feature}>{feature}</li>
-            ))}
-          </ul>
-          <Link className="text-link" href="/pricing">
-            See pricing
+        </div>
+        <div className="free-pro-columns">
+          <article className="card mini-card">
+            <h3>Free</h3>
+            <ul className="compact-list">
+              {freeFeatures.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </article>
+          <article className="card mini-card">
+            <h3>APT Pro</h3>
+            <ul className="compact-list">
+              {proFeatures.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+          </article>
+          <Link className="button" href="/pricing">
+            Compare Free and Pro
           </Link>
-          <ProductVisual
-            aspectRatio="16 / 10"
-            description="Pro planning view showing saved scenarios and exports."
-            filename="/images/pricing-pro-workflow.svg"
-            title="Pro planning"
-          />
+        </div>
+      </section>
+
+      <section className="section shell">
+        <SectionHeader title="Need a cleaner deck?">
+          <p>
+            APT includes editable templates for business plans, QBRs and
+            promotional proposals.
+          </p>
+        </SectionHeader>
+        <div className="home-template-grid">
+          {templatePreviews.map((template) => (
+            <Link className="card home-template-card" href={template.href} key={template.title}>
+              <img alt={template.alt} loading="lazy" src={template.src} />
+              <strong>{template.title}</strong>
+            </Link>
+          ))}
+        </div>
+        <div className="cta-row">
+          <Link className="button button-secondary" href="/presentation-templates">
+            View presentation templates
+          </Link>
         </div>
       </section>
 
       <section className="section shell final-cta">
-        <h2>Start with the commercial question you need to answer today.</h2>
-        <p>
-          Check a promotion, build an account plan, prep for a buyer meeting or
-          draft a customer review without opening a blank document first.
-        </p>
+        <h2>Start with the calculation in front of you.</h2>
+        <p>Pick a tool, enter the numbers you have, and get a cleaner view of the deal.</p>
         <div className="hero-actions">
-          <Link className="button" href="/roi-tool">
-            Start with ROI Tool
+          <Link className="button" href="/calculators">
+            Try free calculators
           </Link>
-          <Link className="button button-secondary" href="/presentation-templates">
-            Open presentations
+          <Link className="button button-secondary" href="/pricing">
+            Compare Free and Pro
           </Link>
         </div>
       </section>

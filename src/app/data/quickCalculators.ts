@@ -165,7 +165,7 @@ export const quickCalculators: QuickCalculator[] = [
     description:
       "Use this when retail prices include VAT, sales tax or IVA but margin needs to be checked excluding tax.",
     group: "Tax and price conversion",
-    choice: "Convert inc/ex sales tax, VAT or IVA",
+    choice: "Convert tax-inclusive and tax-exclusive retail prices",
     whenToUse: [
       "You need to convert a shopper retail price into an excluding-tax value for margin checks.",
       "You need to show both including-tax and excluding-tax retail selling prices.",

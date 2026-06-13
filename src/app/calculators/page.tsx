@@ -51,7 +51,6 @@ export default function CalculatorsPage() {
         </SectionHeader>
         <div className="grid">
           <article className="card tool-card">
-            <span className="pill">Free</span>
             <h3>ROI Tool</h3>
             <p>
               Model one SKU in Free, or use APT Pro for multi-line promotions,
@@ -62,7 +61,6 @@ export default function CalculatorsPage() {
             </Link>
           </article>
           <article className="card tool-card">
-            <span className="pill">Free</span>
             <h3>Calculators</h3>
             <p>
               Quick checks for SOA, retailer margin, invoice price, tax and
@@ -85,7 +83,6 @@ export default function CalculatorsPage() {
         <div className="grid">
           {quickCalculators.map((calculator) => (
             <article className="card tool-card" key={calculator.slug}>
-              <span className="pill">Free</span>
               <h3>{calculator.title}</h3>
               <p>{calculator.description}</p>
               <Link className="text-link" href={`/calculators/${calculator.slug}`}>

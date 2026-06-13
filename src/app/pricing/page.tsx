@@ -19,7 +19,7 @@ const plans = [
       "Free single-line ROI Tool",
       "Copy a basic summary",
       "Download a simple CSV",
-      "Remember last-used values on this device",
+      "Calculator defaults with a free account",
       "No setup required",
     ],
     href: "/calculators",
@@ -32,6 +32,7 @@ const plans = [
     features: [
       "Save scenarios and reopen them later",
       "Compare different versions of a deal",
+      "Keep saved analyses and decks in My workspace",
       "Multi-SKU ROI scenario planner",
       "Upload or paste spreadsheet data",
       "Account-level calculator defaults",
@@ -58,7 +59,7 @@ const plans = [
 ];
 
 const comparisonRows = [
-  ["Quick calculators", "Included", "Included"],
+  ["Calculators", "Included", "Included"],
   ["Products per calculation", "1 product", "Multiple products"],
   ["Scenarios", "1 scenario", "Save, duplicate and compare scenarios"],
   ["Result summary", "Basic summary", "Advanced commercial summary"],
@@ -68,7 +69,8 @@ const comparisonRows = [
   ["PowerPoint export", "Not included", "Export presentation-ready summaries"],
   ["Company branding", "Not included", "Logo, company details and disclaimer"],
   ["Presentation template upload", "Not included", "Use your own .pptx template"],
-  ["Calculator defaults", "Remembered on this device", "Saved to your account"],
+  ["Calculator defaults", "Saved with a free account", "Saved to your account"],
+  ["Workspace", "Not included", "Saved scenarios, decks and exports"],
   ["Best for", "Quick one-off checks", "Repeated commercial planning and retailer meetings"],
 ];
 
@@ -83,11 +85,11 @@ export default function PricingPage() {
       </Hero>
       <section className="shell section">
         <SectionHeader eyebrow="Plans" title="Useful for quick checks. Stronger for repeat work.">
-          <p>
-            Use the core calculators for single-product, single-scenario
-            checks. APT Pro adds saved scenarios, account-level defaults and
-            cleaner exports for meetings, reviews and planning.
-          </p>
+            <p>
+              Use the core calculators for single-product, single-scenario
+            checks. APT Pro adds saved scenarios, My workspace and cleaner
+            exports for meetings, reviews and planning.
+            </p>
         </SectionHeader>
         <div className="grid">
           {plans.map((plan) => (

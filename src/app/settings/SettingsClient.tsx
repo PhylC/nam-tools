@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
+import Link from "next/link";
 import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { uploadDeckTemplate } from "../../lib/storageUploads";
@@ -20,12 +21,12 @@ import {
 } from "../../lib/proSettings";
 
 const currencies = ["GBP", "EUR", "USD"];
-const markets = ["UK", "Ireland", "United States", "Europe", "Other"];
+const markets = ["UK", "France", "Spain", "Germany", "Ireland", "USA", "Other"];
 const taxBasisOptions = [
-  { label: "Includes sales tax / VAT / IVA", value: "includes_tax" },
-  { label: "Excludes sales tax / VAT / IVA", value: "excludes_tax" },
+  { label: "Inc tax", value: "includes_tax" },
+  { label: "Ex tax", value: "excludes_tax" },
 ] as const;
-const taxLabels = ["VAT", "Sales tax", "IVA", "Custom"] as const;
+const taxLabels = ["VAT", "IVA", "Sales tax", "GST", "TVA", "MwSt", "Custom"] as const;
 const cogsOptions = [
   { label: "Ask when needed", value: "ask_when_needed" },
   { label: "Usually include COGS", value: "usually_include_cogs" },
@@ -56,8 +57,25 @@ export function SettingsClient() {
   }, [templateMeta]);
 
   function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
-    setCalculatorDefaults(next);
-    saveCalculatorDefaults(next);
+    const trimmedTaxLabel = next.customTaxLabel.trim();
+    const trimmedSupportTerm = next.customSupportTerminology.trim();
+    const clean = {
+      ...next,
+      customTaxLabel: trimmedTaxLabel,
+      customSupportTerminology: trimmedSupportTerm,
+    };
+    if (clean.taxLabel === "Custom" && !trimmedTaxLabel) {
+      setCalculatorDefaults(clean);
+      setMessage({ tone: "error", text: "Enter a custom tax label or choose VAT, IVA or Sales tax." });
+      return;
+    }
+    if (clean.supportTerminology === "Custom" && !trimmedSupportTerm) {
+      setCalculatorDefaults(clean);
+      setMessage({ tone: "error", text: "Enter a custom support term or choose a preset support term." });
+      return;
+    }
+    setCalculatorDefaults(clean);
+    saveCalculatorDefaults(clean);
     setMessage(text ? { tone: "success", text } : null);
   }
 
@@ -126,27 +144,65 @@ export function SettingsClient() {
     setMessage({ tone: "success", text: "Settings reset." });
   }
 
+  function showCreateAccountPrompt() {
+    setMessage({
+      tone: "info",
+      text: "Use calculators without an account, or create a free account to keep your currency, market and tax defaults across visits.",
+    });
+  }
+
+  function showProInfo() {
+    setAptMode("pro");
+    setMessage({ tone: "info", text: "APT Pro settings are now shown for review." });
+  }
+
   return (
     <section className="shell section">
       <div className="settings-layout">
-        {!isPro ? (
-          <article className="card pro-upgrade-panel">
+        <article className="card pro-upgrade-panel">
+          {!isAuthenticated ? (
+            <>
+              <div>
+                <h3>Save calculator defaults with a free account.</h3>
+                <p>Use calculators without an account, or create a free account to keep your currency, market and tax defaults across visits.</p>
+              </div>
+              <div className="settings-banner-actions">
+                <button className="button button-small" onClick={showCreateAccountPrompt} type="button">
+                  Create free account
+                </button>
+                <a className="text-link" href="/calculators">
+                  Use calculators without an account
+                </a>
+              </div>
+            </>
+          ) : isPro ? (
             <div>
-              <span className="pill">Free</span>
-              <h3>Saved account defaults are included with APT Pro.</h3>
-              <p>Free calculators still work — you’ll just set these manually where needed.</p>
+              <h3>Your calculator and export settings can be saved to your account.</h3>
+              <p>Review calculator defaults, export details and presentation template settings below.</p>
+              <Link className="text-link" href="/workspace">
+                Manage saved work in My workspace.
+              </Link>
             </div>
-            <button className="button button-small" onClick={() => setAptMode("pro")} type="button">
-              Switch to Pro
-            </button>
-          </article>
-        ) : null}
+          ) : (
+            <>
+              <div>
+                <h3>Calculator defaults are saved to your account.</h3>
+                <p>APT Pro adds saved analyses, scenarios, decks, exports and presentation settings.</p>
+              </div>
+              <button className="button button-small" onClick={showProInfo} type="button">
+                See APT Pro
+              </button>
+            </>
+          )}
+        </article>
 
         <article className="card settings-card">
           <div className="settings-card-header">
             <div>
               <p className="eyebrow">Calculator defaults</p>
-              <h2>Save your usual calculator setup.</h2>
+              <h2>Calculator defaults</h2>
+              <h3>Save your usual calculator setup.</h3>
+              <p>Free accounts can save currency, market, tax and support defaults.</p>
             </div>
             <button className="button button-secondary button-small" onClick={resetSettings} type="button">
               Reset
@@ -210,17 +266,47 @@ export function SettingsClient() {
               <span>Default tax label</span>
               <select
                 value={calculatorDefaults.taxLabel}
-                onChange={(event) =>
-                  updateCalculatorDefaults({
+                onChange={(event) => {
+                  const next = {
                     ...calculatorDefaults,
                     taxLabel: event.target.value as CalculatorDefaults["taxLabel"],
-                  })
-                }
+                  };
+                  if (next.taxLabel === "Custom") {
+                    if (next.customTaxLabel.trim()) {
+                      updateCalculatorDefaults(next);
+                    } else {
+                      setCalculatorDefaults(next);
+                      setMessage({ tone: "error", text: "Enter a custom tax label or choose VAT, IVA or Sales tax." });
+                    }
+                    return;
+                  }
+                  updateCalculatorDefaults(next);
+                }}
               >
                 {taxLabels.map((label) => (
                   <option key={label}>{label}</option>
                 ))}
               </select>
+              {calculatorDefaults.taxLabel === "Custom" ? (
+                <>
+                  <input
+                    maxLength={20}
+                    placeholder="e.g. GST, TVA, MwSt"
+                    required
+                    value={calculatorDefaults.customTaxLabel}
+                    onBlur={() => updateCalculatorDefaults(calculatorDefaults)}
+                    onChange={(event) =>
+                      setCalculatorDefaults({
+                        ...calculatorDefaults,
+                        customTaxLabel: event.target.value.slice(0, 20),
+                      })
+                    }
+                  />
+                  {!calculatorDefaults.customTaxLabel.trim() ? (
+                    <small className="field-error">Enter a custom tax label or choose VAT, IVA or Sales tax.</small>
+                  ) : null}
+                </>
+              ) : null}
             </label>
             <label className="field">
               <span>COGS behaviour</span>
@@ -244,81 +330,134 @@ export function SettingsClient() {
               <span>Support terminology</span>
               <select
                 value={calculatorDefaults.supportTerminology}
-                onChange={(event) =>
-                  updateCalculatorDefaults({
+                onChange={(event) => {
+                  const next = {
                     ...calculatorDefaults,
                     supportTerminology: event.target.value as CalculatorDefaults["supportTerminology"],
-                  })
-                }
+                  };
+                  if (next.supportTerminology === "Custom") {
+                    if (next.customSupportTerminology.trim()) {
+                      updateCalculatorDefaults(next);
+                    } else {
+                      setCalculatorDefaults(next);
+                      setMessage({ tone: "error", text: "Enter a custom support term or choose a preset support term." });
+                    }
+                    return;
+                  }
+                  updateCalculatorDefaults(next);
+                }}
               >
                 {supportTerms.map((term) => (
                   <option key={term}>{term}</option>
                 ))}
               </select>
+              {calculatorDefaults.supportTerminology === "Custom" ? (
+                <>
+                  <input
+                    maxLength={30}
+                    placeholder="e.g. Customer funding, Promo fund, Trade investment"
+                    required
+                    value={calculatorDefaults.customSupportTerminology}
+                    onBlur={() => updateCalculatorDefaults(calculatorDefaults)}
+                    onChange={(event) =>
+                      setCalculatorDefaults({
+                        ...calculatorDefaults,
+                        customSupportTerminology: event.target.value.slice(0, 30),
+                      })
+                    }
+                  />
+                  {!calculatorDefaults.customSupportTerminology.trim() ? (
+                    <small className="field-error">Enter a custom support term or choose a preset support term.</small>
+                  ) : null}
+                </>
+              ) : null}
             </label>
           </div>
+          {!isAuthenticated ? (
+            <div className="settings-save-row">
+              <small>Create a free account to save these defaults across visits.</small>
+              <button className="button button-secondary button-small" onClick={showCreateAccountPrompt} type="button">
+                Create free account
+              </button>
+            </div>
+          ) : null}
         </article>
 
         <article className="card settings-card">
           <div className="settings-card-header">
             <div>
               <p className="eyebrow">Export defaults</p>
-              <h2>Use consistent export details.</h2>
+              <h2>Export defaults</h2>
+              <h3>Use consistent export details.</h3>
             </div>
           </div>
-          <div className="form-grid">
-            <label className="field">
-              <span>Company name</span>
-              <input
-                value={exportDefaults.companyName}
-                onChange={(event) => updateExportDefaults({ ...exportDefaults, companyName: event.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>User name</span>
-              <input
-                value={exportDefaults.userName}
-                onChange={(event) => updateExportDefaults({ ...exportDefaults, userName: event.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>Job title</span>
-              <input
-                value={exportDefaults.jobTitle}
-                onChange={(event) => updateExportDefaults({ ...exportDefaults, jobTitle: event.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>Company logo upload</span>
-              <input accept="image/png,image/jpeg,image/svg+xml" type="file" onChange={handleLogoFile} />
-              <small>{exportDefaults.companyLogoFilename || "No logo selected"}</small>
-            </label>
-            <label className="field">
-              <span>Default export format</span>
-              <select
-                value={exportDefaults.defaultExportFormat}
-                onChange={(event) =>
-                  updateExportDefaults({
-                    ...exportDefaults,
-                    defaultExportFormat: event.target.value as ExportDefaults["defaultExportFormat"],
-                  })
-                }
-              >
-                {exportFormats.map((format) => (
-                  <option key={format.value} value={format.value}>
-                    {format.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>Default disclaimer</span>
-            <textarea
-              value={exportDefaults.disclaimer}
-              onChange={(event) => updateExportDefaults({ ...exportDefaults, disclaimer: event.target.value })}
-            />
-          </label>
+          {!isPro ? (
+            <div className="locked-card settings-locked-card">
+              <div>
+                <strong>Export defaults are included with APT Pro.</strong>
+                <span>Save your company details, logo, disclaimer and preferred export format for cleaner meeting outputs.</span>
+              </div>
+              <button className="button button-secondary button-small" onClick={showProInfo} type="button">
+                See APT Pro
+              </button>
+            </div>
+          ) : (
+            <fieldset className="settings-fieldset">
+              <div className="form-grid">
+                <label className="field">
+                  <span>Company name</span>
+                  <input
+                    value={exportDefaults.companyName}
+                    onChange={(event) => updateExportDefaults({ ...exportDefaults, companyName: event.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  <span>User name</span>
+                  <input
+                    value={exportDefaults.userName}
+                    onChange={(event) => updateExportDefaults({ ...exportDefaults, userName: event.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  <span>Job title</span>
+                  <input
+                    value={exportDefaults.jobTitle}
+                    onChange={(event) => updateExportDefaults({ ...exportDefaults, jobTitle: event.target.value })}
+                  />
+                </label>
+                <label className="field">
+                  <span>Company logo upload</span>
+                  <input accept="image/png,image/jpeg,image/svg+xml" type="file" onChange={handleLogoFile} />
+                  <small>{exportDefaults.companyLogoFilename || "No logo selected"}</small>
+                </label>
+                <label className="field">
+                  <span>Default export format</span>
+                  <select
+                    value={exportDefaults.defaultExportFormat}
+                    onChange={(event) =>
+                      updateExportDefaults({
+                        ...exportDefaults,
+                        defaultExportFormat: event.target.value as ExportDefaults["defaultExportFormat"],
+                      })
+                    }
+                  >
+                    {exportFormats.map((format) => (
+                      <option key={format.value} value={format.value}>
+                        {format.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <label className="field">
+                <span>Default disclaimer</span>
+                <textarea
+                  value={exportDefaults.disclaimer}
+                  onChange={(event) => updateExportDefaults({ ...exportDefaults, disclaimer: event.target.value })}
+                />
+              </label>
+            </fieldset>
+          )}
         </article>
 
         <article className={`card settings-card presentation-template-card ${!isPro ? "settings-locked" : ""}`}>
@@ -327,14 +466,19 @@ export function SettingsClient() {
               <p className="eyebrow">Presentation template</p>
               <h2>Presentation template</h2>
             </div>
-            <span className="pill pro-pill">Pro</span>
           </div>
           <p>
             Upload your standard PowerPoint template so APT can use your preferred format for presentation exports.
           </p>
           {!isPro ? (
-            <div className="locked-card">
-              <strong>Presentation template uploads are included with APT Pro.</strong>
+            <div className="locked-card settings-locked-card">
+              <div>
+                <strong>Presentation template uploads are included with APT Pro.</strong>
+                <span>APT Pro lets you save a company PowerPoint template for future presentation exports.</span>
+              </div>
+              <button className="button button-secondary button-small" onClick={showProInfo} type="button">
+                See APT Pro
+              </button>
             </div>
           ) : (
             <div className="template-upload-panel">

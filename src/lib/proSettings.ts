@@ -12,9 +12,11 @@ export type CalculatorDefaults = {
   market: string;
   retailTaxBasis: RetailTaxBasisDefault;
   taxRate: number;
-  taxLabel: "VAT" | "Sales tax" | "IVA" | "Custom";
+  taxLabel: "VAT" | "Sales tax" | "IVA" | "GST" | "TVA" | "MwSt" | "Custom";
+  customTaxLabel: string;
   cogsBehaviour: "ask_when_needed" | "usually_include_cogs" | "hide_unless_enabled";
   supportTerminology: "SOA" | "Trade spend" | "Promo support" | "Funding" | "Custom";
+  customSupportTerminology: string;
 };
 
 export type ExportDefaults = {
@@ -40,8 +42,10 @@ export const defaultCalculatorDefaults: CalculatorDefaults = {
   retailTaxBasis: "excludes_tax",
   taxRate: 20,
   taxLabel: "VAT",
+  customTaxLabel: "",
   cogsBehaviour: "ask_when_needed",
   supportTerminology: "SOA",
+  customSupportTerminology: "",
 };
 
 export const defaultExportDefaults: ExportDefaults = {
@@ -123,4 +127,20 @@ export function retailTaxBasisToVatBasis(value: RetailTaxBasisDefault) {
 
 export function vatBasisToRetailTaxBasis(value: "includes" | "excludes"): RetailTaxBasisDefault {
   return value === "excludes" ? "excludes_tax" : "includes_tax";
+}
+
+export function getActiveTaxLabel(defaults: Pick<CalculatorDefaults, "taxLabel" | "customTaxLabel">) {
+  if (defaults.taxLabel === "Custom" && defaults.customTaxLabel?.trim()) {
+    return defaults.customTaxLabel.trim();
+  }
+  return defaults.taxLabel || "VAT";
+}
+
+export function getActiveSupportTerminology(
+  defaults: Pick<CalculatorDefaults, "supportTerminology" | "customSupportTerminology">,
+) {
+  if (defaults.supportTerminology === "Custom" && defaults.customSupportTerminology?.trim()) {
+    return defaults.customSupportTerminology.trim();
+  }
+  return defaults.supportTerminology || "SOA";
 }

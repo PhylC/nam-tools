@@ -2,19 +2,30 @@
 
 This backlog keeps image production focused. Every image should explain the product, preview a real output, or help someone decide what to do next.
 
+## Created and in use
+| Filename | Page/section | Purpose |
+|---|---|---|
+| `apt-homepage-hero-dashboard.webp` | Homepage hero | Product dashboard visual showing inputs, results and export options. |
+| `apt-pro-workflow-visual.webp` | Homepage Pro/workflow section | Pro workflow visual showing saved scenarios, comparison and export options. |
+| `apt-template-jbp-preview.webp` | Presentation templates | Joint Business Plan preview. |
+| `apt-template-qbr-preview.webp` | Presentation templates | Quarterly Business Review preview. |
+| `apt-template-promo-proposal-preview.webp` | Presentation templates | Promotional Proposal preview. |
+
+Batch 1 has been added. The homepage hero and Pro workflow visuals are wired into the homepage. The first three finished template previews are wired into `/presentation-templates`.
+
 ## Batch 1 — Highest priority
 | Filename | Page/section | Purpose | Size/aspect | Notes |
 |---|---|---|---|---|
-| `public/images/apt/apt-homepage-hero-dashboard.webp` | Homepage hero | Show calculator inputs, result summary and export options. | 4:3 or 16:10 | Product-style mockup, not stock imagery. Replace `public/images/hero-commercial-dashboard.svg` when ready. |
-| `public/images/apt/apt-pro-workflow-visual.webp` | Homepage Pro section / pricing support | Show saved scenarios, scenario comparison, account defaults and export options. | 4:3 or 16:10 | Keep compact. Replace `public/images/pricing-pro-workflow.svg` when ready. |
+| `public/images/apt/apt-homepage-hero-dashboard.webp` | Homepage hero | Show calculator inputs, result summary and export options. | 4:3 or 16:10 | Created and in use. |
+| `public/images/apt/apt-pro-workflow-visual.webp` | Homepage Pro section / pricing support | Show saved scenarios, scenario comparison, account defaults and export options. | 4:3 or 16:10 | Created and in use. |
 | `public/images/apt/apt-calculator-result-example.webp` | Calculator pages / result area | Show a clean example result summary. | 16:9 or 4:3 | Optional small support visual only. Do not place above inputs. |
 
 ## Batch 2 — Template previews
 | Filename | Page/section | Purpose | Size/aspect | Notes |
 |---|---|---|---|---|
-| `public/images/apt/apt-template-jbp-preview.webp` | Presentation templates | Preview the Joint Business Plan deck. | 16:9 | Clean PowerPoint slide mockup. Current SVG preview remains useful until replaced. |
-| `public/images/apt/apt-template-qbr-preview.webp` | Presentation templates | Preview the Quarterly Business Review deck. | 16:9 | Clean PowerPoint slide mockup. |
-| `public/images/apt/apt-template-promo-proposal-preview.webp` | Presentation templates | Preview the Promotional Proposal deck. | 16:9 | Clean PowerPoint slide mockup. |
+| `public/images/apt/apt-template-jbp-preview.webp` | Presentation templates | Preview the Joint Business Plan deck. | 16:9 | Created and wired to `/presentation-templates`. |
+| `public/images/apt/apt-template-qbr-preview.webp` | Presentation templates | Preview the Quarterly Business Review deck. | 16:9 | Created and wired to `/presentation-templates`. |
+| `public/images/apt/apt-template-promo-proposal-preview.webp` | Presentation templates | Preview the Promotional Proposal deck. | 16:9 | Created and wired to `/presentation-templates`. |
 | `public/images/apt/apt-template-range-review-preview.webp` | Presentation templates | Preview the Range Review deck. | 16:9 | Clean PowerPoint slide mockup. |
 | `public/images/apt/apt-template-product-launch-preview.webp` | Presentation templates | Preview the New Product Launch deck. | 16:9 | Clean PowerPoint slide mockup. |
 | `public/images/apt/apt-template-annual-planning-preview.webp` | Presentation templates | Preview the Annual Planning deck. | 16:9 | Clean PowerPoint slide mockup. |
@@ -48,8 +59,8 @@ This backlog keeps image production focused. Every image should explain the prod
 |---|---|---|---|
 | `public/images/branding/logo-full.png` | Header/footer | Keep | Core APT logo asset. Do not replace for this audit. |
 | `public/images/branding/*` | Icons, favicon, Open Graph | Keep | Required brand and metadata assets. |
-| `public/images/hero-commercial-dashboard.svg` | Homepage hero | Replace later | Useful slot. Replace with `apt-homepage-hero-dashboard.webp`. |
-| `public/images/pricing-pro-workflow.svg` | Homepage Pro section | Replace later | Useful slot when compact. Replace with `apt-pro-workflow-visual.webp`. |
+| `public/images/hero-commercial-dashboard.svg` | Former homepage hero | Keep unused for now | Replaced on the homepage by `apt-homepage-hero-dashboard.webp`. |
+| `public/images/pricing-pro-workflow.svg` | Former homepage Pro section | Keep unused for now | Replaced on the homepage by `apt-pro-workflow-visual.webp`. |
 | `public/images/commercial-deal-calculator.svg` | Calculators hub and ROI tool hero | Replace later | Useful for compact hero support only. Avoid using above individual calculator inputs. |
 | `public/templates/*/preview.svg` | Presentation templates | Keep, replace later | These previews are useful and should stay until higher-fidelity 16:9 WebP previews are produced. |
 | `public/images/about-commercial-planning-workspace.svg` | Unused after audit | Replace only if a specific founder/product story visual is needed. | Do not re-add as generic decorative imagery. |

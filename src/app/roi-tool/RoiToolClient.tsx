@@ -458,8 +458,27 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
   }
 
   return (
-    <button className="button button-secondary button-small" onClick={exportCsv} type="button">
+    <button className="button button-secondary button-small roi-locked-action" onClick={exportCsv} type="button">
       Export results
+    </button>
+  );
+}
+
+function ProBadge() {
+  return <span className="roi-pro-badge">Pro</span>;
+}
+
+function ProOnlyAction({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button className="button button-secondary button-small roi-locked-action" onClick={onClick} type="button">
+      <span>{children}</span>
+      <ProBadge />
     </button>
   );
 }
@@ -553,9 +572,7 @@ function RoiMobileLineBuilder({
                     <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
                     <button className="table-action" onClick={() => deleteLine(line.id)} type="button">Delete</button>
                   </>
-                ) : (
-                  <span className="pill">Available in Pro</span>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -687,12 +704,20 @@ function RoiEditableTable({
       </div>
       <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} />
       <button
-        className={newLineProOnly ? "button button-secondary new-line-button pro-only-button" : "button button-secondary new-line-button"}
+        className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
         onClick={onAddLine}
         type="button"
       >
-        + New line{newLineProOnly ? " · Pro" : ""}
+        {newLineProOnly ? (
+          <>
+            Add another line
+            <ProBadge />
+          </>
+        ) : (
+          "+ New line"
+        )}
       </button>
+      {newLineProOnly ? <p className="pro-action-note">Available with APT Pro.</p> : null}
     </>
   );
 }
@@ -783,7 +808,6 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
     <section className="card scenario-comparison">
       <div className="scenario-comparison-desktop">
         <div>
-          <span className="pill pro-pill">Scenario comparison</span>
           <h3>Scenario comparison</h3>
           <p>{narrative}</p>
         </div>
@@ -894,28 +918,13 @@ function SavedRoiPlansPanel({
   );
 }
 
-function ProOnlyAction({
-  children,
-  onClick,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button className="button button-secondary button-small pro-only-button" onClick={onClick} type="button">
-      {children} · Pro
-    </button>
-  );
-}
-
 function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
   return (
     <article className="card pro-upgrade-panel">
       <div>
-        <span className="pill pro-pill">Pro</span>
         <h3>Need to compare more than one option?</h3>
         <p>
-          Pro lets you add multiple products, build different scenarios, upload spreadsheets,
+          APT Pro lets you add multiple products, build different scenarios, upload spreadsheets,
           save plans and export the results.
         </p>
       </div>
@@ -1196,7 +1205,6 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
       <article className="card roi-planner">
         <div className="roi-plan-header">
           <div>
-            <span className={isPro ? "pill pro-pill" : "pill"}>{isPro ? "Pro" : "Free"}</span>
             {isPro ? (
               <label className="field inline-plan-name">
                 <span>Plan name</span>
@@ -1208,27 +1216,27 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
                 />
               </label>
             ) : null}
-            <p className="form-note">
+            <p className="roi-planner-helper">
               {isPro
                 ? "Use this template if you prefer to build your plan in Excel first. You can also add lines directly below."
-                : "Edit the single product line below to calculate one scenario."}
+                : "Free lets you model one product line and one scenario. APT Pro adds multiple lines, saved scenarios, spreadsheet upload and exports."}
             </p>
           </div>
           <div className="roi-action-bar roi-action-bar-simple">
             {isPro ? (
               <>
-                <button className="button button-secondary button-small" onClick={downloadInputTemplate} type="button">Download input template</button>
-                <label className="button button-secondary button-small">
+                <button className="button button-secondary button-small roi-locked-action" onClick={downloadInputTemplate} type="button">Download template</button>
+                <label className="button button-secondary button-small roi-locked-action">
                   Upload spreadsheet
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
                 <CsvExportButton groups={activeGroup ? [activeGroup] : groups} />
-                <button className="button button-secondary button-small" onClick={saveCurrentGroup} type="button">Save plan</button>
+                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save plan</button>
               </>
             ) : (
               <>
                 <ProOnlyAction onClick={showProMessage}>Upload spreadsheet</ProOnlyAction>
-                <ProOnlyAction onClick={showProMessage}>Download input template</ProOnlyAction>
+                <ProOnlyAction onClick={showProMessage}>Download template</ProOnlyAction>
                 <ProOnlyAction onClick={showProMessage}>Save plan</ProOnlyAction>
                 <ProOnlyAction onClick={showProMessage}>Export results</ProOnlyAction>
               </>
@@ -1253,6 +1261,10 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
         <div className="scenario-stack">
           {activeScenarios.map((scenario) => (
             <section className="scenario-card" key={scenario.id}>
+              <div className="scenario-title-row">
+                <h3>{scenario.name || "Scenario 1"}</h3>
+                {isPro ? null : <span className="pro-action-note">Save scenario with APT Pro</span>}
+              </div>
               <div className="scenario-card-header">
                 <label className="field scenario-name-field">
                   <span>Scenario name</span>
@@ -1264,9 +1276,7 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
                       <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
                       <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
                     </>
-                  ) : (
-                    <span className="pill">Available in Pro</span>
-                  )}
+                  ) : null}
                 </div>
                 <details className="roi-mobile-actions">
                   <summary>Scenario actions</summary>
@@ -1299,13 +1309,19 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
         </div>
 
         <button
-          className={isPro ? "button new-scenario-button" : "button button-secondary new-scenario-button pro-only-button"}
+          className={isPro ? "button new-scenario-button" : "button button-secondary button-small new-scenario-button pro-only-button"}
           onClick={addScenario}
           type="button"
         >
-          + New scenario{isPro ? "" : " · Pro"}
+          {isPro ? (
+            "+ New scenario"
+          ) : (
+            <>
+              Add another scenario
+              <ProBadge />
+            </>
+          )}
         </button>
-        {isPro ? null : <p className="form-note">Compare multiple promo options in Pro.</p>}
 
         {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt onSwitchToPro={() => setAptMode("pro")} />}
         {isPro ? <p className="planning-disclaimer">Save your work and return to it later.</p> : null}

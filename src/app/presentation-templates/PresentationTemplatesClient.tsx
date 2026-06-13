@@ -47,13 +47,27 @@ type DraftSlide = {
   speakerNote: string;
 };
 
+type FreeTemplate = {
+  title: string;
+  slug: string;
+  pptx: string;
+  deckType: string;
+  previewAlt?: string;
+  previewSrc?: string;
+  for: string;
+  audience: string;
+  slides: string;
+};
+
 // Templates intentionally use editable example content so users can adapt them for real customer meetings.
-const freeTemplates = [
+const freeTemplates: FreeTemplate[] = [
   {
     title: "Joint Business Plan Template",
     slug: "joint-business-plan",
     pptx: "joint-business-plan-template.pptx",
     deckType: "Joint Business Plan",
+    previewAlt: "Preview of the APT Joint Business Plan PowerPoint template",
+    previewSrc: "/images/apt/apt-template-jbp-preview.webp",
     for: "Align annual customer objectives, growth pillars, investment and measures of success.",
     audience: "Account managers, KAMs, Sales Directors and customer-facing category teams",
     slides: "11 slides",
@@ -63,6 +77,8 @@ const freeTemplates = [
     slug: "qbr-template",
     pptx: "quarterly-business-review-template.pptx",
     deckType: "Quarterly Business Review",
+    previewAlt: "Preview of the APT Quarterly Business Review PowerPoint template",
+    previewSrc: "/images/apt/apt-template-qbr-preview.webp",
     for: "Review performance, wins, misses, risks and next-quarter actions.",
     audience: "Customer teams, commercial leadership and buyer review meetings",
     slides: "10 slides",
@@ -72,6 +88,8 @@ const freeTemplates = [
     slug: "promo-proposal",
     pptx: "promotional-proposal-template.pptx",
     deckType: "Promotional Proposal",
+    previewAlt: "Preview of the APT Promotional Proposal PowerPoint template",
+    previewSrc: "/images/apt/apt-template-promo-proposal-preview.webp",
     for: "Frame a promotion mechanic, support ask, retailer benefit and ROI logic.",
     audience: "Retail buyers, trade marketing and internal promo approval",
     slides: "8 slides",
@@ -202,8 +220,9 @@ function Field({
   );
 }
 
-function TemplateThumbnail({ template }: { template: (typeof freeTemplates)[number] }) {
+function TemplateThumbnail({ template }: { template: FreeTemplate }) {
   const [hasImageError, setHasImageError] = useState(false);
+  const previewSrc = template.previewSrc ?? `/templates/${template.slug}/preview.svg`;
 
   return (
     <div className="template-preview">
@@ -215,10 +234,10 @@ function TemplateThumbnail({ template }: { template: (typeof freeTemplates)[numb
         </div>
       ) : (
         <Image
-          alt={`${template.title} thumbnail`}
+          alt={template.previewAlt ?? `${template.title} thumbnail`}
           height={270}
           onError={() => setHasImageError(true)}
-          src={`/templates/${template.slug}/preview.svg`}
+          src={previewSrc}
           width={480}
         />
       )}
@@ -350,7 +369,6 @@ export function PresentationTemplatesFree() {
                 <span className="pill">Free</span>
                 <span className="pill">Editable</span>
                 <span className="pill">PowerPoint</span>
-                <span className="pill">Example data included</span>
               </div>
               <TemplateThumbnail template={template} />
               <h3>{template.title}</h3>

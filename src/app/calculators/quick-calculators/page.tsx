@@ -15,7 +15,7 @@ const choices = [
   "What margin is the retailer actually making?",
   "Calculate invoice price from retail price and target margin",
   "What is my promo invoice after SOA?",
-  "Convert inc/ex sales tax, VAT or IVA",
+  "Convert tax-inclusive and tax-exclusive retail prices",
 ];
 
 export default function QuickCalculatorsIndexPage() {
@@ -60,7 +60,6 @@ export default function QuickCalculatorsIndexPage() {
             <div className="grid">
               {groupCalculators.map((calculator) => (
                 <article className="card tool-card" key={calculator.slug}>
-                  <span className="pill">Free</span>
                   <h3>{calculator.title}</h3>
                   <p>{calculator.description}</p>
                   <Link className="text-link" href={`/calculators/${calculator.slug}`}>

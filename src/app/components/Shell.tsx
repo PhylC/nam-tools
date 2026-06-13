@@ -16,6 +16,7 @@ const footerResourceLinks = [
 
 const footerSiteLinks = [
   { href: "/pricing", label: "Pricing" },
+  { href: "/workspace", label: "My workspace" },
   { href: "/settings", label: "Settings" },
   { href: "/tools", label: "All resources" },
   { href: "/privacy", label: "Privacy Policy" },
@@ -42,6 +43,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <Link href="/calculators">Calculators</Link>
             <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/workspace">My workspace</Link>
             <Link href="/settings">Settings</Link>
           </nav>
           <PlanModeToggle />
@@ -140,7 +142,6 @@ export function SectionHeader({
 export function ToolCard({ tool }: { tool: Tool }) {
   return (
     <article className="card tool-card">
-      <span className="pill">{tool.category}</span>
       <h3>{tool.title}</h3>
       <p>{tool.description}</p>
       <Link className="text-link" href={tool.href}>
@@ -153,7 +154,6 @@ export function ToolCard({ tool }: { tool: Tool }) {
 export function ProPanel() {
   return (
     <aside className="card pro-card">
-      <span className="pill">Pro</span>
       <h2>Pro tools</h2>
       <p>
         Pro includes saved scenarios, exportable summaries, team templates and
@@ -170,16 +170,20 @@ export function ProductVisual({
   filename,
   title,
   description,
+  alt,
   aspectRatio = "16 / 9",
+  loading = "lazy",
 }: {
   filename: string;
   title: string;
   description: string;
+  alt?: string;
   aspectRatio?: string;
+  loading?: "eager" | "lazy";
 }) {
   return (
     <figure className="product-image-card" style={{ aspectRatio }}>
-      <img alt={`${title}: ${description}`} src={filename} />
+      <img alt={alt ?? `${title}: ${description}`} loading={loading} src={filename} />
       <figcaption>
         <strong>{title}</strong>
         <small>{description}</small>

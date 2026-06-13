@@ -3,10 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
+import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import type { QuickCalculatorId } from "../data/quickCalculators";
 import {
+  getActiveSupportTerminology,
+  getActiveTaxLabel,
   readCalculatorDefaults,
   saveCalculatorDefaults,
+  vatBasisToRetailTaxBasis,
 } from "../../lib/proSettings";
 
 const currency = new Intl.NumberFormat("en-GB", {
@@ -47,25 +51,82 @@ const currencyChoices = [
 
 const LAST_USED_CALCULATOR_VALUES_KEY = "aptLastUsedCalculatorValues";
 const TOOL_DEFAULTS_KEY = "aptToolDefaults";
+const DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY = "aptDismissedCreateAccountDefaultsPrompt";
 const DISCLAIMER_LINE =
   "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided.";
 
 type CsvRow = { label: string; value: string | number };
-type TaxLabel = "VAT" | "IVA" | "Sales tax" | "Custom";
+type TaxLabel = "VAT" | "IVA" | "Sales tax" | "GST" | "TVA" | "MwSt" | "Custom";
 type ToolDefaults = {
+  market: string;
   currency: string;
   taxLabel: TaxLabel;
+  customTaxLabel: string;
   taxRate: string;
   retailTaxBasis: VatBasis;
+  supportTerminology: "SOA" | "Trade spend" | "Promo support" | "Funding" | "Custom";
+  customSupportTerminology: string;
 };
+
+const marketOptions = ["UK", "France", "Spain", "Germany", "Ireland", "USA", "Other"];
+const supportTerminologyOptions: ToolDefaults["supportTerminology"][] = [
+  "SOA",
+  "Trade spend",
+  "Promo support",
+  "Funding",
+  "Custom",
+];
+
+function inferToolDefaultsFromBrowser(): ToolDefaults {
+  const fallback: ToolDefaults = {
+    market: "UK",
+    currency: "GBP",
+    taxLabel: "VAT",
+    customTaxLabel: "",
+    taxRate: "20",
+    retailTaxBasis: "excludes",
+    supportTerminology: "SOA",
+    customSupportTerminology: "",
+  };
+
+  if (typeof window === "undefined") return fallback;
+
+  const locales = [navigator.language, ...(navigator.languages ?? [])].filter(Boolean).join(" ").toLowerCase();
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone.toLowerCase();
+  const signal = `${locales} ${timeZone}`;
+
+  if (signal.includes("es") || signal.includes("madrid")) {
+    return { ...fallback, market: "Spain", currency: "EUR", taxLabel: "IVA", taxRate: "21", supportTerminology: "Trade spend" };
+  }
+  if (signal.includes("de") || signal.includes("berlin")) {
+    return { ...fallback, market: "Germany", currency: "EUR", taxLabel: "MwSt", taxRate: "19", supportTerminology: "Trade spend" };
+  }
+  if (signal.includes("fr") || signal.includes("paris")) {
+    return { ...fallback, market: "France", currency: "EUR", taxLabel: "TVA", supportTerminology: "Trade spend" };
+  }
+  if (signal.includes("ie") || signal.includes("dublin")) {
+    return { ...fallback, market: "Ireland", currency: "EUR", taxRate: "23", supportTerminology: "Trade spend" };
+  }
+  if (signal.includes("us") || signal.includes("america/")) {
+    return { ...fallback, market: "USA", currency: "USD", taxLabel: "Sales tax", taxRate: "0", supportTerminology: "Trade spend" };
+  }
+
+  return fallback;
+}
 
 function readToolDefaults(): ToolDefaults {
   const savedDefaults = readCalculatorDefaults();
+  const inferred = inferToolDefaultsFromBrowser();
   const fallback: ToolDefaults = {
-    currency: savedDefaults.currency || "GBP",
-    taxLabel: savedDefaults.taxLabel || "VAT",
-    taxRate: String(savedDefaults.taxRate || 20),
-    retailTaxBasis: "excludes",
+    ...inferred,
+    market: savedDefaults.market || inferred.market,
+    currency: savedDefaults.currency || inferred.currency,
+    taxLabel: savedDefaults.taxLabel || inferred.taxLabel,
+    customTaxLabel: savedDefaults.customTaxLabel || "",
+    taxRate: String(savedDefaults.taxRate || inferred.taxRate),
+    retailTaxBasis: savedDefaults.retailTaxBasis === "includes_tax" ? "includes" : "excludes",
+    supportTerminology: savedDefaults.supportTerminology || inferred.supportTerminology,
+    customSupportTerminology: savedDefaults.customSupportTerminology || "",
   };
   if (typeof window === "undefined") return fallback;
   try {
@@ -219,13 +280,18 @@ function NumericInput({
   );
 }
 
-function taxLabelText(label: TaxLabel) {
+function taxLabelText(label: string) {
   return label === "Custom" ? "tax" : label;
 }
 
-function retailTaxBasisLabel(value: VatBasis, label: TaxLabel) {
+function retailTaxBasisLabel(value: VatBasis, label: string) {
   const tax = taxLabelText(label);
   return value === "includes" ? `Includes ${tax}` : `Excludes ${tax}`;
+}
+
+function retailTaxBasisShortLabel(value: VatBasis, label: string) {
+  const tax = taxLabelText(label);
+  return value === "includes" ? `Inc ${tax}` : `Ex ${tax}`;
 }
 
 function RetailPriceInput({
@@ -248,7 +314,7 @@ function RetailPriceInput({
   onTaxBasisChange: (value: VatBasis) => void;
   taxRate: string;
   onTaxRateChange: (value: string) => void;
-  taxLabel: TaxLabel;
+  taxLabel: string;
   required?: boolean;
   helpText?: string;
   placeholder?: string;
@@ -274,26 +340,15 @@ function RetailPriceInput({
         </div>
         <div className="retail-price-part">
           <span>Basis</span>
-          <div className="retail-tax-toggle" role="radiogroup" aria-label={`${label} tax basis`}>
-            <button
-              aria-checked={taxBasis === "excludes"}
-              className={taxBasis === "excludes" ? "tax-toggle-option tax-toggle-option-active" : "tax-toggle-option"}
-              onClick={() => onTaxBasisChange("excludes")}
-              role="radio"
-              type="button"
-            >
-              Ex {tax}
-            </button>
-            <button
-              aria-checked={taxBasis === "includes"}
-              className={taxBasis === "includes" ? "tax-toggle-option tax-toggle-option-active" : "tax-toggle-option"}
-              onClick={() => onTaxBasisChange("includes")}
-              role="radio"
-              type="button"
-            >
-              Inc {tax}
-            </button>
-          </div>
+          <select
+            aria-label={`${label} tax basis`}
+            className="calc-select retail-tax-basis-select"
+            value={taxBasis}
+            onChange={(event) => onTaxBasisChange(event.target.value as VatBasis)}
+          >
+            <option value="excludes">{retailTaxBasisShortLabel("excludes", taxLabel)}</option>
+            <option value="includes">{retailTaxBasisShortLabel("includes", taxLabel)}</option>
+          </select>
         </div>
         <div className="retail-price-part retail-tax-rate">
           <span>{tax} %</span>
@@ -436,13 +491,12 @@ function LockedProActions() {
   return (
     <section className="locked-pro-actions" aria-label="APT Pro actions">
       <div>
-        <span className="pill pro-pill">Pro</span>
         <p>Free calculators are designed for quick one-off checks. APT Pro is for saving, comparing and exporting commercial scenarios.</p>
       </div>
       <div className="locked-action-row">
         {actions.map((action) => (
           <button className="button button-secondary button-small" disabled={aptMode === "pro"} key={action} onClick={handleClick} type="button">
-            {action}{aptMode === "pro" ? " · Coming soon" : ""}
+            {action}
           </button>
         ))}
       </div>
@@ -453,15 +507,6 @@ function LockedProActions() {
         </div>
       ) : null}
     </section>
-  );
-}
-
-function BadgeRow() {
-  return (
-    <div className="badge-row" aria-label="Tool access level">
-      <span className="pill">Free</span>
-      <span className="pill pro-pill">Pro</span>
-    </div>
   );
 }
 
@@ -514,7 +559,6 @@ function FreeResult({
     <div className="result-box">
       <div className="output-header">
         <div>
-          <span className="pill">Free result</span>
           <h2>Quick commercial read</h2>
         </div>
         <CopyButton text={summary} />
@@ -528,7 +572,6 @@ function FreeResult({
 function ProPreview({ features }: { features: string[] }) {
   return (
     <aside className="pro-panel">
-      <span className="pill pro-pill">Pro</span>
       <h2>Go deeper with Pro</h2>
       <div className="locked-grid" aria-label="Pro features">
         <div className="locked-card">
@@ -650,7 +693,7 @@ function getCalculatorRequirements(id?: QuickCalculatorId): CalculatorFieldRequi
   return CALCULATOR_FIELD_REQUIREMENTS[id] ?? defaultFieldRequirements;
 }
 
-function taxBasisLabel(value: VatBasis, label: TaxLabel = "VAT") {
+function taxBasisLabel(value: VatBasis, label: string = "VAT") {
   return retailTaxBasisLabel(value, label);
 }
 
@@ -662,6 +705,10 @@ function ContextualCalculatorSettings({
   setVatRate,
   taxLabel,
   setTaxLabel,
+  customTaxLabel,
+  setCustomTaxLabel,
+  retailTaxBasis,
+  setRetailTaxBasis,
   compact,
 }: {
   requirements: CalculatorFieldRequirements;
@@ -671,43 +718,134 @@ function ContextualCalculatorSettings({
   setVatRate: (value: string) => void;
   taxLabel: TaxLabel;
   setTaxLabel: (value: TaxLabel) => void;
+  customTaxLabel: string;
+  setCustomTaxLabel: (value: string) => void;
+  retailTaxBasis?: VatBasis;
+  setRetailTaxBasis?: (value: VatBasis) => void;
   compact?: boolean;
 }) {
-  const { aptMode } = useAptMode();
+  const { isAuthenticated } = useSupabaseAuth();
   const [savedMessage, setSavedMessage] = useState("");
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showAccountPrompt, setShowAccountPrompt] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY) !== "true";
+  });
+  const initialDefaults = readToolDefaults();
+  const [market, setMarket] = useState(initialDefaults.market);
+  const [supportTerminology, setSupportTerminology] = useState<ToolDefaults["supportTerminology"]>(initialDefaults.supportTerminology);
+  const [customSupportTerminology, setCustomSupportTerminology] = useState(initialDefaults.customSupportTerminology);
+  const [localRetailTaxBasis, setLocalRetailTaxBasis] = useState<VatBasis>(retailTaxBasis ?? initialDefaults.retailTaxBasis);
+  const activeRetailTaxBasis = retailTaxBasis ?? localRetailTaxBasis;
   const needsSettings = requirements.usesCurrency || requirements.usesRetailTaxBasis || requirements.usesVatRate;
   const usesTax = requirements.usesRetailTaxBasis || requirements.usesVatRate;
 
   if (!needsSettings) return null;
 
+  const activeTaxLabel = getActiveTaxLabel({ taxLabel, customTaxLabel });
+  const activeSupportTerm = getActiveSupportTerminology({ supportTerminology, customSupportTerminology });
+  const tax = taxLabelText(activeTaxLabel);
+  const basisSummary = activeRetailTaxBasis === "includes" ? `retail prices inc ${tax}` : `retail prices ex ${tax}`;
+  const summaryText = usesTax
+    ? `${currencyCode} · ${market} ${tax} ${Number(vatRate) || 0}% · ${basisSummary} · ${activeSupportTerm}`
+    : `${currencyCode} · ${market} · ${activeSupportTerm}`;
+
   function saveDefaults() {
     const current = readCalculatorDefaults();
+    const nextToolDefaults: ToolDefaults = {
+      market,
+      currency: currencyCode,
+      taxLabel,
+      customTaxLabel: customTaxLabel.trim(),
+      taxRate: vatRate,
+      retailTaxBasis: activeRetailTaxBasis,
+      supportTerminology,
+      customSupportTerminology: customSupportTerminology.trim(),
+    };
+    if (taxLabel === "Custom" && !customTaxLabel.trim()) {
+      setSavedMessage("Enter a custom tax label or choose VAT, IVA or Sales tax.");
+      return;
+    }
+    if (supportTerminology === "Custom" && !customSupportTerminology.trim()) {
+      setSavedMessage("Enter a custom support term or choose a preset support term.");
+      return;
+    }
+    writeToolDefaults(nextToolDefaults);
     saveCalculatorDefaults({
       ...current,
+      market,
       currency: currencyCode,
       taxRate: Number(vatRate) || 0,
       taxLabel,
+      customTaxLabel: customTaxLabel.trim(),
+      retailTaxBasis: vatBasisToRetailTaxBasis(activeRetailTaxBasis),
+      supportTerminology,
+      customSupportTerminology: customSupportTerminology.trim(),
     });
-    setSavedMessage("Default calculator settings saved.");
-    window.setTimeout(() => setSavedMessage(""), 2200);
+    setSavedMessage(isAuthenticated ? "Defaults saved." : "Defaults saved on this device. Account syncing will be added next.");
+    setIsExpanded(false);
+    window.setTimeout(() => setSavedMessage(""), 3200);
   }
 
   function rememberToolDefaults(next: Partial<ToolDefaults>) {
     writeToolDefaults(next);
   }
 
+  function updateRetailBasis(value: VatBasis) {
+    setLocalRetailTaxBasis(value);
+    setRetailTaxBasis?.(value);
+    rememberToolDefaults({ retailTaxBasis: value });
+  }
+
+  function dismissAccountPrompt() {
+    setShowAccountPrompt(false);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY, "true");
+    }
+  }
+
+  function handleCreateAccountClick() {
+    saveDefaults();
+    setSavedMessage("Defaults saved on this device. Create a free account flow will connect here.");
+  }
+
   return (
-    <section className={compact ? "card quick-settings-card quick-settings-card-compact" : "input-section settings-section"} aria-label="Tool defaults">
-      <div className="input-section-header">
-        <span className="pill">Defaults</span>
-        <h3>Tool defaults</h3>
+    <section className={compact ? "card quick-settings-strip quick-settings-strip-compact" : "input-section settings-strip"} aria-label="Tool defaults">
+      <div className="defaults-strip">
         <p>
-          {usesTax
-            ? "These defaults are used for this calculator. Retail price inputs can still be adjusted individually."
-            : "Used for formatting results only. This does not convert exchange rates."}
+          <strong>{savedMessage === "Defaults saved." ? "Using saved defaults:" : "Using:"}</strong> {summaryText}
         </p>
+        <div className="defaults-actions">
+          <button className="button button-secondary button-small" type="button" onClick={() => setIsExpanded((current) => !current)}>
+            {isExpanded ? "Done" : "Change"}
+          </button>
+          {isAuthenticated ? (
+            <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
+              Save defaults
+            </button>
+          ) : (
+            <button className="button button-secondary button-small" type="button" onClick={handleCreateAccountClick}>
+              Create free account to save
+            </button>
+          )}
+        </div>
       </div>
-      <div className="form-grid">
+
+      {isExpanded ? (
+        <div className="defaults-editor">
+          <p className="helper-note">Apply changes to this calculation, or save them as your defaults. Changing these values updates this calculation only.</p>
+          <p className="helper-note">We’ve pre-filled likely defaults. You can change them.</p>
+          <div className="form-grid">
+            <SelectInput
+              label="Country / market"
+              help="Used to describe your default calculator setup."
+              value={market}
+              onChange={(value) => {
+                setMarket(value);
+                rememberToolDefaults({ market: value });
+              }}
+              options={marketOptions.map((value) => ({ label: value, value }))}
+            />
         {requirements.usesCurrency ? (
           <SelectInput
             label="Currency"
@@ -732,15 +870,37 @@ function ContextualCalculatorSettings({
             }}
             options={[
               { label: "VAT", value: "VAT" },
-              { label: "Sales tax", value: "Sales tax" },
               { label: "IVA", value: "IVA" },
+              { label: "Sales tax", value: "Sales tax" },
+              { label: "GST", value: "GST" },
+              { label: "TVA", value: "TVA" },
+              { label: "MwSt", value: "MwSt" },
               { label: "Custom", value: "Custom" },
             ]}
           />
         ) : null}
+        {usesTax && taxLabel === "Custom" ? (
+          <Field
+            label={<InfoLabel label="Custom tax label" info="Short tax label used in retail price fields." required />}
+            help={!customTaxLabel.trim() ? "Enter a custom tax label or choose VAT, IVA or Sales tax." : "Used in this tool's tax labels."}
+          >
+            <input
+              className="calc-input"
+              maxLength={20}
+              placeholder="e.g. GST, TVA, MwSt"
+              required
+              value={customTaxLabel}
+              onChange={(event) => {
+                const next = event.target.value.slice(0, 20);
+                setCustomTaxLabel(next);
+                rememberToolDefaults({ customTaxLabel: next });
+              }}
+            />
+          </Field>
+        ) : null}
         {requirements.usesVatRate ? (
           <NumericInput
-            label={`Default ${taxLabelText(taxLabel)} rate %`}
+            label={`${tax} rate %`}
             help={
               requirements.usesRetailPrice
                 ? "Used as the starting tax rate for retail price inputs."
@@ -754,15 +914,72 @@ function ContextualCalculatorSettings({
             }}
           />
         ) : null}
-      </div>
-      <div className="settings-save-row">
-        {aptMode === "pro" ? (
-          <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
-            Save as my default
+            {usesTax ? (
+              <SelectInput
+                label="Retail basis"
+                help="Default basis for retail price fields in this tool."
+                value={activeRetailTaxBasis}
+                onChange={(value) => updateRetailBasis(value as VatBasis)}
+                options={[
+                  { label: retailTaxBasisShortLabel("excludes", taxLabel), value: "excludes" },
+                  { label: retailTaxBasisShortLabel("includes", taxLabel), value: "includes" },
+                ]}
+              />
+            ) : null}
+            <SelectInput
+              label="Support term"
+              help="Your preferred label for deal support or funding."
+              value={supportTerminology}
+              onChange={(value) => {
+                const next = value as ToolDefaults["supportTerminology"];
+                setSupportTerminology(next);
+                rememberToolDefaults({ supportTerminology: next });
+              }}
+              options={supportTerminologyOptions.map((value) => ({ label: value, value }))}
+            />
+            {supportTerminology === "Custom" ? (
+              <Field
+                label={<InfoLabel label="Custom support term" info="Short label for support, funding or trade investment." required />}
+                help={!customSupportTerminology.trim() ? "Enter a custom support term or choose a preset support term." : "Used in the defaults summary."}
+              >
+                <input
+                  className="calc-input"
+                  maxLength={30}
+                  placeholder="e.g. Customer funding, Promo fund, Trade investment"
+                  required
+                  value={customSupportTerminology}
+                  onChange={(event) => {
+                    const next = event.target.value.slice(0, 30);
+                    setCustomSupportTerminology(next);
+                    rememberToolDefaults({ customSupportTerminology: next });
+                  }}
+                />
+              </Field>
+            ) : null}
+          </div>
+          <div className="settings-save-row">
+            <button className="button button-secondary button-small" type="button" onClick={() => setIsExpanded(false)}>
+              Apply to this tool
+            </button>
+            <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
+              Save as my defaults
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {!isAuthenticated && showAccountPrompt ? (
+        <div className="defaults-account-prompt">
+          <p>Create a free account to keep these defaults across visits.</p>
+          <button className="text-button" type="button" onClick={handleCreateAccountClick}>
+            Create free account
           </button>
-        ) : null}
-        <small>Free: remembered on this device. Pro: saved to your account and used across calculators and exports.</small>
-      </div>
+          <button className="text-button" type="button" onClick={dismissAccountPrompt}>
+            Not now
+          </button>
+        </div>
+      ) : null}
+
       {savedMessage ? <p className="settings-message settings-message-success">{savedMessage}</p> : null}
     </section>
   );
@@ -800,7 +1017,6 @@ function CalculationDetail({
 function DealProPreview() {
   return (
     <aside className="pro-panel">
-      <span className="pill pro-pill">Pro</span>
       <h2>Go deeper with Pro deal planning</h2>
       <div className="locked-grid locked-grid-three" aria-label="Pro features">
         <div className="locked-card">
@@ -841,6 +1057,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const [fixedCost, setFixedCost] = useState(lastUsed.fixedCost ?? "");
   const [retailerBuyPrice, setRetailerBuyPrice] = useState(lastUsed.retailerBuyPrice ?? "");
   const [taxLabel, setTaxLabel] = useState<TaxLabel>((lastUsed.taxLabel as TaxLabel) ?? toolDefaults.taxLabel ?? savedDefaults.taxLabel);
+  const [customTaxLabel, setCustomTaxLabel] = useState(lastUsed.customTaxLabel ?? toolDefaults.customTaxLabel ?? savedDefaults.customTaxLabel ?? "");
   const [retailerVatBasis, setRetailerVatBasis] = useState<VatBasis>((lastUsed.retailerVatBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
   const [promoRetailVatBasis, setPromoRetailVatBasis] = useState<VatBasis>((lastUsed.promoRetailVatBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
   const [vatRate, setVatRate] = useState(lastUsed.vatRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
@@ -858,6 +1075,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const [contractMonths, setContractMonths] = useState(lastUsed.contractMonths ?? "");
   const [otherDeductions, setOtherDeductions] = useState(lastUsed.otherDeductions ?? "");
   const [retentionValue, setRetentionValue] = useState(lastUsed.retentionValue ?? "");
+  const activeTaxLabel = getActiveTaxLabel({ taxLabel, customTaxLabel });
 
   const currency = useMemo(
     () => ({ format: (value: number) => formatCurrencyValue(value, currencyCode, 0) }),
@@ -881,8 +1099,9 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       promoInvoicePrice,
       fixedCost,
       retailerBuyPrice,
-      taxLabel,
-      retailerVatBasis,
+          taxLabel,
+          customTaxLabel,
+          retailerVatBasis,
       promoRetailVatBasis,
       vatRate,
       promoRetailVatRate,
@@ -913,7 +1132,8 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     promoInvoicePrice,
     fixedCost,
     retailerBuyPrice,
-    taxLabel,
+        taxLabel,
+        customTaxLabel,
     retailerVatBasis,
     promoRetailVatBasis,
     vatRate,
@@ -1331,10 +1551,8 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
 
   return (
     <article className="card tool-form commercial-deal-calculator">
-      <BadgeRow />
       <section className="deal-input-panel" aria-label="Shared commercial deal inputs">
         <div>
-          <span className="pill">60-second inputs</span>
           <h2>Start with the few numbers most account managers already have.</h2>
           <p className="form-intro">
             Required fields are enough for a quick result. Optional fields
@@ -1362,6 +1580,13 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
           setVatRate={setVatRate}
           taxLabel={taxLabel}
           setTaxLabel={setTaxLabel}
+          customTaxLabel={customTaxLabel}
+          setCustomTaxLabel={setCustomTaxLabel}
+          retailTaxBasis={retailerVatBasis}
+          setRetailTaxBasis={(value) => {
+            setRetailerVatBasis(value);
+            setPromoRetailVatBasis(value);
+          }}
         />
         <section className="input-section" aria-label="Promotion and price inputs">
           <div className="input-section-header">
@@ -1462,7 +1687,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                 onTaxBasisChange={setRetailerVatBasis}
                 taxRate={vatRate}
                 onTaxRateChange={setVatRate}
-                taxLabel={taxLabel}
+                taxLabel={activeTaxLabel}
               />
             ) : null}
             {dealMode === "retailer" || dealMode === "invoice" ? (
@@ -1477,7 +1702,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                 onTaxBasisChange={setPromoRetailVatBasis}
                 taxRate={promoRetailVatRate}
                 onTaxRateChange={setPromoRetailVatRate}
-                taxLabel={taxLabel}
+                taxLabel={activeTaxLabel}
               />
             ) : null}
             {dealMode === "retailer" ? (
@@ -1538,7 +1763,6 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
         <div className="result-box" role="tabpanel">
           <div className="output-header">
             <div>
-              <span className="pill">Free result</span>
               <h2>{dealTabTitle(activeTab)}</h2>
             </div>
             <div className="summary-actions">
@@ -1669,7 +1893,6 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
         ) : (
         <div className="result-box empty-result" role="tabpanel">
           <div>
-            <span className="pill">Free result</span>
             <h2>{dealTabTitle(activeTab)}</h2>
           </div>
           <p className="empty-state">{activePrompt}</p>
@@ -1766,7 +1989,6 @@ function QuickCalculatorCard({
     <article className="card quick-calculator-card" id={id}>
       <div className="output-header">
         <div>
-          <span className="pill">Quick calculator</span>
           <h2>{title}</h2>
           <p>{question}</p>
         </div>
@@ -1813,6 +2035,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   const [exampleMessage, setExampleMessage] = useState<{ id?: QuickCalculatorId; text: string }>({ text: "" });
   const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? toolDefaults.currency ?? savedDefaults.currency);
   const [taxLabel, setTaxLabel] = useState<TaxLabel>((lastUsed.taxLabel as TaxLabel) ?? toolDefaults.taxLabel ?? savedDefaults.taxLabel);
+  const [customTaxLabel, setCustomTaxLabel] = useState(lastUsed.customTaxLabel ?? toolDefaults.customTaxLabel ?? savedDefaults.customTaxLabel ?? "");
   const [quickRetailTaxBasis, setQuickRetailTaxBasis] = useState<VatBasis>((lastUsed.retailTaxBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
   const [quickTaxRate, setQuickTaxRate] = useState(lastUsed.taxRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
   const [soaInvoice, setSoaInvoice] = useState(lastUsed.soaInvoice ?? "");
@@ -1909,6 +2132,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
   const [markupCost, setMarkupCost] = useState(lastUsed.markupCost ?? "");
   const [markupRetail, setMarkupRetail] = useState(lastUsed.markupRetail ?? "");
+  const activeTaxLabel = getActiveTaxLabel({ taxLabel, customTaxLabel });
   const markup = useMemo(() => {
     const retail = vatAdjustedPrice(num(markupRetail), quickRetailTaxBasis, rate(quickTaxRate));
     const profit = retail.exVat - num(markupCost);
@@ -1925,6 +2149,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     writeLastUsedCalculatorValues(storageId, {
       currency: currencyCode,
       taxLabel,
+      customTaxLabel,
       retailTaxBasis: quickRetailTaxBasis,
       taxRate: quickTaxRate,
       soaInvoice,
@@ -1957,6 +2182,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     aptMode,
     currencyCode,
     taxLabel,
+    customTaxLabel,
     quickRetailTaxBasis,
     quickTaxRate,
     soaInvoice,
@@ -2051,8 +2277,8 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     [currencyCode],
   );
 
-  const quickTaxBasisLabel = taxBasisLabel(quickRetailTaxBasis, taxLabel);
-  const quickTaxLabel = taxLabelText(taxLabel);
+  const quickTaxBasisLabel = taxBasisLabel(quickRetailTaxBasis, activeTaxLabel);
+  const quickTaxLabel = taxLabelText(activeTaxLabel);
   const quickTaxSummary = `Retail price tax basis: ${quickTaxBasisLabel}. ${quickTaxLabel} rate: ${safePercent(rate(quickTaxRate))}.`;
   const shouldShow = (id: QuickCalculatorId) => !only || only === id;
   const calculatorRequirements = getCalculatorRequirements(only);
@@ -2084,6 +2310,10 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         setVatRate={setQuickTaxRate}
         taxLabel={taxLabel}
         setTaxLabel={setTaxLabel}
+        customTaxLabel={customTaxLabel}
+        setCustomTaxLabel={setCustomTaxLabel}
+        retailTaxBasis={quickRetailTaxBasis}
+        setRetailTaxBasis={setQuickRetailTaxBasis}
       />
       {shouldShow("required-soa-calculator") ? (
       <QuickCalculatorCard
@@ -2123,7 +2353,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.00"
         />
         <NumericInput label="Target retailer margin %" help="Retailer/customer target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={soaMargin} onChange={setSoaMargin} />
@@ -2203,7 +2433,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.00"
         />
         <NumericInput label="Fixed support" help="Optional fixed supplier support." placeholder="e.g. 0" required={false} value={actualFixed} onChange={setActualFixed} />
@@ -2243,7 +2473,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.00"
         />
         <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail price." placeholder="e.g. 25" value={invoiceMargin} onChange={setInvoiceMargin} />
@@ -2286,7 +2516,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.00"
         />
       </QuickCalculatorCard>
@@ -2350,7 +2580,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.00"
         />
       </QuickCalculatorCard>
@@ -2391,7 +2621,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
-          taxLabel={taxLabel}
+          taxLabel={activeTaxLabel}
           placeholder="e.g. 2.50"
         />
       </QuickCalculatorCard>
@@ -2551,12 +2781,10 @@ function GeneratorShell({
 
   return (
     <article className="card tool-form">
-      <BadgeRow />
       <div className="form-grid">{fields}</div>
       <div className="result-box output-block">
         <div className="output-header">
           <div>
-            <span className="pill">Free result</span>
             <h2>Copy-ready output</h2>
           </div>
           <CopyButton text={output} />

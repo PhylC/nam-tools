@@ -462,7 +462,6 @@ export function TemplateLibrary() {
       <section className="shell section">
         <div className="grid grid-two">
           <article className="card judgement-card">
-            <span className="pill">Free</span>
             <h2>PowerPoint and spreadsheet templates</h2>
             <p>
               Free templates give you practical PowerPoint decks and sheet
@@ -470,7 +469,6 @@ export function TemplateLibrary() {
             </p>
           </article>
           <article className="card judgement-card">
-            <span className="pill pro-pill">Pro</span>
             <h2>Guided deck builders</h2>
             <p>
               Pro helps you turn a brief, customer context and supporting data
@@ -495,7 +493,6 @@ export function TemplateLibrary() {
         <div className="grid">
           {powerpointTemplates.map((template) => (
             <article className="card template-card" key={template.name}>
-              <span className="pill">Free</span>
               <h3>{template.name}</h3>
               <p>{template.useCase}</p>
               <div>
@@ -535,7 +532,6 @@ export function TemplateLibrary() {
         <div className="grid">
           {sheetsTemplates.map((template) => (
             <article className="card template-card" key={template.name}>
-              <span className="pill">Free</span>
               <h3>{template.name}</h3>
               <p>{template.useCase}</p>
               <div>
@@ -587,7 +583,6 @@ export function TemplateLibrary() {
         <div className="grid">
           {proBuilders.map((builder) => (
             <article className="card template-card" key={builder.name}>
-              <span className="pill pro-pill">Pro</span>
               <h3>{builder.name}</h3>
               <p>{builder.text}</p>
               <button aria-disabled="true" className="button button-secondary button-small disabled-button" disabled type="button">
