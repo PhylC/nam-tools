@@ -7,8 +7,6 @@ import type { QuickCalculatorId } from "../data/quickCalculators";
 import {
   readCalculatorDefaults,
   saveCalculatorDefaults,
-  retailTaxBasisToVatBasis,
-  vatBasisToRetailTaxBasis,
 } from "../../lib/proSettings";
 
 const currency = new Intl.NumberFormat("en-GB", {
@@ -48,10 +46,40 @@ const currencyChoices = [
 ];
 
 const LAST_USED_CALCULATOR_VALUES_KEY = "aptLastUsedCalculatorValues";
+const TOOL_DEFAULTS_KEY = "aptToolDefaults";
 const DISCLAIMER_LINE =
   "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided.";
 
 type CsvRow = { label: string; value: string | number };
+type TaxLabel = "VAT" | "IVA" | "Sales tax" | "Custom";
+type ToolDefaults = {
+  currency: string;
+  taxLabel: TaxLabel;
+  taxRate: string;
+  retailTaxBasis: VatBasis;
+};
+
+function readToolDefaults(): ToolDefaults {
+  const savedDefaults = readCalculatorDefaults();
+  const fallback: ToolDefaults = {
+    currency: savedDefaults.currency || "GBP",
+    taxLabel: savedDefaults.taxLabel || "VAT",
+    taxRate: String(savedDefaults.taxRate || 20),
+    retailTaxBasis: "excludes",
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    return { ...fallback, ...(JSON.parse(window.localStorage.getItem(TOOL_DEFAULTS_KEY) ?? "{}") as Partial<ToolDefaults>) };
+  } catch {
+    return fallback;
+  }
+}
+
+function writeToolDefaults(next: Partial<ToolDefaults>) {
+  if (typeof window === "undefined") return;
+  const current = readToolDefaults();
+  window.localStorage.setItem(TOOL_DEFAULTS_KEY, JSON.stringify({ ...current, ...next }));
+}
 
 function readLastUsedCalculatorValues(id: string) {
   if (typeof window === "undefined") return {};
@@ -133,9 +161,9 @@ function InfoLabel({
 
   if (!info) {
     return (
-      <span className="field-label">
-        <span>{label}</span>
-        <span className={required ? "field-status field-required" : "field-status"}>
+      <span className="field-label calc-field-header">
+        <span className="calc-field-label">{label}</span>
+        <span className={required ? "field-status field-required calc-required-badge" : "field-status calc-optional-badge"}>
           {status}
         </span>
       </span>
@@ -143,12 +171,12 @@ function InfoLabel({
   }
 
   return (
-    <span className="field-label">
-      <span>{label}</span>
-      <span className={required ? "field-status field-required" : "field-status"}>
+    <span className="field-label calc-field-header">
+      <span className="calc-field-label">{label}</span>
+      <span className={required ? "field-status field-required calc-required-badge" : "field-status calc-optional-badge"}>
         {status}
       </span>
-      <span aria-label={`${label}: ${info}`} className="info-dot" tabIndex={0}>
+      <span aria-label={`${label}: ${info}`} className="info-dot calc-info-button" tabIndex={0}>
         i
         <span className="info-tooltip" role="tooltip">
           {info}
@@ -178,6 +206,7 @@ function NumericInput({
   return (
     <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
       <input
+        className="calc-input"
         type="number"
         min="0"
         placeholder={placeholder}
@@ -186,6 +215,101 @@ function NumericInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
+    </Field>
+  );
+}
+
+function taxLabelText(label: TaxLabel) {
+  return label === "Custom" ? "tax" : label;
+}
+
+function retailTaxBasisLabel(value: VatBasis, label: TaxLabel) {
+  const tax = taxLabelText(label);
+  return value === "includes" ? `Includes ${tax}` : `Excludes ${tax}`;
+}
+
+function RetailPriceInput({
+  label,
+  value,
+  onValueChange,
+  taxBasis,
+  onTaxBasisChange,
+  taxRate,
+  onTaxRateChange,
+  taxLabel,
+  required = true,
+  helpText = "The consumer selling price. Margin estimates use the excluding-tax value.",
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  taxBasis: VatBasis;
+  onTaxBasisChange: (value: VatBasis) => void;
+  taxRate: string;
+  onTaxRateChange: (value: string) => void;
+  taxLabel: TaxLabel;
+  required?: boolean;
+  helpText?: string;
+  placeholder?: string;
+}) {
+  const tax = taxLabelText(taxLabel);
+
+  return (
+    <Field label={<InfoLabel label={label} info={helpText} required={required} />} help={helpText}>
+      <div className="retail-price-input">
+        <div className="retail-price-part retail-price-amount">
+          <span>Price</span>
+          <input
+            className="calc-input"
+            aria-label={`${label} price`}
+            type="number"
+            min="0"
+            placeholder={placeholder}
+            required={required}
+            step="0.01"
+            value={value}
+            onChange={(event) => onValueChange(event.target.value)}
+          />
+        </div>
+        <div className="retail-price-part">
+          <span>Basis</span>
+          <div className="retail-tax-toggle" role="radiogroup" aria-label={`${label} tax basis`}>
+            <button
+              aria-checked={taxBasis === "excludes"}
+              className={taxBasis === "excludes" ? "tax-toggle-option tax-toggle-option-active" : "tax-toggle-option"}
+              onClick={() => onTaxBasisChange("excludes")}
+              role="radio"
+              type="button"
+            >
+              Ex {tax}
+            </button>
+            <button
+              aria-checked={taxBasis === "includes"}
+              className={taxBasis === "includes" ? "tax-toggle-option tax-toggle-option-active" : "tax-toggle-option"}
+              onClick={() => onTaxBasisChange("includes")}
+              role="radio"
+              type="button"
+            >
+              Inc {tax}
+            </button>
+          </div>
+        </div>
+        <div className="retail-price-part retail-tax-rate">
+          <span>{tax} %</span>
+          <input
+            className="calc-input"
+            aria-label={`${label} ${tax} rate`}
+            type="number"
+            min="0"
+            placeholder="20"
+            required={required}
+            step="0.01"
+            value={taxRate}
+            onChange={(event) => onTaxRateChange(event.target.value)}
+          />
+        </div>
+      </div>
     </Field>
   );
 }
@@ -208,9 +332,9 @@ function TextInput({
   return (
     <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
       {multiline ? (
-        <textarea required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+        <textarea className="calc-input" required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       ) : (
-        <input required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+        <input className="calc-input" required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </Field>
   );
@@ -233,7 +357,7 @@ function SelectInput({
 }) {
   return (
     <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
-      <select required={required} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select className="calc-select" required={required} value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -446,11 +570,6 @@ type DealMode = "invoice" | "profit" | "retailer";
 type SupportMethod = "soa" | "promoInvoice";
 type VatBasis = "includes" | "excludes";
 
-const taxBasisOptions = [
-  { label: "Includes sales tax / VAT / IVA", value: "includes" },
-  { label: "Excludes sales tax / VAT / IVA", value: "excludes" },
-];
-
 type CalculatorFieldRequirements = {
   usesCurrency: boolean;
   usesRetailPrice: boolean;
@@ -531,34 +650,33 @@ function getCalculatorRequirements(id?: QuickCalculatorId): CalculatorFieldRequi
   return CALCULATOR_FIELD_REQUIREMENTS[id] ?? defaultFieldRequirements;
 }
 
-function taxBasisLabel(value: VatBasis) {
-  return value === "includes" ? "Includes sales tax / VAT / IVA" : "Excludes sales tax / VAT / IVA";
+function taxBasisLabel(value: VatBasis, label: TaxLabel = "VAT") {
+  return retailTaxBasisLabel(value, label);
 }
 
 function ContextualCalculatorSettings({
   requirements,
   currencyCode,
   setCurrencyCode,
-  vatBasis,
-  setVatBasis,
   vatRate,
   setVatRate,
+  taxLabel,
+  setTaxLabel,
   compact,
 }: {
   requirements: CalculatorFieldRequirements;
   currencyCode: string;
   setCurrencyCode: (value: string) => void;
-  vatBasis: VatBasis;
-  setVatBasis: (value: VatBasis) => void;
   vatRate: string;
   setVatRate: (value: string) => void;
+  taxLabel: TaxLabel;
+  setTaxLabel: (value: TaxLabel) => void;
   compact?: boolean;
 }) {
   const { aptMode } = useAptMode();
   const [savedMessage, setSavedMessage] = useState("");
   const needsSettings = requirements.usesCurrency || requirements.usesRetailTaxBasis || requirements.usesVatRate;
   const usesTax = requirements.usesRetailTaxBasis || requirements.usesVatRate;
-  const showRetailTaxNote = requirements.usesRetailPrice && requirements.usesRetailTaxBasis;
 
   if (!needsSettings) return null;
 
@@ -567,26 +685,25 @@ function ContextualCalculatorSettings({
     saveCalculatorDefaults({
       ...current,
       currency: currencyCode,
-      retailTaxBasis: vatBasisToRetailTaxBasis(vatBasis),
       taxRate: Number(vatRate) || 0,
+      taxLabel,
     });
     setSavedMessage("Default calculator settings saved.");
     window.setTimeout(() => setSavedMessage(""), 2200);
   }
 
-  function rememberDefaults(next: Partial<ReturnType<typeof readCalculatorDefaults>>) {
-    const current = readCalculatorDefaults();
-    saveCalculatorDefaults({ ...current, ...next });
+  function rememberToolDefaults(next: Partial<ToolDefaults>) {
+    writeToolDefaults(next);
   }
 
   return (
-    <section className={compact ? "card quick-settings-card quick-settings-card-compact" : "input-section settings-section"} aria-label={usesTax ? "Currency and tax settings" : "Currency"}>
+    <section className={compact ? "card quick-settings-card quick-settings-card-compact" : "input-section settings-section"} aria-label="Tool defaults">
       <div className="input-section-header">
-        <span className="pill">Settings</span>
-        <h3>{usesTax ? "Currency and tax settings" : "Currency"}</h3>
+        <span className="pill">Defaults</span>
+        <h3>Tool defaults</h3>
         <p>
           {usesTax
-            ? "Used where retail prices are included in the calculation. Margin estimates use excluding-tax retail price."
+            ? "These defaults are used for this calculator. Retail price inputs can still be adjusted individually."
             : "Used for formatting results only. This does not convert exchange rates."}
         </p>
       </div>
@@ -598,48 +715,46 @@ function ContextualCalculatorSettings({
             value={currencyCode}
             onChange={(value) => {
               setCurrencyCode(value);
-              rememberDefaults({ currency: value });
+              rememberToolDefaults({ currency: value });
             }}
             options={currencyChoices.map(({ label, value }) => ({ label, value }))}
           />
         ) : null}
-        {requirements.usesRetailTaxBasis ? (
+        {usesTax ? (
           <SelectInput
-            label="Retail price tax basis"
-            help="Choose whether retail selling prices entered in this calculator include or exclude sales tax / VAT / IVA."
-            value={vatBasis}
+            label="Tax label"
+            help="Used in retail price inputs and result summaries."
+            value={taxLabel}
             onChange={(value) => {
-              const next = value as VatBasis;
-              setVatBasis(next);
-              rememberDefaults({ retailTaxBasis: vatBasisToRetailTaxBasis(next) });
+              const next = value as TaxLabel;
+              setTaxLabel(next);
+              rememberToolDefaults({ taxLabel: next });
             }}
-            options={taxBasisOptions}
+            options={[
+              { label: "VAT", value: "VAT" },
+              { label: "Sales tax", value: "Sales tax" },
+              { label: "IVA", value: "IVA" },
+              { label: "Custom", value: "Custom" },
+            ]}
           />
         ) : null}
         {requirements.usesVatRate ? (
           <NumericInput
-            label="Sales tax / VAT / IVA rate %"
+            label={`Default ${taxLabelText(taxLabel)} rate %`}
             help={
               requirements.usesRetailPrice
-                ? "Used to convert retail selling prices to excluding-tax values for margin estimates."
+                ? "Used as the starting tax rate for retail price inputs."
                 : "Used to show the including-tax retail price."
             }
             placeholder="e.g. 20"
             value={vatRate}
             onChange={(value) => {
               setVatRate(value);
-              rememberDefaults({ taxRate: Number(value) || 0 });
+              rememberToolDefaults({ taxRate: value });
             }}
           />
         ) : null}
       </div>
-      {showRetailTaxNote ? (
-        <p className="form-note">
-          Retailer prices are often discussed including sales tax / VAT / IVA,
-          but margin is usually assessed excluding tax. This tool converts the
-          entered price where needed.
-        </p>
-      ) : null}
       <div className="settings-save-row">
         {aptMode === "pro" ? (
           <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
@@ -710,11 +825,12 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const storageId = `commercial-deal-calculator-${defaultTab}`;
   const lastUsed = readLastUsedCalculatorValues(storageId);
   const savedDefaults = readCalculatorDefaults();
+  const toolDefaults = readToolDefaults();
   const [exampleMessage, setExampleMessage] = useState("");
   const [activeTab, setActiveTab] = useState<DealTab>(defaultTab);
   const [dealMode, setDealMode] = useState<DealMode>("invoice");
   const [supportMethod, setSupportMethod] = useState<SupportMethod>("promoInvoice");
-  const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? savedDefaults.currency);
+  const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? toolDefaults.currency ?? savedDefaults.currency);
   const [baselineUnits, setBaselineUnits] = useState(lastUsed.baselineUnits ?? "");
   const [promoUnits, setPromoUnits] = useState(lastUsed.promoUnits ?? "");
   const [srp, setSrp] = useState(lastUsed.srp ?? "");
@@ -724,8 +840,11 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const [promoInvoicePrice, setPromoInvoicePrice] = useState(lastUsed.promoInvoicePrice ?? "");
   const [fixedCost, setFixedCost] = useState(lastUsed.fixedCost ?? "");
   const [retailerBuyPrice, setRetailerBuyPrice] = useState(lastUsed.retailerBuyPrice ?? "");
-  const [retailerVatBasis, setRetailerVatBasis] = useState<VatBasis>((lastUsed.retailerVatBasis as VatBasis) ?? retailTaxBasisToVatBasis(savedDefaults.retailTaxBasis));
-  const [vatRate, setVatRate] = useState(lastUsed.vatRate ?? String(savedDefaults.taxRate || ""));
+  const [taxLabel, setTaxLabel] = useState<TaxLabel>((lastUsed.taxLabel as TaxLabel) ?? toolDefaults.taxLabel ?? savedDefaults.taxLabel);
+  const [retailerVatBasis, setRetailerVatBasis] = useState<VatBasis>((lastUsed.retailerVatBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
+  const [promoRetailVatBasis, setPromoRetailVatBasis] = useState<VatBasis>((lastUsed.promoRetailVatBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
+  const [vatRate, setVatRate] = useState(lastUsed.vatRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
+  const [promoRetailVatRate, setPromoRetailVatRate] = useState(lastUsed.promoRetailVatRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
   const [averageDiscount, setAverageDiscount] = useState(lastUsed.averageDiscount ?? "");
   const [rebate, setRebate] = useState(lastUsed.rebate ?? "");
   const [marketingContribution, setMarketingContribution] = useState(lastUsed.marketingContribution ?? "");
@@ -762,8 +881,11 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       promoInvoicePrice,
       fixedCost,
       retailerBuyPrice,
+      taxLabel,
       retailerVatBasis,
+      promoRetailVatBasis,
       vatRate,
+      promoRetailVatRate,
       averageDiscount,
       rebate,
       marketingContribution,
@@ -791,8 +913,11 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     promoInvoicePrice,
     fixedCost,
     retailerBuyPrice,
+    taxLabel,
     retailerVatBasis,
+    promoRetailVatBasis,
     vatRate,
+    promoRetailVatRate,
     averageDiscount,
     rebate,
     marketingContribution,
@@ -820,7 +945,10 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     setSrp("14.99");
     setPromoSrp("11.99");
     setRetailerVatBasis("includes");
+    setPromoRetailVatBasis("includes");
     setVatRate("20");
+    setPromoRetailVatRate("20");
+    setTaxLabel("VAT");
     setRetailerMarginRequirement("30");
     setCannibalisation("5");
     setPostPromoDip("2");
@@ -845,13 +973,14 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     const srpEntered = num(srp);
     const promoSrpEntered = num(promoSrp);
     const vatRateValue = rate(vatRate);
+    const promoVatRateValue = rate(promoRetailVatRate);
     const srpValue =
       retailerVatBasis === "includes"
         ? srpEntered / (1 + vatRateValue)
         : srpEntered;
     const promoSrpValue =
-      retailerVatBasis === "includes"
-        ? promoSrpEntered / (1 + vatRateValue)
+      promoRetailVatBasis === "includes"
+        ? promoSrpEntered / (1 + promoVatRateValue)
         : promoSrpEntered;
     const cogsValue = num(cogs);
     const fixed = num(fixedCost);
@@ -971,6 +1100,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       retailerSellOutEntered,
       retailerSellOutExVat,
       vatRateValue,
+      promoVatRateValue,
       retailerCostOfGoods,
       retailerGpBeforeFunding,
       supplierFundingReceived,
@@ -1020,7 +1150,9 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     fixedCost,
     retailerBuyPrice,
     retailerVatBasis,
+    promoRetailVatBasis,
     vatRate,
+    promoRetailVatRate,
     supportMethod,
     averageDiscount,
     rebate,
@@ -1037,13 +1169,15 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     retentionValue,
   ]);
 
-  const retailerVatBasisLabel = taxBasisLabel(retailerVatBasis);
-  const retailerVatSummary = `Retail selling price before promotion entered: ${money2.format(result.retailBaseEntered)} (${retailerVatBasisLabel}); excluding-tax value used: ${money2.format(result.retailBaseExTax)}. Promotional retail selling price entered: ${money2.format(result.retailerSellOutEntered)} (${retailerVatBasisLabel}); sales tax / VAT / IVA rate: ${safePercent(result.vatRateValue)}; excluding-tax value used for retailer margin: ${money2.format(result.retailerSellOutExVat)}. Currency is for formatting only. This tool does not convert exchange rates.`;
+  const retailerVatBasisLabel = taxBasisLabel(retailerVatBasis, taxLabel);
+  const promoRetailVatBasisLabel = taxBasisLabel(promoRetailVatBasis, taxLabel);
+  const taxLabelDisplay = taxLabelText(taxLabel);
+  const retailerVatSummary = `Retail selling price before promotion entered: ${money2.format(result.retailBaseEntered)} (${retailerVatBasisLabel}); excluding-tax value used: ${money2.format(result.retailBaseExTax)}. Promotional retail selling price entered: ${money2.format(result.retailerSellOutEntered)} (${promoRetailVatBasisLabel}); ${taxLabelDisplay} rate: ${safePercent(result.promoVatRateValue)}; excluding-tax value used for retailer margin: ${money2.format(result.retailerSellOutExVat)}. Currency is for formatting only. This tool does not convert exchange rates.`;
   const supportInputReady = supportMethod === "soa" ? hasValues([soa]) : hasValues([promoInvoicePrice]);
   const hasInvoiceInputs = hasValues([baselineUnits, promoUnits, retailerBuyPrice]) && supportInputReady;
   const hasProfitInputs = hasInvoiceInputs && hasValues([cogs]);
   const hasRetailerInputs =
-    hasInvoiceInputs && hasValues([srp, promoSrp, retailerMarginRequirement, vatRate]);
+    hasInvoiceInputs && hasValues([srp, promoSrp, retailerMarginRequirement, vatRate, promoRetailVatRate]);
   const activeTabReady =
     activeTab === "promo"
       ? hasInvoiceInputs
@@ -1156,8 +1290,10 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     { label: "Promo SRP", value: promoSrp },
     { label: "COGS", value: cogs },
     { label: "Fixed support", value: fixedCost || "0" },
-    { label: "Retail price tax basis", value: retailerVatBasisLabel },
-    { label: "Sales tax / VAT / IVA rate", value: vatRate },
+    { label: "Current retail tax basis", value: retailerVatBasisLabel },
+    { label: `Current retail ${taxLabelDisplay} rate`, value: vatRate },
+    { label: "Promo retail tax basis", value: promoRetailVatBasisLabel },
+    { label: `Promo retail ${taxLabelDisplay} rate`, value: promoRetailVatRate },
   ];
   const dealOutputsForCsv: Record<DealTab, CsvRow[]> = {
     promo: [
@@ -1222,10 +1358,10 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
           }}
           currencyCode={currencyCode}
           setCurrencyCode={setCurrencyCode}
-          vatBasis={retailerVatBasis}
-          setVatBasis={setRetailerVatBasis}
           vatRate={vatRate}
           setVatRate={setVatRate}
+          taxLabel={taxLabel}
+          setTaxLabel={setTaxLabel}
         />
         <section className="input-section" aria-label="Promotion and price inputs">
           <div className="input-section-header">
@@ -1315,10 +1451,34 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
               <NumericInput label="Fixed supplier support" help="Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding." placeholder="e.g. 2,500" required={false} value={fixedCost} onChange={setFixedCost} />
             ) : null}
             {dealMode === "retailer" || dealMode === "invoice" ? (
-              <NumericInput label="Retail selling price before promotion" help="The normal shopper/end-customer price. Uses the tax setting above." placeholder="e.g. 2.50" required={dealMode === "retailer"} value={srp} onChange={setSrp} />
+              <RetailPriceInput
+                label="Retail selling price before promotion"
+                helpText="The normal consumer selling price. Margin estimates use the excluding-tax value."
+                placeholder="e.g. 2.50"
+                required={dealMode === "retailer"}
+                value={srp}
+                onValueChange={setSrp}
+                taxBasis={retailerVatBasis}
+                onTaxBasisChange={setRetailerVatBasis}
+                taxRate={vatRate}
+                onTaxRateChange={setVatRate}
+                taxLabel={taxLabel}
+              />
             ) : null}
             {dealMode === "retailer" || dealMode === "invoice" ? (
-              <NumericInput label="Promotional retail selling price" help="The promotional shopper/end-customer price. Uses the tax setting above. Pricing is at the sole discretion of the retailer." placeholder="e.g. 2.00" required={dealMode === "retailer"} value={promoSrp} onChange={setPromoSrp} />
+              <RetailPriceInput
+                label="Promotional retail selling price"
+                helpText="The promotional consumer selling price. Margin estimates use the excluding-tax value."
+                placeholder="e.g. 2.00"
+                required={dealMode === "retailer"}
+                value={promoSrp}
+                onValueChange={setPromoSrp}
+                taxBasis={promoRetailVatBasis}
+                onTaxBasisChange={setPromoRetailVatBasis}
+                taxRate={promoRetailVatRate}
+                onTaxRateChange={setPromoRetailVatRate}
+                taxLabel={taxLabel}
+              />
             ) : null}
             {dealMode === "retailer" ? (
               <NumericInput label="Retailer margin target %" help="Target retailer/customer margin for a quick sense-check." placeholder="e.g. 25" value={retailerMarginRequirement} onChange={setRetailerMarginRequirement} />
@@ -1387,7 +1547,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             </div>
           </div>
           <RetailerPricingCaveat />
-          {activeTab === "margin" || hasValues([srp, promoSrp, vatRate]) ? (
+          {activeTab === "margin" || hasValues([srp, promoSrp, vatRate, promoRetailVatRate]) ? (
             <p className="vat-note">{retailerVatSummary}</p>
           ) : null}
           <p className="tab-summary">{tabSummaries[activeTab]}</p>
@@ -1438,9 +1598,11 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                   items={[
                     { label: "Promotional retail selling price entered", value: money2.format(result.retailerSellOutEntered) },
                     { label: "Retail selling price before promotion entered", value: money2.format(result.retailBaseEntered) },
-                    { label: "Retail price tax basis", value: retailerVatBasisLabel },
-                    { label: "Sales tax / VAT / IVA rate", value: safePercent(result.vatRateValue) },
+                    { label: "Current retail tax basis", value: retailerVatBasisLabel },
+                    { label: `Current retail ${taxLabelDisplay} rate`, value: safePercent(result.vatRateValue) },
                     { label: "Retail selling price before promotion excluding tax", value: money2.format(result.retailBaseExTax) },
+                    { label: "Promo retail tax basis", value: promoRetailVatBasisLabel },
+                    { label: `Promo retail ${taxLabelDisplay} rate`, value: safePercent(result.promoVatRateValue) },
                     { label: "Promotional retail price excluding tax", value: money2.format(result.retailerSellOutExVat) },
                     { label: "Retailer gross sales excluding tax", value: currency.format(result.retailerGrossSales) },
                     { label: "Retailer invoice/buy value", value: currency.format(result.retailerCostOfGoods) },
@@ -1647,10 +1809,12 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   const storageId = only ?? "quick-commercial-calculators";
   const lastUsed = readLastUsedCalculatorValues(storageId);
   const savedDefaults = readCalculatorDefaults();
+  const toolDefaults = readToolDefaults();
   const [exampleMessage, setExampleMessage] = useState<{ id?: QuickCalculatorId; text: string }>({ text: "" });
-  const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? savedDefaults.currency);
-  const [quickRetailTaxBasis, setQuickRetailTaxBasis] = useState<VatBasis>((lastUsed.retailTaxBasis as VatBasis) ?? retailTaxBasisToVatBasis(savedDefaults.retailTaxBasis));
-  const [quickTaxRate, setQuickTaxRate] = useState(lastUsed.taxRate ?? String(savedDefaults.taxRate || ""));
+  const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? toolDefaults.currency ?? savedDefaults.currency);
+  const [taxLabel, setTaxLabel] = useState<TaxLabel>((lastUsed.taxLabel as TaxLabel) ?? toolDefaults.taxLabel ?? savedDefaults.taxLabel);
+  const [quickRetailTaxBasis, setQuickRetailTaxBasis] = useState<VatBasis>((lastUsed.retailTaxBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
+  const [quickTaxRate, setQuickTaxRate] = useState(lastUsed.taxRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
   const [soaInvoice, setSoaInvoice] = useState(lastUsed.soaInvoice ?? "");
   const [soaRetail, setSoaRetail] = useState(lastUsed.soaRetail ?? "");
   const [soaMargin, setSoaMargin] = useState(lastUsed.soaMargin ?? "");
@@ -1760,6 +1924,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     if (aptMode !== "free") return;
     writeLastUsedCalculatorValues(storageId, {
       currency: currencyCode,
+      taxLabel,
       retailTaxBasis: quickRetailTaxBasis,
       taxRate: quickTaxRate,
       soaInvoice,
@@ -1791,6 +1956,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     storageId,
     aptMode,
     currencyCode,
+    taxLabel,
     quickRetailTaxBasis,
     quickTaxRate,
     soaInvoice,
@@ -1829,6 +1995,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       setCurrencyCode("GBP");
       setQuickRetailTaxBasis("includes");
       setQuickTaxRate("20");
+      setTaxLabel("VAT");
     }
     if (id === "required-soa-calculator") {
       setSoaInvoice("10.00");
@@ -1884,8 +2051,9 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     [currencyCode],
   );
 
-  const quickTaxBasisLabel = taxBasisLabel(quickRetailTaxBasis);
-  const quickTaxSummary = `Retail price tax basis: ${quickTaxBasisLabel}. Sales tax / VAT / IVA rate: ${safePercent(rate(quickTaxRate))}.`;
+  const quickTaxBasisLabel = taxBasisLabel(quickRetailTaxBasis, taxLabel);
+  const quickTaxLabel = taxLabelText(taxLabel);
+  const quickTaxSummary = `Retail price tax basis: ${quickTaxBasisLabel}. ${quickTaxLabel} rate: ${safePercent(rate(quickTaxRate))}.`;
   const shouldShow = (id: QuickCalculatorId) => !only || only === id;
   const calculatorRequirements = getCalculatorRequirements(only);
   const hasQuickTax = hasValues([quickTaxRate]);
@@ -1912,10 +2080,10 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         requirements={calculatorRequirements}
         currencyCode={currencyCode}
         setCurrencyCode={setCurrencyCode}
-        vatBasis={quickRetailTaxBasis}
-        setVatBasis={setQuickRetailTaxBasis}
         vatRate={quickTaxRate}
         setVatRate={setQuickTaxRate}
+        taxLabel={taxLabel}
+        setTaxLabel={setTaxLabel}
       />
       {shouldShow("required-soa-calculator") ? (
       <QuickCalculatorCard
@@ -1931,13 +2099,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Promotional retail selling price", value: soaRetail },
           { label: "Target retailer margin %", value: soaMargin },
           { label: "Optional fixed supplier support", value: soaFixed || "0" },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
         summary={`Required SOA: ${money2.format(requiredSoa.support)} per unit. Promo invoice: ${money2.format(requiredSoa.promoInvoice)}. Entered promotional retail selling price: ${money2.format(requiredSoa.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(requiredSoa.retail.exVat)}. Pricing is at the sole discretion of the retailer. Currency is for formatting only; this tool does not convert exchange rates.`}
         results={[
           { label: "Entered retail price", value: money2.format(requiredSoa.retail.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(requiredSoa.retail.exVat) },
           { label: "Required retailer cost price", value: money2.format(requiredSoa.requiredCost) },
           { label: "Required SOA per unit", value: money2.format(requiredSoa.support), tone: requiredSoa.support >= 0 ? "neutral" : "bad" },
@@ -1947,7 +2115,17 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         ]}
       >
         <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={soaInvoice} onChange={setSoaInvoice} />
-        <NumericInput label="Promotional retail selling price" help="Promo price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={soaRetail} onChange={setSoaRetail} />
+        <RetailPriceInput
+          label="Promotional retail selling price"
+          value={soaRetail}
+          onValueChange={setSoaRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.00"
+        />
         <NumericInput label="Target retailer margin %" help="Retailer/customer target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={soaMargin} onChange={setSoaMargin} />
         <NumericInput label="Optional fixed supplier support" help="Fixed support to remember separately. Not included in per-unit SOA." placeholder="e.g. 0" required={false} value={soaFixed} onChange={setSoaFixed} />
       </QuickCalculatorCard>
@@ -1965,13 +2143,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Currency", value: currencyCode },
           { label: "Retailer invoice/buy price", value: rspInvoice },
           { label: "Target retailer margin %", value: rspMargin },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
-        summary={`Estimated retail/sale price excluding sales tax / VAT / IVA: ${money2.format(retailFromInvoice.exVat)}. Estimated retail/sale price including sales tax / VAT / IVA: ${money2.format(retailFromInvoice.incVat)}. Margin: ${safePercent(retailFromInvoice.margin)}. Pricing is at the sole discretion of the retailer.`}
+        summary={`Estimated retail/sale price excluding ${quickTaxLabel}: ${money2.format(retailFromInvoice.exVat)}. Estimated retail/sale price including ${quickTaxLabel}: ${money2.format(retailFromInvoice.incVat)}. Margin: ${safePercent(retailFromInvoice.margin)}. Pricing is at the sole discretion of the retailer.`}
         results={[
-          { label: "Estimated retail/sale price excluding sales tax / VAT / IVA", value: money2.format(retailFromInvoice.exVat) },
-          { label: "Estimated retail/sale price including sales tax / VAT / IVA", value: money2.format(retailFromInvoice.incVat) },
-          { label: "Sales tax / VAT / IVA rate", value: safePercent(rate(quickTaxRate)) },
+          { label: `Estimated retail/sale price excluding ${quickTaxLabel}`, value: money2.format(retailFromInvoice.exVat) },
+          { label: `Estimated retail/sale price including ${quickTaxLabel}`, value: money2.format(retailFromInvoice.incVat) },
+          { label: `${quickTaxLabel} rate`, value: safePercent(rate(quickTaxRate)) },
           { label: "Cash margin per unit", value: money2.format(retailFromInvoice.cashMargin) },
           { label: "Margin %", value: safePercent(retailFromInvoice.margin) },
         ]}
@@ -1998,13 +2176,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Promotional retail selling price", value: actualRetail },
           { label: "Fixed support", value: actualFixed || "0" },
           { label: "Units", value: actualUnits || "0" },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
         summary={`Retailer margin: ${safePercent(actualMargin.margin)}. Effective retailer cost: ${money2.format(actualMargin.effectiveCost)}. Retailer cash margin/unit: ${money2.format(actualMargin.cashMargin)}. Entered promotional retail selling price: ${money2.format(actualMargin.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(actualMargin.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Entered retail price", value: money2.format(actualMargin.retail.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(actualMargin.retail.exVat) },
           { label: "Effective retailer cost price", value: money2.format(actualMargin.effectiveCost) },
           { label: "Retailer cash margin per unit", value: money2.format(actualMargin.cashMargin), tone: actualMargin.cashMargin >= 0 ? "good" : "bad" },
@@ -2017,7 +2195,17 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         <SelectInput label="Support input mode" help="Use SOA per unit or enter the final promo invoice price." value={actualMode} onChange={setActualMode} options={[{ label: "SOA / supplier support", value: "soa" }, { label: "Promo invoice price", value: "promoInvoice" }]} />
         <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" required={actualMode === "soa"} value={actualSupport} onChange={setActualSupport} />
         <NumericInput label="Promo invoice price" help="Effective invoice/buy price during the promotion." placeholder="e.g. 1.40" required={actualMode === "promoInvoice"} value={actualPromoInvoice} onChange={setActualPromoInvoice} />
-        <NumericInput label="Promotional retail selling price" help="Promo price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={actualRetail} onChange={setActualRetail} />
+        <RetailPriceInput
+          label="Promotional retail selling price"
+          value={actualRetail}
+          onValueChange={setActualRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.00"
+        />
         <NumericInput label="Fixed support" help="Optional fixed supplier support." placeholder="e.g. 0" required={false} value={actualFixed} onChange={setActualFixed} />
         <NumericInput label="Units" help="Optional units for total profit/support." placeholder="e.g. 10,000" required={false} value={actualUnits} onChange={setActualUnits} step="1" />
       </QuickCalculatorCard>
@@ -2035,19 +2223,29 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Currency", value: currencyCode },
           { label: "Retail selling price", value: invoiceRetail },
           { label: "Target retailer margin %", value: invoiceMargin },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
         summary={`Implied retailer invoice/buy price: ${money2.format(impliedInvoice.invoice)}. Entered retail selling price: ${money2.format(impliedInvoice.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(impliedInvoice.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Entered retail price", value: money2.format(impliedInvoice.retail.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(impliedInvoice.retail.exVat) },
           { label: "Implied retailer invoice/buy price", value: money2.format(impliedInvoice.invoice) },
           { label: "Retailer cash margin per unit", value: money2.format(impliedInvoice.cashMargin) },
         ]}
       >
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={invoiceRetail} onChange={setInvoiceRetail} />
+        <RetailPriceInput
+          label="Retail selling price"
+          value={invoiceRetail}
+          onValueChange={setInvoiceRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.00"
+        />
         <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail price." placeholder="e.g. 25" value={invoiceMargin} onChange={setInvoiceMargin} />
       </QuickCalculatorCard>
       ) : null}
@@ -2065,13 +2263,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "SOA / supplier support per unit", value: supportValue },
           { label: "Retailer invoice/buy price", value: supportInvoice },
           { label: "Retail selling price", value: supportRetail },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
         summary={`SOA as % of invoice: ${safePercent(supportPercent.invoiceRate)}. SOA as % of retail price excluding tax: ${safePercent(supportPercent.exVatRate)}. Entered retail selling price: ${money2.format(supportPercent.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(supportPercent.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Entered retail price", value: money2.format(supportPercent.retail.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(supportPercent.retail.exVat) },
           { label: "SOA as % of invoice price", value: safePercent(supportPercent.invoiceRate) },
           { label: "SOA as % of retail price excluding tax", value: safePercent(supportPercent.exVatRate) },
@@ -2080,7 +2278,17 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       >
         <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" value={supportValue} onChange={setSupportValue} />
         <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={supportInvoice} onChange={setSupportInvoice} />
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={supportRetail} onChange={setSupportRetail} />
+        <RetailPriceInput
+          label="Retail selling price"
+          value={supportRetail}
+          onValueChange={setSupportRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.00"
+        />
       </QuickCalculatorCard>
       ) : null}
 
@@ -2122,19 +2330,29 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Retail selling price", value: converterPrice },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
-        summary={`Entered retail selling price: ${money2.format(convertedVat.entered)}. ${quickTaxSummary} Retail price excluding tax: ${money2.format(convertedVat.exVat)}. Sales tax / VAT / IVA amount: ${money2.format(convertedVat.vatAmount)}. Retail price including tax: ${money2.format(convertedVat.incVat)}. Pricing is at the sole discretion of the retailer.`}
+        summary={`Entered retail selling price: ${money2.format(convertedVat.entered)}. ${quickTaxSummary} Retail price excluding tax: ${money2.format(convertedVat.exVat)}. ${quickTaxLabel} amount: ${money2.format(convertedVat.vatAmount)}. Retail price including tax: ${money2.format(convertedVat.incVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Entered retail price", value: money2.format(convertedVat.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(convertedVat.exVat) },
-          { label: "Sales tax / VAT / IVA amount", value: money2.format(convertedVat.vatAmount) },
+          { label: `${quickTaxLabel} amount`, value: money2.format(convertedVat.vatAmount) },
           { label: "Retail price including tax", value: money2.format(convertedVat.incVat) },
         ]}
       >
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.00" value={converterPrice} onChange={setConverterPrice} />
+        <RetailPriceInput
+          label="Retail selling price"
+          value={converterPrice}
+          onValueChange={setConverterPrice}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.00"
+        />
       </QuickCalculatorCard>
       ) : null}
 
@@ -2150,13 +2368,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Currency", value: currencyCode },
           { label: "Cost / invoice price", value: markupCost },
           { label: "Retail selling price", value: markupRetail },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
-          { label: "Sales tax / VAT / IVA rate", value: quickTaxRate },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
+          { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
         summary={`Cash profit: ${money2.format(markup.profit)}. Margin: ${safePercent(markup.margin)}. Markup: ${safePercent(markup.markup)}. Entered retail selling price: ${money2.format(markup.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(markup.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: "Entered retail price", value: money2.format(markup.retail.entered) },
-          { label: "Retail price tax basis", value: quickTaxBasisLabel },
+          { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(markup.retail.exVat) },
           { label: "Cash profit", value: money2.format(markup.profit), tone: markup.profit >= 0 ? "good" : "bad" },
           { label: "Margin %", value: safePercent(markup.margin), tone: markup.margin >= 0 ? "good" : "bad" },
@@ -2165,7 +2383,17 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         explanation={<p className="tab-summary">Margin is profit as a percentage of retail selling price excluding tax. Markup is profit as a percentage of cost.</p>}
       >
         <NumericInput label="Cost / invoice price" help="Cost or invoice/buy price used as the base." placeholder="e.g. 1.75" value={markupCost} onChange={setMarkupCost} />
-        <NumericInput label="Retail selling price" help="Price paid by the shopper/end customer. Uses the tax setting above." placeholder="e.g. 2.50" value={markupRetail} onChange={setMarkupRetail} />
+        <RetailPriceInput
+          label="Retail selling price"
+          value={markupRetail}
+          onValueChange={setMarkupRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={taxLabel}
+          placeholder="e.g. 2.50"
+        />
       </QuickCalculatorCard>
       ) : null}
     </div>

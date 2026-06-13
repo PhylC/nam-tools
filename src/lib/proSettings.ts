@@ -37,7 +37,7 @@ export type PresentationTemplateMeta = {
 export const defaultCalculatorDefaults: CalculatorDefaults = {
   currency: "GBP",
   market: "UK",
-  retailTaxBasis: "includes_tax",
+  retailTaxBasis: "excludes_tax",
   taxRate: 20,
   taxLabel: "VAT",
   cogsBehaviour: "ask_when_needed",
@@ -52,7 +52,7 @@ export const defaultExportDefaults: ExportDefaults = {
   companyLogoStoragePath: null,
   defaultExportFormat: "powerpoint",
   disclaimer:
-    "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided.",
+    "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided and should be checked against your own internal process.",
 };
 
 function readLocalObject<T>(key: string, fallback: T): T {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
+import { Hero, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
   title: "Pricing | Free vs APT Pro",
@@ -13,7 +13,6 @@ const plans = [
     name: "Free",
     price: "£0",
     detail: "Best for quick checks.",
-    status: "Live now",
     features: [
       "Single-product, single-scenario checks",
       "Core calculators",
@@ -30,7 +29,6 @@ const plans = [
     name: "APT Pro",
     price: "£19/month",
     detail: "Best for regular commercial planning.",
-    status: "Pro",
     features: [
       "Save scenarios and reopen them later",
       "Compare different versions of a deal",
@@ -46,8 +44,7 @@ const plans = [
   {
     name: "Team",
     price: "Custom",
-    detail: "For teams that need shared planning standards.",
-    status: "Coming soon",
+    detail: "For teams that need shared planning standards, templates or scenario workflows.",
     features: [
       "Shared customer plans",
       "Team scenario libraries",
@@ -84,14 +81,6 @@ export default function PricingPage() {
           to save, compare and export commercial scenarios regularly.
         </p>
       </Hero>
-      <section className="shell visual-section">
-        <PlaceholderImage
-          aspectRatio="16 / 9"
-          description="Pro planning view with saved scenarios and exports."
-          filename="/images/pricing-pro-workflow.svg"
-          title="Pro planning and export"
-        />
-      </section>
       <section className="shell section">
         <SectionHeader eyebrow="Plans" title="Useful for quick checks. Stronger for repeat work.">
           <p>
@@ -103,7 +92,6 @@ export default function PricingPage() {
         <div className="grid">
           {plans.map((plan) => (
             <article className="card pricing-card" key={plan.name}>
-              <span className="pill">{plan.status}</span>
               <h2>{plan.name}</h2>
               <div className="price">{plan.price}</div>
               <p>{plan.detail}</p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Hero, PlaceholderImage, SectionHeader, ToolCard } from "./components/Shell";
+import { Hero, ProductVisual, SectionHeader, ToolCard } from "./components/Shell";
 import { getTool, tools } from "./data/tools";
 
 export const metadata: Metadata = {
@@ -56,6 +56,14 @@ export default function Home() {
       <Hero
         eyebrow="Account Planning Tools"
         title="Commercial planning tools for account managers"
+        visual={
+          <ProductVisual
+            aspectRatio="3 / 2"
+            description="APT calculator dashboard showing inputs, result summary and export options."
+            filename="/images/hero-commercial-dashboard.svg"
+            title="Commercial dashboard"
+          />
+        }
         actions={
           <>
             <Link className="button" href="/calculators">
@@ -74,15 +82,6 @@ export default function Home() {
         </p>
         <p>APT helps you move faster when the question is simple but the spreadsheet never is.</p>
       </Hero>
-
-      <section className="shell visual-section hero-visual">
-        <PlaceholderImage
-          aspectRatio="3 / 2"
-          description="Dashboard and calculator workspace visual."
-          filename="/images/hero-commercial-dashboard.svg"
-          title="Commercial dashboard"
-        />
-      </section>
 
       <section className="shell trust-strip" aria-label="Account Planning Tools highlights">
         <span>Built for retail suppliers</span>
@@ -242,7 +241,7 @@ export default function Home() {
           <Link className="text-link" href="/pricing">
             See pricing
           </Link>
-          <PlaceholderImage
+          <ProductVisual
             aspectRatio="16 / 10"
             description="Pro planning view showing saved scenarios and exports."
             filename="/images/pricing-pro-workflow.svg"

@@ -9,6 +9,7 @@ const mobileLinks = [
   { href: "/calculators", label: "Calculators", match: ["/calculators"] },
   { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates", "/tools/buyer-meeting-prep", "/tools/customer-review-template", "/tools/joint-business-plan-builder"] },
   { href: "/pricing", label: "Pricing", match: ["/pricing"] },
+  { href: "/settings", label: "Settings", match: ["/settings"] },
 ];
 
 function currentLabel(pathname: string) {
@@ -19,6 +20,7 @@ function currentLabel(pathname: string) {
   if (pathname.startsWith("/tools/joint-business-plan-builder")) return "Presentations";
   if (pathname.startsWith("/templates")) return "Presentations";
   if (pathname.startsWith("/pricing")) return "Pricing";
+  if (pathname.startsWith("/settings")) return "Settings";
   if (pathname.startsWith("/about")) return "About";
   if (pathname.startsWith("/calculators")) return "Calculators";
   return "Menu";

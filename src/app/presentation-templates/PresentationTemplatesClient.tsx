@@ -379,7 +379,7 @@ export function PresentationTemplatesFree() {
               </div>
               {aptMode === "pro" ? null : (
                 <p className="template-pro-note">
-                  Pro: build a custom version from your data and meeting brief.
+                  Pro: build a custom deck from your data and meeting brief.
                 </p>
               )}
             </article>

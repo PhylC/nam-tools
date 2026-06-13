@@ -16,6 +16,7 @@ const footerResourceLinks = [
 
 const footerSiteLinks = [
   { href: "/pricing", label: "Pricing" },
+  { href: "/settings", label: "Settings" },
   { href: "/tools", label: "All resources" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Use" },
@@ -41,6 +42,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <Link href="/calculators">Calculators</Link>
             <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
+            <Link href="/settings">Settings</Link>
           </nav>
           <PlanModeToggle />
           <MobileNav />
@@ -148,7 +150,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   );
 }
 
-export function ProPlaceholder() {
+export function ProPanel() {
   return (
     <aside className="card pro-card">
       <span className="pill">Pro</span>
@@ -164,7 +166,7 @@ export function ProPlaceholder() {
   );
 }
 
-export function PlaceholderImage({
+export function ProductVisual({
   filename,
   title,
   description,
@@ -179,7 +181,6 @@ export function PlaceholderImage({
     <figure className="product-image-card" style={{ aspectRatio }}>
       <img alt={`${title}: ${description}`} src={filename} />
       <figcaption>
-        <span className="pill">Product visual</span>
         <strong>{title}</strong>
         <small>{description}</small>
       </figcaption>
@@ -209,16 +210,6 @@ export function ToolPage({
       <Hero
         eyebrow={tool.category}
         title={tool.title}
-        visual={
-          tool.category === "Calculator" ? (
-            <PlaceholderImage
-              aspectRatio="16 / 9"
-              description="Excel-style scenario comparison and commercial dashboard visual."
-              filename="/images/commercial-deal-calculator.svg"
-              title="ROI scenario view"
-            />
-          ) : undefined
-        }
       >
         <p>{intro}</p>
       </Hero>
@@ -239,7 +230,7 @@ export function ToolPage({
           </article>
         </div>
         <div className="tool-side">
-          <ProPlaceholder />
+          <ProPanel />
           <article className="card related-card">
             <h2>Related tools</h2>
             <div className="related-links">
@@ -274,10 +265,10 @@ export function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="field">
+    <label className="field calc-field">
       <span>{label}</span>
       {children}
-      {help ? <small>{help}</small> : null}
+      {help ? <small className="calc-help">{help}</small> : null}
     </label>
   );
 }

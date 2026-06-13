@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
+import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { quickCalculators } from "../data/quickCalculators";
 
 export const metadata: Metadata = {
@@ -26,9 +26,9 @@ export default function CalculatorsPage() {
           </>
         }
         visual={
-          <PlaceholderImage
+          <ProductVisual
             aspectRatio="16 / 9"
-            description="Scenario comparison and calculator dashboard visual."
+            description="Calculator workspace showing ROI inputs and summary outputs."
             filename="/images/commercial-deal-calculator.svg"
             title="Free calculator workspace"
           />
@@ -36,7 +36,7 @@ export default function CalculatorsPage() {
       >
         <p>
           Use these when a retailer asks for support, a lower promo price or a
-          quick margin view and you need to understand whether the numbers still
+          quick margin read and you need to understand whether the numbers still
           make sense. Calculators are free to use.
         </p>
       </Hero>

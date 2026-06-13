@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, PlaceholderImage, SectionHeader } from "../components/Shell";
+import { Hero, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
   title: "About Account Planning Tools | APT",
@@ -16,14 +16,6 @@ export default function AboutPage() {
           Account Planning Tools exists because commercial planning is still too messy.
         </p>
       </Hero>
-      <section className="shell visual-section">
-        <PlaceholderImage
-          aspectRatio="16 / 9"
-          description="Commercial planning and account review workspace visual."
-          filename="/images/about-commercial-planning-workspace.svg"
-          title="Commercial planning workspace"
-        />
-      </section>
       <section className="shell section">
         <article className="card legal-copy">
           <p>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, PlaceholderImage, SectionHeader, ToolCard } from "../components/Shell";
+import { Hero, SectionHeader, ToolCard } from "../components/Shell";
 import { getTool, tools } from "../data/tools";
 
 export const metadata: Metadata = {
@@ -33,14 +33,6 @@ export default function ToolsPage() {
           commercial calculation, or create a buyer-ready presentation.
         </p>
       </Hero>
-      <section className="shell visual-section">
-        <PlaceholderImage
-          aspectRatio="16 / 9"
-          description="Commercial planning resources and workflow cards overview."
-          filename="/images/tools-grid.svg"
-          title="Resources overview"
-        />
-      </section>
       <section className="shell section">
         <article className="card split-band">
           <div>
