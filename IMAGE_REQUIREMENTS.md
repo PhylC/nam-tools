@@ -49,6 +49,8 @@ This backlog keeps image usage focused. Every image should explain the product, 
 | `apt-template-category-opportunity-preview.webp` | Presentation templates | Final Category Opportunity deck preview. |
 
 ## Usage rules
+- Homepage visuals should support tool choice and workflow explanation. Do not add extra decorative images above calculator forms.
+- Homepage visual usage: `apt-homepage-hero-dashboard.webp` is used in the hero, APT SVG icons are used in the tool chooser and workflow cards, `apt-pro-workflow-visual.webp` is used in the Pro workflow section, and `apt-custom-deck-builder-preview.webp` is used in the presentation/custom deck section.
 - Large mockups should be used sparingly and never placed above calculator inputs.
 - Live calculator pages should prioritize title, defaults, inputs and results; use large mockups only in marketing/help/pro explanation sections.
 - Large WebP mockups are for workflow explanation only. Do not make template cards image-led.

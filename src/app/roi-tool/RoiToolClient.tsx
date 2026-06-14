@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
@@ -1076,7 +1077,7 @@ function SavedRoiPlansPanel({
   );
 }
 
-function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
+function FreeProPrompt() {
   return (
     <article className="card pro-upgrade-panel">
       <div>
@@ -1086,13 +1087,12 @@ function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
           save plans and export the results.
         </p>
       </div>
-      <button className="button" onClick={onSwitchToPro} type="button">Switch to Pro</button>
+      <Link className="button" href="/pricing">Switch to Pro</Link>
     </article>
   );
 }
 
 export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
-  const { setAptMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const isPro = getUserPlan(mode, null, isAuthenticated) === "pro";
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
@@ -1594,7 +1594,7 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
           )}
         </button>
 
-        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt onSwitchToPro={() => setAptMode("pro")} />}
+        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt />}
         {isPro ? <p className="planning-disclaimer">Save your work and return to it later.</p> : null}
       </article>
     </section>

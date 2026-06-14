@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
+import { Hero, SectionHeader } from "../components/Shell";
 import { quickCalculators } from "../data/quickCalculators";
 
 function iconForCalculator(group: string) {
@@ -24,67 +24,45 @@ export default function CalculatorsPage() {
             <Link className="button" href="/roi-tool">
               Open ROI tool
             </Link>
-            <Link className="button button-secondary" href="/calculators/quick-calculators">
-              Browse calculators
+            <Link className="hero-text-link" href="#quick-calculators">
+              See quick calculators
             </Link>
           </>
         }
-        visual={
-          <ProductVisual
-            aspectRatio="16 / 9"
-            alt="APT ROI planner showing product lines and scenario summary"
-            description="Clean ROI planner view with product lines and scenario summary."
-            filename="/images/apt/apt-roi-planner-clean-preview.webp"
-            title="ROI planner preview"
-          />
-        }
       >
         <p>
-          Use these when a retailer asks for support, a lower promo price or a
-          quick margin read and you need to understand whether the numbers still
-          make sense. Calculators are free to use.
+          Choose the full ROI planner when you need a deal view, or use quick
+          calculators when you only need one answer on margin, SOA, retail price
+          or tax. Calculators are free to use.
         </p>
       </Hero>
 
       <section className="shell section">
-        <SectionHeader eyebrow="Main calculator" title="One calculator for the full ROI picture.">
+        <SectionHeader title="Start with the full ROI planner">
           <p>
-            Use the ROI tool when a buyer asks for more funding, a lower promo
-            price or a different mechanic and you need a quick read before the
-            conversation moves on.
+            Use this when you need a fuller view of a promotion or deal:
+            product lines, support, revenue, profit and scenario summary.
           </p>
         </SectionHeader>
-        <div className="grid">
+        <div className="grid grid-featured-single">
           <article className="card tool-card">
             <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-promo-roi.svg" />
             <h3>ROI Tool</h3>
             <p>
-              Model one SKU in Free, or use APT Pro for multi-line promotions,
-              scenario comparison and export-ready summaries.
+              Model one SKU for free, or use APT Pro for multi-line promotions,
+              saved scenarios and exports.
             </p>
             <Link className="text-link" href="/roi-tool">
               Open ROI tool
             </Link>
           </article>
-          <article className="card tool-card">
-            <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-support.svg" />
-            <h3>Calculators</h3>
-            <p>
-              Quick checks for SOA, retailer margin, invoice price, tax and
-              markup when you only have a few numbers.
-            </p>
-            <Link className="text-link" href="/calculators/quick-calculators">
-              Browse calculators
-            </Link>
-          </article>
         </div>
       </section>
 
-      <section className="shell section">
-        <SectionHeader eyebrow="Popular calculators" title="Fast answers from two to four numbers.">
+      <section className="shell section" id="quick-calculators">
+        <SectionHeader title="Quick calculators">
           <p>
-            Jump straight to the calculation you need, with short formula notes
-            and related checks nearby.
+            Use these when you need a fast answer from a few numbers.
           </p>
         </SectionHeader>
         <div className="grid">

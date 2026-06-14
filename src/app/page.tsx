@@ -11,14 +11,14 @@ export const metadata: Metadata = {
 const toolChoices = [
   {
     title: "Will this promotion pay back?",
-    description: "Use promo ROI when you need to compare support, volume and return.",
+    description: "Check whether extra volume offsets price investment and support.",
     href: "/roi-tool",
     cta: "Open Promo ROI",
     icon: "/images/apt/apt-icon-promo-roi.svg",
   },
   {
     title: "What does this do to margin?",
-    description: "Check invoice price, COGS, retail price and tax assumptions.",
+    description: "Estimate supplier and retailer margin using invoice, COGS and retail price.",
     href: "/tools/gross-margin-calculator",
     cta: "Open Margin Calculator",
     icon: "/images/apt/apt-icon-margin.svg",
@@ -32,41 +32,34 @@ const toolChoices = [
   },
   {
     title: "I need a meeting-ready summary",
-    description: "Use templates and exports to turn the numbers into a cleaner story.",
+    description: "Use templates and custom deck tools to turn the numbers into a clearer story.",
     href: "/presentation-templates",
     cta: "View Templates",
     icon: "/images/apt/apt-icon-export.svg",
   },
 ];
 
-const popularTools = [
+const popularWorkflows = [
   {
-    title: "Promo ROI calculator",
-    description: "Check whether extra volume offsets support and price investment.",
+    title: "Promo ROI",
+    description: "Model support, promo invoice price, volume and return.",
     href: "/tools/promotion-roi-calculator",
-    cta: "Open calculator",
+    cta: "Open Promo ROI",
     icon: "/images/apt/apt-icon-promo-roi.svg",
   },
   {
-    title: "Gross margin calculator",
-    description: "Estimate supplier and retailer margin using invoice, COGS and retail price.",
+    title: "Gross margin",
+    description: "Check how invoice price, COGS and retail price affect margin.",
     href: "/tools/gross-margin-calculator",
-    cta: "Open calculator",
+    cta: "Open Gross Margin",
     icon: "/images/apt/apt-icon-margin.svg",
   },
   {
     title: "ROI planner",
-    description: "Model one line for free, or compare multi-line scenarios with Pro.",
+    description: "Start with one product line for free, then use Pro for multi-line scenarios.",
     href: "/roi-tool",
-    cta: "Open planner",
+    cta: "Open ROI Planner",
     icon: "/images/apt/apt-icon-scenario-compare.svg",
-  },
-  {
-    title: "Presentation templates",
-    description: "Download editable PowerPoint templates for account planning and reviews.",
-    href: "/presentation-templates",
-    cta: "View templates",
-    icon: "/images/apt/apt-icon-export.svg",
   },
 ];
 
@@ -74,41 +67,30 @@ const freeFeatures = [
   "Single product",
   "Single scenario",
   "Basic result summary",
-  "Copy summary",
   "CSV download",
+  "Calculator defaults with a free account",
 ];
 
 const proFeatures = [
-  "Save and compare scenarios",
-  "Multi-product planning",
-  "Account-level defaults",
+  "Save analyses and scenarios",
+  "Compare deal versions",
+  "Workspace for saved work",
   "PowerPoint and Excel exports",
-  "Company logo, disclaimer and presentation template",
+  "Company templates and export settings",
 ];
 
-const templateLinks = [
-  {
-    title: "JBP",
-    href: "/presentation-templates",
-    description: "Annual customer planning, growth pillars and investment alignment.",
-  },
-  {
-    title: "QBR",
-    href: "/presentation-templates",
-    description: "Performance, risks, actions and next-quarter priorities.",
-  },
-  {
-    title: "Promotional Proposal",
-    href: "/presentation-templates",
-    description: "Promotion mechanic, support ask, ROI logic and retailer benefit.",
-  },
+const proWorkflowFeatures = [
+  "Save analyses and scenarios",
+  "Compare different deal versions",
+  "Use account-level defaults",
+  "Export cleaner outputs",
+  "Build custom decks from templates and briefs",
 ];
 
 export default function Home() {
   return (
-    <div className="page-stack">
+    <div className="page-stack home-page">
       <Hero
-        eyebrow="Account Planning Tools"
         title="Commercial planning tools for account managers"
         visual={
           <ProductVisual
@@ -142,15 +124,17 @@ export default function Home() {
         <p>APT helps when the question is simple but the spreadsheet never is.</p>
       </Hero>
 
-      <section className="section shell" id="tool-chooser">
+      <section className="section shell home-tool-chooser" id="tool-chooser">
         <SectionHeader title="What do you need to work out?">
-          <p>Start with the question you need to answer.</p>
+          <p>Start with the commercial question in front of you.</p>
         </SectionHeader>
-        <div className="grid">
+        <div className="home-tool-grid">
           {toolChoices.map((item) => (
-            <article className="card tool-card" key={item.title}>
-              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={item.icon} />
-              <h3>{item.title}</h3>
+            <article className="card tool-card home-tool-card" key={item.title}>
+              <div className="home-card-topline">
+                <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={item.icon} />
+                <h3>{item.title}</h3>
+              </div>
               <p>{item.description}</p>
               <Link className="text-link" href={item.href}>
                 {item.cta}
@@ -165,42 +149,98 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section shell">
-        <SectionHeader title="Popular tools" />
-        <div className="grid">
-          {popularTools.map((tool) => (
-            <article className="card tool-card" key={tool.title}>
-              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={tool.icon} />
-              <h3>{tool.title}</h3>
-              <p>{tool.description}</p>
-              <Link className="text-link" href={tool.href}>
-                {tool.cta}
+      <section className="section shell home-workflows">
+        <div className="home-section-heading-row">
+          <SectionHeader title="Popular workflows" />
+          <p>Jump into the checks account managers come back to most often.</p>
+        </div>
+        <div className="home-workflow-grid">
+          {popularWorkflows.map((workflow, index) => (
+            <article className="card home-workflow-card" key={workflow.title}>
+              <span className="home-workflow-number">{String(index + 1).padStart(2, "0")}</span>
+              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={workflow.icon} />
+              <h3>{workflow.title}</h3>
+              <p>{workflow.description}</p>
+              <Link className="text-link" href={workflow.href}>
+                {workflow.cta}
               </Link>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="section shell split-band">
-        <div>
-          <p className="eyebrow">Free and Pro</p>
-          <h2>Free for quick checks. Pro for repeat work.</h2>
-          <p className="section-lead">
-            Use Free when you need a single calculation. Use APT Pro when you
-            need to save scenarios, compare options, use defaults and export
-            cleaner outputs.
-          </p>
-          <div className="pro-workflow-home-visual">
-            <ProductVisual
-              alt="APT Pro workflow showing saved scenarios, comparison and export options"
-              description="Saved scenarios, comparison and export workflow."
-              filename="/images/apt/apt-pro-workflow-visual.webp"
-              title="APT Pro workflow"
-            />
+      <section className="section home-pro-band">
+        <div className="shell split-band home-pro-layout">
+          <div>
+            <h2>APT Pro is for repeat commercial planning</h2>
+            <p className="section-lead">
+              Save analyses, compare scenarios, keep your defaults and return to your work without rebuilding the
+              numbers every time.
+            </p>
+            <ul className="compact-list home-feature-list">
+              {proWorkflowFeatures.map((feature) => (
+                <li key={feature}>{feature}</li>
+              ))}
+            </ul>
+            <div className="hero-actions">
+              <Link className="button" href="/pricing">
+                Compare Free and Pro
+              </Link>
+              <Link className="button button-secondary" href="/workspace">
+                Open My workspace
+              </Link>
+            </div>
+          </div>
+          <ProductVisual
+            alt="APT Pro workflow showing saved scenarios, comparison and export options"
+            description="Saved scenarios, comparison and export workflow."
+            filename="/images/apt/apt-pro-workflow-visual.webp"
+            title="APT Pro workflow"
+          />
+        </div>
+      </section>
+
+      <section className="section shell home-output-section">
+        <div className="home-output-copy">
+          <SectionHeader title="Turn the numbers into a cleaner story">
+            <p>
+              Download editable PowerPoint templates or use the custom deck flow to shape a meeting-ready first draft
+              from your brief and supporting data.
+            </p>
+          </SectionHeader>
+          <div className="hero-actions">
+            <Link className="button" href="/presentation-templates">
+              View presentation templates
+            </Link>
+            <Link className="button button-secondary" href="/custom-deck">
+              Build custom deck
+            </Link>
           </div>
         </div>
+        <div className="home-output-visual">
+          <ProductVisual
+            alt="APT custom deck builder showing deck type, uploads and brief fields"
+            description="Deck type, template choice, supporting data and brief fields."
+            filename="/images/apt/apt-custom-deck-builder-preview.webp"
+            title="Custom deck workflow"
+          />
+        </div>
+      </section>
+
+      <section className="section shell home-free-pro-summary">
+        <div className="home-section-heading-row">
+          <SectionHeader title="Free for quick checks. Pro for repeat work.">
+            <p>
+              Use Free when you need a single calculation. Use APT Pro when the work needs saving, comparing and
+              sharing.
+            </p>
+          </SectionHeader>
+          <Link className="button button-secondary" href="/pricing">
+            Compare Free and Pro
+          </Link>
+        </div>
         <div className="free-pro-columns">
-          <article className="card mini-card">
+          <article className="card mini-card home-plan-card">
             <h3>Free</h3>
             <ul className="compact-list">
               {freeFeatures.map((feature) => (
@@ -208,7 +248,7 @@ export default function Home() {
               ))}
             </ul>
           </article>
-          <article className="card mini-card">
+          <article className="card mini-card home-plan-card home-plan-card-pro">
             <h3>APT Pro</h3>
             <ul className="compact-list">
               {proFeatures.map((feature) => (
@@ -216,43 +256,18 @@ export default function Home() {
               ))}
             </ul>
           </article>
-          <Link className="button" href="/pricing">
-            Compare Free and Pro
-          </Link>
-        </div>
-      </section>
-
-      <section className="section shell">
-        <SectionHeader title="Need a cleaner deck?">
-          <p>
-            APT includes editable templates for business plans, QBRs and
-            promotional proposals.
-          </p>
-        </SectionHeader>
-        <div className="home-template-grid">
-          {templateLinks.map((template) => (
-            <Link className="card home-template-card" href={template.href} key={template.title}>
-              <strong>{template.title}</strong>
-              <span>{template.description}</span>
-            </Link>
-          ))}
-        </div>
-        <div className="cta-row">
-          <Link className="button button-secondary" href="/presentation-templates">
-            View presentation templates
-          </Link>
         </div>
       </section>
 
       <section className="section shell final-cta">
         <h2>Start with the calculation in front of you.</h2>
-        <p>Pick a tool, enter the numbers you have, and get a cleaner view of the deal.</p>
+        <p>Pick a tool, enter the numbers you have, and get a clearer view of the deal.</p>
         <div className="hero-actions">
           <Link className="button" href="/calculators">
             Try free calculators
           </Link>
           <Link className="button button-secondary" href="/pricing">
-            Compare Free and Pro
+            See APT Pro
           </Link>
         </div>
       </section>

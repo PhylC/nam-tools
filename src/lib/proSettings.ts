@@ -4,7 +4,7 @@ export const CALCULATOR_DEFAULTS_KEY = "aptCalculatorDefaults";
 export const EXPORT_DEFAULTS_KEY = "aptExportDefaults";
 export const PRESENTATION_TEMPLATE_META_KEY = "aptPresentationTemplateMeta";
 export const PRESENTATION_TEMPLATES_KEY = "aptPresentationTemplates";
-export const PRESENTATION_TEMPLATE_LIMIT_BYTES = 10 * 1024 * 1024;
+export const PRESENTATION_TEMPLATE_LIMIT_BYTES = 20 * 1024 * 1024;
 export const PRESENTATION_TEMPLATE_LIBRARY_LIMIT = 3;
 
 export type RetailTaxBasisDefault = "includes_tax" | "excludes_tax";
@@ -25,7 +25,7 @@ export type ExportDefaults = {
   jobTitle: string;
   companyLogoFilename: string;
   companyLogoStoragePath?: string | null;
-  defaultExportFormat: "powerpoint" | "excel" | "pdf";
+  defaultExportFormat: "pptx" | "google_slides_compatible" | "keynote_compatible";
   disclaimer: string;
 };
 
@@ -66,7 +66,7 @@ export const defaultExportDefaults: ExportDefaults = {
   jobTitle: "",
   companyLogoFilename: "",
   companyLogoStoragePath: null,
-  defaultExportFormat: "powerpoint",
+  defaultExportFormat: "pptx",
   disclaimer:
     "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided and should be checked against your own internal process.",
 };
@@ -108,7 +108,17 @@ export function saveCalculatorDefaults(defaults: CalculatorDefaults) {
 
 export function readExportDefaults() {
   // TODO: Load authenticated Pro export defaults from Supabase profile storage before local fallback.
-  return readLocalObject(EXPORT_DEFAULTS_KEY, defaultExportDefaults);
+  const saved = readLocalObject(EXPORT_DEFAULTS_KEY, defaultExportDefaults);
+  const formatAliases: Record<string, ExportDefaults["defaultExportFormat"]> = {
+    powerpoint: "pptx",
+    pptx: "pptx",
+    google_slides_compatible: "google_slides_compatible",
+    keynote_compatible: "keynote_compatible",
+  };
+  return {
+    ...saved,
+    defaultExportFormat: formatAliases[saved.defaultExportFormat] ?? defaultExportDefaults.defaultExportFormat,
+  };
 }
 
 export function saveExportDefaults(defaults: ExportDefaults) {

@@ -124,7 +124,7 @@ function customDeckHref(template: FreeTemplate) {
 }
 
 export function PresentationTemplatesFree() {
-  const { aptMode, setAptMode } = useAptMode();
+  const { aptMode } = useAptMode();
   const { isAuthenticated } = useSupabaseAuth();
   const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
   const [outlineStatus, setOutlineStatus] = useState<{ slug: string; message: string } | null>(null);
@@ -146,16 +146,6 @@ export function PresentationTemplatesFree() {
       setManualOutline({ slug: template.slug, text: outline });
       setOutlineStatus({ slug: template.slug, message: "Copy this outline manually." });
     }
-  }
-
-  function switchToPro() {
-    setAptMode("pro");
-    window.setTimeout(() => {
-      document.getElementById("template-card-grid")?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }, 50);
   }
 
   return (
@@ -262,9 +252,9 @@ export function PresentationTemplatesFree() {
               <li>Save deck briefs and return to them later</li>
             </ul>
           </div>
-          <button className="button" onClick={() => switchToPro()} type="button">
+          <Link className="button" href="/pricing">
             Switch to Pro
-          </button>
+          </Link>
         </article>
       )}
     </section>

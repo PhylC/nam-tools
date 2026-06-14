@@ -41,8 +41,8 @@ const plans = [
       "Save your company logo, disclaimer and export preferences",
       "Cleaner exports for meetings and reviews",
     ],
-    href: "/settings",
-    cta: "Open Pro settings",
+    href: "/create-account",
+    cta: "Create account",
   },
   {
     name: "Team",
@@ -145,14 +145,14 @@ export default function PricingPage() {
         <article className="card comparison-cta">
           <div>
             <h3>Use Free for quick checks.</h3>
-            <p>Upgrade to APT Pro when you need to save, compare and export your work.</p>
+            <p>APT Pro checkout is being prepared. Create an account now, or contact us if you want Pro access.</p>
           </div>
           <div className="cta-row">
-            <Link className="button" href="/settings">
-              Start with APT Pro
+            <Link className="button" href="/create-account">
+              Create account
             </Link>
-            <Link className="button button-secondary" href="/calculators">
-              Try free calculators
+            <Link className="button button-secondary" href="/contact">
+              Request Pro access
             </Link>
           </div>
         </article>

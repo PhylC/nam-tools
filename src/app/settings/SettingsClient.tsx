@@ -35,15 +35,16 @@ const cogsOptions = [
   { label: "Hide unless I turn it on", value: "hide_unless_enabled" },
 ] as const;
 const exportFormats = [
-  { label: "PowerPoint", value: "powerpoint" },
-  { label: "Excel", value: "excel" },
-  { label: "PDF", value: "pdf" },
+  { label: "PowerPoint (.pptx)", value: "pptx" },
+  { label: "Google Slides compatible", value: "google_slides_compatible" },
+  { label: "Keynote compatible", value: "keynote_compatible" },
 ] as const;
+const templateLibraryExtensions = [".pptx", ".potx", ".key"];
 
 type Message = { tone: "success" | "error" | "info"; text: string } | null;
 
 export function SettingsClient() {
-  const { aptMode, setAptMode } = useAptMode();
+  const { aptMode } = useAptMode();
   const { user, isAuthenticated } = useSupabaseAuth();
   const [calculatorDefaults, setCalculatorDefaults] = useState<CalculatorDefaults>(() => readCalculatorDefaults());
   const [exportDefaults, setExportDefaults] = useState<ExportDefaults>(() => readExportDefaults());
@@ -98,8 +99,9 @@ export function SettingsClient() {
     event.target.value = "";
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith(".pptx") || file.size > PRESENTATION_TEMPLATE_LIMIT_BYTES) {
-      setMessage({ tone: "error", text: "Please upload a PowerPoint .pptx file under 10MB." });
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!templateLibraryExtensions.includes(extension) || file.size > PRESENTATION_TEMPLATE_LIMIT_BYTES) {
+      setMessage({ tone: "error", text: "Please upload a .pptx, .potx or .key file under 20MB." });
       return;
     }
 
@@ -119,7 +121,7 @@ export function SettingsClient() {
 
     const nextTemplate: SavedPresentationTemplate = {
       id: replaceId || (crypto.randomUUID ? crypto.randomUUID() : `template-${Date.now()}`),
-      displayName: file.name.replace(/\.pptx$/i, ""),
+      displayName: file.name.replace(/\.(pptx|potx|key)$/i, ""),
       filename: file.name,
       uploadedAt: new Date().toISOString(),
       size: file.size,
@@ -181,11 +183,6 @@ export function SettingsClient() {
     });
   }
 
-  function showProInfo() {
-    setAptMode("pro");
-    setMessage({ tone: "info", text: "APT Pro settings are now shown for review." });
-  }
-
   return (
     <section className="shell section">
       <div className="settings-layout">
@@ -217,9 +214,9 @@ export function SettingsClient() {
                 <h3>Your calculator defaults can be saved to your account.</h3>
                 <p>APT Pro adds export defaults, presentation templates and saved workspace features.</p>
               </div>
-              <button className="button button-small" onClick={showProInfo} type="button">
+              <Link className="button button-small" href="/pricing">
                 See APT Pro
-              </button>
+              </Link>
             </>
           )}
         </article>
@@ -414,11 +411,11 @@ export function SettingsClient() {
             <div className="locked-card settings-locked-card">
               <div>
                 <strong>Export defaults are included with APT Pro.</strong>
-                <span>Save your company details, logo, disclaimer and preferred export format for cleaner meeting outputs.</span>
+                <span>Save your company details, logo, disclaimer and preferred deck format for cleaner meeting outputs.</span>
               </div>
-              <button className="button button-secondary button-small" onClick={showProInfo} type="button">
+              <Link className="button button-secondary button-small" href="/pricing">
                 See APT Pro
-              </button>
+              </Link>
             </div>
           ) : (
             <fieldset className="settings-fieldset">
@@ -466,6 +463,7 @@ export function SettingsClient() {
                       </option>
                     ))}
                   </select>
+                  <small>Choose the default format you prefer for deck and export outputs.</small>
                 </label>
               </div>
               <label className="field">
@@ -487,7 +485,7 @@ export function SettingsClient() {
             </div>
           </div>
           <p>
-            Save your preferred PowerPoint formats so APT can use them for custom deck workflows.
+            Save your preferred PowerPoint formats so APT can use them for custom deck workflows. PowerPoint .pptx templates work best.
           </p>
           {!isPro ? (
             <div className="locked-card settings-locked-card">
@@ -495,9 +493,9 @@ export function SettingsClient() {
                 <strong>Presentation template libraries are included with APT Pro.</strong>
                 <span>APT Pro lets you save up to 3 PowerPoint templates and reuse them when building custom decks.</span>
               </div>
-              <button className="button button-secondary button-small" onClick={showProInfo} type="button">
+              <Link className="button button-secondary button-small" href="/pricing">
                 See APT Pro
-              </button>
+              </Link>
             </div>
           ) : (
             <div className="template-library-panel">
@@ -521,7 +519,7 @@ export function SettingsClient() {
                               Replace
                             </label>
                             <input
-                              accept=".pptx"
+                              accept=".pptx,.potx,.key"
                               className="visually-hidden"
                               id={inputId}
                               type="file"
@@ -544,13 +542,13 @@ export function SettingsClient() {
                         <>
                           <div>
                             <strong>Template slot available</strong>
-                            <small>.pptx only · maximum 10MB</small>
+                            <small>.pptx works best · .potx and .key accepted · maximum 20MB</small>
                           </div>
                           <label className="button button-secondary button-small" htmlFor={inputId}>
                             Upload template
                           </label>
                           <input
-                            accept=".pptx"
+                            accept=".pptx,.potx,.key"
                             className="visually-hidden"
                             id={inputId}
                             type="file"
@@ -566,7 +564,7 @@ export function SettingsClient() {
                 <p className="helper-note">You can save up to 3 templates. Remove or replace one to add another.</p>
               ) : null}
               <p className="helper-note">
-                Template file storage will be connected next. For now, upload a one-off template when building a deck.
+                Template details are saved on this device. PowerPoint files work best; Keynote files can be kept as template references.
               </p>
             </div>
           )}
