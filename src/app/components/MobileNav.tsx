@@ -14,21 +14,6 @@ const mobileLinks = [
   { href: "/settings", label: "Settings", match: ["/settings"] },
 ];
 
-function currentLabel(pathname: string) {
-  if (pathname.startsWith("/roi-tool")) return "ROI Tool";
-  if (pathname.startsWith("/presentation-templates")) return "Presentations";
-  if (pathname.startsWith("/tools/buyer-meeting-prep")) return "Presentations";
-  if (pathname.startsWith("/tools/customer-review-template")) return "Presentations";
-  if (pathname.startsWith("/tools/joint-business-plan-builder")) return "Presentations";
-  if (pathname.startsWith("/templates")) return "Presentations";
-  if (pathname.startsWith("/pricing")) return "Pricing";
-  if (pathname.startsWith("/workspace")) return "Workspace";
-  if (pathname.startsWith("/settings")) return "Settings";
-  if (pathname.startsWith("/about")) return "About";
-  if (pathname.startsWith("/calculators")) return "Calculators";
-  return "Menu";
-}
-
 export function MobileNav() {
   const pathname = usePathname();
   const panelId = useId();
@@ -56,17 +41,6 @@ export function MobileNav() {
         type="button"
       >
         Menu
-      </button>
-      <button
-        aria-controls={panelId}
-        aria-expanded={isOpen}
-        className="mobile-tool-nav"
-        onClick={toggleMenu}
-        type="button"
-      >
-        <span>Current tool</span>
-        <strong>{currentLabel(pathname)}</strong>
-        <span aria-hidden="true">▾</span>
       </button>
       <nav className={isOpen ? "mobile-nav-panel mobile-nav-panel-open" : "mobile-nav-panel"} id={panelId} aria-label="Mobile navigation">
         {mobileLinks.map((link) => (

@@ -22,7 +22,7 @@ The Promo ROI / ROI Tool planner uses a spreadsheet-style table on desktop and a
 
 ## Mobile Navigation Note
 
-Mobile navigation intentionally uses a compact menu and current-tool selector instead of the desktop nav pill row. This avoids horizontal overflow on small screens while keeping the Free / Pro plan toggle visible near the top of the page.
+Mobile navigation intentionally uses one compact Menu control instead of duplicating site navigation below the header. This avoids horizontal overflow on small screens while keeping the temporary Free / Pro plan toggle available for development when enabled.
 
 ## Primary Navigation Note
 

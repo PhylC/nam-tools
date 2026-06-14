@@ -86,24 +86,21 @@ const proFeatures = [
   "Company logo, disclaimer and presentation template",
 ];
 
-const templatePreviews = [
+const templateLinks = [
   {
     title: "JBP",
     href: "/presentation-templates",
-    src: "/images/apt/apt-template-jbp-preview.webp",
-    alt: "Preview of the APT Joint Business Plan PowerPoint template",
+    description: "Annual customer planning, growth pillars and investment alignment.",
   },
   {
     title: "QBR",
     href: "/presentation-templates",
-    src: "/images/apt/apt-template-qbr-preview.webp",
-    alt: "Preview of the APT Quarterly Business Review PowerPoint template",
+    description: "Performance, risks, actions and next-quarter priorities.",
   },
   {
     title: "Promotional Proposal",
     href: "/presentation-templates",
-    src: "/images/apt/apt-template-promo-proposal-preview.webp",
-    alt: "Preview of the APT Promotional Proposal PowerPoint template",
+    description: "Promotion mechanic, support ask, ROI logic and retailer benefit.",
   },
 ];
 
@@ -233,10 +230,10 @@ export default function Home() {
           </p>
         </SectionHeader>
         <div className="home-template-grid">
-          {templatePreviews.map((template) => (
+          {templateLinks.map((template) => (
             <Link className="card home-template-card" href={template.href} key={template.title}>
-              <img alt={template.alt} loading="lazy" src={template.src} />
               <strong>{template.title}</strong>
+              <span>{template.description}</span>
             </Link>
           ))}
         </div>

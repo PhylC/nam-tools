@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useAptMode } from "../components/AptMode";
+import { getUserPlan } from "../../lib/userPlan";
+import { readPresentationTemplates } from "../../lib/proSettings";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -17,7 +19,12 @@ const deckTypes = [
   { label: "Category Opportunity", value: "category-opportunity" },
 ];
 
-const allowedSupportingExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt"];
+const toneOptions = [
+  { label: "Concise and commercial", value: "concise_commercial" },
+  { label: "Detailed and analytical", value: "detailed_analytical" },
+  { label: "Executive and polished", value: "executive_polished" },
+];
+type TemplateSource = "saved" | "one_off" | "apt_default";
 
 function normaliseTemplate(value: string) {
   const aliases: Record<string, string> = {
@@ -56,19 +63,24 @@ function FileUploadField({
   return (
     <div className="file-upload-control">
       <span>{label}</span>
+      <div className="compact-file-row">
+        <label
+          className={disabled ? "button button-secondary button-small file-button file-button-disabled" : "button button-secondary button-small file-button"}
+          htmlFor={id}
+        >
+          Choose file
+        </label>
+        <input
+          accept={accept}
+          className="visually-hidden"
+          disabled={disabled}
+          id={id}
+          type="file"
+          onChange={(event) => onChange(event.target.files?.[0])}
+        />
+        <small className={error ? "field-error" : "selected-file"}>{error || filename || "No file selected"}</small>
+      </div>
       <p>{helper}</p>
-      <label className={disabled ? "button button-secondary button-small file-button file-button-disabled" : "button button-secondary button-small file-button"} htmlFor={id}>
-        Select file
-      </label>
-      <input
-        accept={accept}
-        className="visually-hidden"
-        disabled={disabled}
-        id={id}
-        type="file"
-        onChange={(event) => onChange(event.target.files?.[0])}
-      />
-      <small className={error ? "field-error" : "selected-file"}>{error || filename || "No file selected"}</small>
     </div>
   );
 }
@@ -79,47 +91,37 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
   );
-  const [templateFileName, setTemplateFileName] = useState("");
-  const [supportingFileName, setSupportingFileName] = useState("");
+  const [savedTemplates] = useState(() => readPresentationTemplates());
+  const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
+  const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
+  const [selectedSavedTemplateId, setSelectedSavedTemplateId] = useState(defaultSavedTemplate?.id ?? "");
+  const [oneOffTemplateFileName, setOneOffTemplateFileName] = useState("");
   const [templateError, setTemplateError] = useState("");
-  const [supportingError, setSupportingError] = useState("");
   const [brief, setBrief] = useState("");
   const [audience, setAudience] = useState("Retailer/customer meeting");
-  const [tone, setTone] = useState("Concise and commercial");
+  const [tone, setTone] = useState("concise_commercial");
   const [financialSummary, setFinancialSummary] = useState("Yes");
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
-  const isPro = aptMode === "pro";
+  const isPro = getUserPlan(aptMode) === "pro";
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],
   );
 
-  function validateTemplateFile(file: File | undefined) {
+  function validateOneOffTemplateFile(file: File | undefined) {
     setTemplateError("");
     if (!file) return;
     if (fileExtension(file.name) !== ".pptx") {
-      setTemplateFileName("");
+      setOneOffTemplateFileName("");
       setTemplateError("Please upload a PowerPoint .pptx file.");
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setTemplateFileName("");
-      setTemplateError("Please upload a supported file under 10MB.");
+      setOneOffTemplateFileName("");
+      setTemplateError("Please upload a PowerPoint .pptx file under 10MB.");
       return;
     }
-    setTemplateFileName(file.name);
-  }
-
-  function validateSupportingFile(file: File | undefined) {
-    setSupportingError("");
-    if (!file) return;
-    const extension = fileExtension(file.name);
-    if (!allowedSupportingExtensions.includes(extension) || file.size > MAX_FILE_BYTES) {
-      setSupportingFileName("");
-      setSupportingError("Please upload a supported file under 10MB.");
-      return;
-    }
-    setSupportingFileName(file.name);
+    setOneOffTemplateFileName(file.name);
   }
 
   function preventSubmit(event: FormEvent<HTMLFormElement>) {
@@ -152,10 +154,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
 
           <fieldset className="settings-fieldset" disabled={!isPro}>
             <section className="custom-deck-form-section">
-              <div>
-                <p className="eyebrow">Choose deck type</p>
-                <h2>Deck setup</h2>
-              </div>
+              <h2>Deck setup</h2>
               <label className="field">
                 <span>Deck type</span>
                 <select value={deckType} onChange={(event) => setDeckType(event.target.value)}>
@@ -170,43 +169,126 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
             </section>
 
             <section className="custom-deck-form-section">
-              <div>
-                <p className="eyebrow">Upload files</p>
-                <h2>Files to follow</h2>
+              <h2>Deck template</h2>
+              <p className="helper-note">Use a saved template, upload a one-off .pptx file or start from the APT default layout.</p>
+              <div className="template-source-group" role="radiogroup" aria-label="Template source">
+                <label className="template-source-option">
+                  <input
+                    checked={templateSource === "saved"}
+                    disabled={savedTemplates.length === 0}
+                    name="template-source"
+                    type="radio"
+                    value="saved"
+                    onChange={() => setTemplateSource("saved")}
+                  />
+                  <span>
+                    <strong>Use saved template</strong>
+                    <small>Choose one of your saved Pro templates.</small>
+                  </span>
+                </label>
+                <label className="template-source-option">
+                  <input
+                    checked={templateSource === "one_off"}
+                    name="template-source"
+                    type="radio"
+                    value="one_off"
+                    onChange={() => setTemplateSource("one_off")}
+                  />
+                  <span>
+                    <strong>Upload one-off template</strong>
+                    <small>Upload a PowerPoint template for this deck only.</small>
+                  </span>
+                </label>
+                <label className="template-source-option">
+                  <input
+                    checked={templateSource === "apt_default"}
+                    name="template-source"
+                    type="radio"
+                    value="apt_default"
+                    onChange={() => setTemplateSource("apt_default")}
+                  />
+                  <span>
+                    <strong>Use APT default template</strong>
+                    <small>Use APT&apos;s standard structure and styling.</small>
+                  </span>
+                </label>
               </div>
-              <div className="grid-two">
-                <FileUploadField
-                  accept=".pptx"
-                  disabled={!isPro}
-                  error={templateError}
-                  filename={templateFileName}
-                  helper="Upload your standard PowerPoint template or an existing deck you want APT to follow."
-                  id="company-template-deck"
-                  label="Upload company or template deck"
-                  onChange={validateTemplateFile}
-                />
-                <FileUploadField
-                  accept=".xlsx,.csv,.pdf,.docx,.txt"
-                  disabled={!isPro}
-                  error={supportingError}
-                  filename={supportingFileName}
-                  helper="File handling is being prepared. For now, use the brief field below to describe the source data."
-                  id="supporting-data"
-                  label="Upload supporting data"
-                  onChange={validateSupportingFile}
-                />
+              {savedTemplates.length === 0 ? (
+                <p className="helper-note">
+                  No saved templates yet. Add up to 3 in{" "}
+                  <Link className="text-link" href="/settings#presentation-templates">
+                    Manage templates
+                  </Link>
+                  .
+                </p>
+              ) : null}
+              {templateSource === "saved" && savedTemplates.length > 0 ? (
+                <label className="field">
+                  <span>Saved template</span>
+                  <select value={selectedSavedTemplateId} onChange={(event) => setSelectedSavedTemplateId(event.target.value)}>
+                    {savedTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.displayName}{template.isDefault ? " (Default)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {savedTemplates.find((template) => template.id === selectedSavedTemplateId) ? (
+                    <small>
+                      {savedTemplates.find((template) => template.id === selectedSavedTemplateId)?.filename} · uploaded{" "}
+                      {new Date(
+                        savedTemplates.find((template) => template.id === selectedSavedTemplateId)?.uploadedAt ?? "",
+                      ).toLocaleDateString("en-GB")}
+                    </small>
+                  ) : null}
+                </label>
+              ) : null}
+              {templateSource === "one_off" ? (
+                <div className="template-one-off-fields">
+                  <FileUploadField
+                    accept=".pptx"
+                    disabled={!isPro}
+                    error={templateError}
+                    filename={oneOffTemplateFileName}
+                    helper="Upload a PowerPoint template for this deck only."
+                    id="one-off-template-deck"
+                    label="Upload one-off template"
+                    onChange={validateOneOffTemplateFile}
+                  />
+                  <label className="checkbox-row checkbox-row-disabled">
+                    <input disabled type="checkbox" />
+                    <span>Also save this to my template library</span>
+                  </label>
+                  <small className="helper-note">
+                    {savedTemplates.length >= 3
+                      ? "You already have 3 saved templates. Remove one in Settings to save another."
+                      : "Template file storage will be connected next. Save reusable templates from Settings for now."}
+                  </small>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="custom-deck-form-section">
+              <h2>Supporting data</h2>
+              <p className="helper-note">Add spreadsheets, notes or briefing files with the numbers and context for this deck.</p>
+              <div className="supporting-data-note">
+                <div>
+                  <strong>Supporting file upload</strong>
+                  <span>Supporting file upload is being prepared. For now, describe the source data in the brief below.</span>
+                </div>
+                <button className="button button-secondary button-small" disabled type="button">
+                  Upload supporting data
+                </button>
+                <small>Coming soon</small>
               </div>
             </section>
 
             <section className="custom-deck-form-section">
-              <div>
-                <p className="eyebrow">Brief</p>
-                <h2>Deck brief</h2>
-              </div>
+              <h2>Deck brief</h2>
               <label className="field">
-                <span>Deck brief</span>
+                <span>Brief</span>
                 <textarea
-                  placeholder="Tell APT what the deck is for, who the audience is, the customer/retailer, key objectives, important numbers and anything that must be included."
+                  className="deck-brief-textarea"
+                  placeholder="Example: Build a QBR for Tesco covering Q3 performance, promo results, risks, next-quarter asks and recommended actions."
                   value={brief}
                   onChange={(event) => setBrief(event.target.value)}
                 />
@@ -215,10 +297,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
             </section>
 
             <section className="custom-deck-form-section">
-              <div>
-                <p className="eyebrow">Output preferences</p>
-                <h2>Preferences</h2>
-              </div>
+              <h2>Output preferences</h2>
               <div className="form-grid">
                 <label className="field">
                   <span>Audience</span>
@@ -232,10 +311,13 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                 <label className="field">
                   <span>Tone</span>
                   <select value={tone} onChange={(event) => setTone(event.target.value)}>
-                    <option>Concise and commercial</option>
-                    <option>Detailed and analytical</option>
-                    <option>Retailer-facing</option>
+                    {toneOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
+                  <small>Choose how polished or detailed the first draft should feel.</small>
                 </label>
                 <label className="field">
                   <span>Include financial summary</span>

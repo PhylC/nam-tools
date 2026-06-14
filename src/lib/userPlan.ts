@@ -21,7 +21,13 @@ export type AptUserProfile = {
   updatedAt?: string;
 };
 
-export function getUserPlan(temporaryPlanMode: TemporaryPlanMode): UserPlan {
+export function isTemporaryPlanToggleEnabled() {
+  return process.env.NEXT_PUBLIC_SHOW_PLAN_TOGGLE === "true";
+}
+
+export function getUserPlan(temporaryPlanMode: TemporaryPlanMode, accountPlan?: UserPlan | null): UserPlan {
   // TODO: Replace temporary plan toggle with Stripe-backed plan detection.
-  return temporaryPlanMode === "pro" ? "pro" : "free";
+  if (accountPlan) return accountPlan;
+  if (isTemporaryPlanToggleEnabled() && temporaryPlanMode === "pro") return "pro";
+  return "free";
 }

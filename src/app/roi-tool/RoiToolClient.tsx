@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { getUserPlan } from "../../lib/userPlan";
 import {
   deleteRoiPlan,
   duplicateRoiPlan,
@@ -1091,7 +1092,7 @@ function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
 }
 
 export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
-  const isPro = mode === "pro";
+  const isPro = getUserPlan(mode) === "pro";
   const { setAptMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);

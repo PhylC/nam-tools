@@ -7,9 +7,6 @@ This backlog keeps image usage focused. Every image should explain the product, 
 |---|---|---|
 | `apt-homepage-hero-dashboard.webp` | Homepage hero | Shows calculator inputs, results and export options. |
 | `apt-pro-workflow-visual.webp` | Homepage Free vs Pro section | Shows saved scenarios, comparison and export workflow. |
-| `apt-template-jbp-preview.webp` | `/presentation-templates` and homepage deck preview | Previews the Joint Business Plan PowerPoint template. |
-| `apt-template-qbr-preview.webp` | `/presentation-templates` and homepage deck preview | Previews the Quarterly Business Review PowerPoint template. |
-| `apt-template-promo-proposal-preview.webp` | `/presentation-templates` and homepage deck preview | Previews the Promotional Proposal PowerPoint template. |
 | `apt-roi-planner-clean-preview.webp` | `/calculators` hero | Supports the ROI tool entry point without appearing above live calculator inputs. |
 | `apt-icon-promo-roi.svg` | Homepage, calculator hub and workspace cards | Promo ROI / ROI planner card icon. |
 | `apt-icon-margin.svg` | Homepage, calculator hub and quick calculator cards | Margin and retail price calculator card icon. |
@@ -23,6 +20,9 @@ This backlog keeps image usage focused. Every image should explain the product, 
 ## Created but not wired
 | Filename | Reason |
 |---|---|
+| `apt-template-jbp-preview.webp` | Created and available for a future preview modal/help page, but no longer shown as large default card content. |
+| `apt-template-qbr-preview.webp` | Created and available for a future preview modal/help page, but no longer shown as large default card content. |
+| `apt-template-promo-proposal-preview.webp` | Created and available for a future preview modal/help page, but no longer shown as large default card content. |
 | `apt-settings-custom-defaults-preview.webp` | Replaced by the simpler Batch 3 settings visual. Keep for future help/onboarding content if needed. |
 | `apt-workspace-pro-preview.webp` | Replaced by `apt-workspace-dashboard-preview.webp` so the workspace has one consistent visual. |
 | `apt-workspace-free-preview.webp` | Free/signed-out workspace states are cleaner as text-led locked messages. |
@@ -45,6 +45,8 @@ This backlog keeps image usage focused. Every image should explain the product, 
 
 ## Usage rules
 - Large mockups should be used sparingly and never placed above calculator inputs.
+- Large WebP mockups are for workflow explanation only. Do not make template cards image-led.
+- Template preview images are no longer shown as large default card content because they created nested-card clutter and pushed useful actions down. They remain available for future preview modals/help pages.
 - Icons can be used on tool cards and workspace cards where they improve scanability.
 - Do not add placeholder images that only decorate the page.
 - Do not wire reference images directly.

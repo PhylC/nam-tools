@@ -426,12 +426,12 @@ export function WorkspaceClient() {
           />
           <WorkspaceSection
             cta="Manage templates"
-            description="Your uploaded presentation template and export preferences."
-            emptyBody="Add your company template and export defaults when you are ready to shape outputs."
+            description="Manage your saved presentation templates and export defaults."
+            emptyBody="Add saved PowerPoint templates and export defaults when you are ready to shape outputs."
             emptyCta="Open settings"
-            emptyHref="/settings"
+            emptyHref="/settings#presentation-templates"
             emptyTitle="No template preferences saved yet."
-            href="/settings"
+            href="/settings#presentation-templates"
             icon="/images/apt/apt-icon-export.svg"
             id="templates"
             title="Templates"

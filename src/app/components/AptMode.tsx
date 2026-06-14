@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
+import { isTemporaryPlanToggleEnabled } from "../../lib/userPlan";
 
 type AptMode = "free" | "pro";
 
@@ -49,14 +50,11 @@ export function useAptMode() {
 
 export function PlanModeToggle() {
   const { aptMode, setAptMode } = useAptMode();
-  const showTemporaryPlanToggle =
-    process.env.NEXT_PUBLIC_SHOW_PLAN_TOGGLE === "true" || process.env.NODE_ENV !== "production";
-
-  if (!showTemporaryPlanToggle) return null;
+  if (!isTemporaryPlanToggleEnabled()) return null;
 
   return (
     <div className="plan-toggle" aria-label="Temporary plan mode">
-      <span className="plan-toggle-label">temporary plan</span>
+      <span className="plan-toggle-label">Test mode</span>
       <button
         aria-pressed={aptMode === "free"}
         className={aptMode === "free" ? "plan-toggle-active" : ""}

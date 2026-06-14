@@ -13,6 +13,7 @@ import {
   vatBasisToRetailTaxBasis,
 } from "../../lib/proSettings";
 import { saveAnalysis } from "../../lib/saveStore";
+import { getUserPlan } from "../../lib/userPlan";
 
 const currency = new Intl.NumberFormat("en-GB", {
   style: "currency",
@@ -497,7 +498,7 @@ function SaveAnalysisAction({
   sourcePath: string;
 }) {
   const { aptMode } = useAptMode();
-  const isPro = aptMode === "pro";
+  const isPro = getUserPlan(aptMode) === "pro";
   const [isOpen, setIsOpen] = useState(false);
   const [analysisName, setAnalysisName] = useState(defaultTitle);
   const [message, setMessage] = useState("");
@@ -567,6 +568,7 @@ function SaveAnalysisAction({
 
 function LockedProActions() {
   const { aptMode } = useAptMode();
+  const isPro = getUserPlan(aptMode) === "pro";
   const [message, setMessage] = useState("");
   const actions = [
     "Save scenario",
@@ -589,12 +591,12 @@ function LockedProActions() {
       </div>
       <div className="locked-action-row">
         {actions.map((action) => (
-          <button className="button button-secondary button-small" disabled={aptMode === "pro"} key={action} onClick={handleClick} type="button">
+          <button className="button button-secondary button-small" disabled={isPro} key={action} onClick={handleClick} type="button">
             {action}
           </button>
         ))}
       </div>
-      {message && aptMode === "free" ? (
+      {message && !isPro ? (
         <div className="locked-card">
           <strong>{message}</strong>
           <a className="text-link" href="/pricing">View APT Pro</a>

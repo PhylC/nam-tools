@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import Link from "next/link";
 import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
@@ -12,13 +12,14 @@ import {
   defaultExportDefaults,
   ExportDefaults,
   PRESENTATION_TEMPLATE_LIMIT_BYTES,
-  PresentationTemplateMeta,
+  PRESENTATION_TEMPLATE_LIBRARY_LIMIT,
+  SavedPresentationTemplate,
   readCalculatorDefaults,
   readExportDefaults,
-  readPresentationTemplateMeta,
+  readPresentationTemplates,
   saveCalculatorDefaults,
   saveExportDefaults,
-  savePresentationTemplateMeta,
+  savePresentationTemplates,
 } from "../../lib/proSettings";
 
 const currencies = ["GBP", "EUR", "USD"];
@@ -47,15 +48,9 @@ export function SettingsClient() {
   const { user, isAuthenticated } = useSupabaseAuth();
   const [calculatorDefaults, setCalculatorDefaults] = useState<CalculatorDefaults>(() => readCalculatorDefaults());
   const [exportDefaults, setExportDefaults] = useState<ExportDefaults>(() => readExportDefaults());
-  const [templateMeta, setTemplateMeta] = useState<PresentationTemplateMeta>(() => readPresentationTemplateMeta());
+  const [presentationTemplates, setPresentationTemplates] = useState<SavedPresentationTemplate[]>(() => readPresentationTemplates());
   const [message, setMessage] = useState<Message>(null);
   const isPro = getUserPlan(aptMode) === "pro";
-
-  const uploadedTemplateLabel = useMemo(() => {
-    if (!templateMeta) return "No template uploaded";
-    const date = new Date(templateMeta.uploadedAt);
-    return `${templateMeta.filename} · ${date.toLocaleDateString("en-GB")}`;
-  }, [templateMeta]);
 
   function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
     const trimmedTaxLabel = next.customTaxLabel.trim();
@@ -93,48 +88,90 @@ export function SettingsClient() {
     updateExportDefaults({ ...exportDefaults, companyLogoFilename: file.name }, "Logo selected.");
   }
 
-  async function handleTemplateFile(event: ChangeEvent<HTMLInputElement>) {
+  function saveTemplateLibrary(next: SavedPresentationTemplate[], text?: string) {
+    const clean = next.slice(0, PRESENTATION_TEMPLATE_LIBRARY_LIMIT);
+    const hasDefault = clean.some((template) => template.isDefault);
+    const normalized = clean.map((template, index) => ({
+      ...template,
+      displayName: template.displayName.trim() || template.filename,
+      isDefault: hasDefault ? template.isDefault : index === 0,
+    }));
+    setPresentationTemplates(normalized);
+    savePresentationTemplates(normalized);
+    if (text) setMessage({ tone: "success", text });
+  }
+
+  async function handleTemplateFile(event: ChangeEvent<HTMLInputElement>, replaceId?: string) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    if (!file.name.toLowerCase().endsWith(".pptx")) {
-      setMessage({ tone: "error", text: "Please upload a PowerPoint .pptx template." });
+    if (!file.name.toLowerCase().endsWith(".pptx") || file.size > PRESENTATION_TEMPLATE_LIMIT_BYTES) {
+      setMessage({ tone: "error", text: "Please upload a PowerPoint .pptx file under 10MB." });
       return;
     }
 
-    if (file.size > PRESENTATION_TEMPLATE_LIMIT_BYTES) {
-      setMessage({ tone: "error", text: "Please upload a .pptx file under 10MB." });
+    if (!replaceId && presentationTemplates.length >= PRESENTATION_TEMPLATE_LIBRARY_LIMIT) {
+      setMessage({ tone: "error", text: "You can save up to 3 templates. Remove or replace one to add another." });
       return;
     }
 
     let storagePath: string | null = null;
+    let uploadError: string | null = null;
     if (isAuthenticated && user) {
-      // TODO: Persist this storage path against the authenticated Pro user profile.
+      // TODO: Persist this storage path and template metadata against the authenticated Pro user profile.
       const upload = await uploadDeckTemplate(file, user.id);
       storagePath = upload.path;
+      uploadError = upload.error;
     }
 
-    const next = {
+    const nextTemplate: SavedPresentationTemplate = {
+      id: replaceId || (crypto.randomUUID ? crypto.randomUUID() : `template-${Date.now()}`),
+      displayName: file.name.replace(/\.pptx$/i, ""),
       filename: file.name,
       uploadedAt: new Date().toISOString(),
       size: file.size,
-      storagePath,
+      storagePathOrUrl: storagePath,
+      isDefault: presentationTemplates.length === 0,
     };
-    setTemplateMeta(next);
-    savePresentationTemplateMeta(next);
-    setMessage({
-      tone: "success",
-      text: storagePath
-        ? "Presentation template uploaded."
-        : "Presentation template selected. It will be used when custom presentation exports are connected.",
-    });
+
+    const next = replaceId
+      ? presentationTemplates.map((template) =>
+          template.id === replaceId ? { ...nextTemplate, isDefault: template.isDefault } : template,
+        )
+      : [...presentationTemplates, nextTemplate];
+
+    saveTemplateLibrary(
+      next,
+      storagePath && !uploadError
+        ? "Presentation template saved."
+        : "Template metadata saved on this device. Template file storage will be connected next.",
+    );
   }
 
-  function removeTemplate() {
-    setTemplateMeta(null);
-    savePresentationTemplateMeta(null);
-    setMessage({ tone: "success", text: "Presentation template removed." });
+  function removeTemplate(id: string) {
+    saveTemplateLibrary(
+      presentationTemplates.filter((template) => template.id !== id),
+      "Presentation template removed.",
+    );
+  }
+
+  function setDefaultTemplate(id: string) {
+    saveTemplateLibrary(
+      presentationTemplates.map((template) => ({ ...template, isDefault: template.id === id })),
+      "Default presentation template updated.",
+    );
+  }
+
+  function renameTemplate(id: string) {
+    const current = presentationTemplates.find((template) => template.id === id);
+    if (!current) return;
+    const displayName = window.prompt("Template name", current.displayName)?.trim();
+    if (!displayName) return;
+    saveTemplateLibrary(
+      presentationTemplates.map((template) => (template.id === id ? { ...template, displayName } : template)),
+      "Presentation template renamed.",
+    );
   }
 
   function resetSettings() {
@@ -481,46 +518,95 @@ export function SettingsClient() {
           )}
         </article>
 
-        <article className={`card settings-card presentation-template-card ${!isPro ? "settings-locked" : ""}`}>
+        <article className={`card settings-card presentation-template-card ${!isPro ? "settings-locked" : ""}`} id="presentation-templates">
           <div className="settings-card-header">
             <div>
-              <p className="eyebrow">Presentation template</p>
-              <h2>Presentation template</h2>
+              <p className="eyebrow">Presentation templates</p>
+              <h2>Presentation templates</h2>
+              <h3>Save up to 3 PowerPoint templates for custom decks and exports.</h3>
             </div>
           </div>
           <p>
-            Upload your standard PowerPoint template so APT can use your preferred format for presentation exports.
+            Save your preferred PowerPoint formats so APT can use them for custom deck workflows.
           </p>
           {!isPro ? (
             <div className="locked-card settings-locked-card">
               <div>
-                <strong>Presentation template uploads are included with APT Pro.</strong>
-                <span>APT Pro lets you save a company PowerPoint template for future presentation exports.</span>
+                <strong>Presentation template libraries are included with APT Pro.</strong>
+                <span>APT Pro lets you save up to 3 PowerPoint templates and reuse them when building custom decks.</span>
               </div>
               <button className="button button-secondary button-small" onClick={showProInfo} type="button">
                 See APT Pro
               </button>
             </div>
           ) : (
-            <div className="template-upload-panel">
-              <div>
-                <strong>{uploadedTemplateLabel}</strong>
-                <small>.pptx only · maximum 10MB</small>
+            <div className="template-library-panel">
+              <div className="template-library-grid">
+                {Array.from({ length: PRESENTATION_TEMPLATE_LIBRARY_LIMIT }).map((_, index) => {
+                  const template = presentationTemplates[index];
+                  const inputId = `presentation-template-${index}`;
+                  return (
+                    <article className="template-slot" key={template?.id ?? inputId}>
+                      {template ? (
+                        <>
+                          <div>
+                            <strong>{template.displayName}</strong>
+                            {template.isDefault ? <span className="template-default-tag">Default</span> : null}
+                            <small>
+                              {template.filename} · {new Date(template.uploadedAt).toLocaleDateString("en-GB")}
+                            </small>
+                          </div>
+                          <div className="summary-actions">
+                            <label className="button button-secondary button-small" htmlFor={inputId}>
+                              Replace
+                            </label>
+                            <input
+                              accept=".pptx"
+                              className="visually-hidden"
+                              id={inputId}
+                              type="file"
+                              onChange={(event) => handleTemplateFile(event, template.id)}
+                            />
+                            <button className="button button-secondary button-small" onClick={() => renameTemplate(template.id)} type="button">
+                              Rename
+                            </button>
+                            {!template.isDefault ? (
+                              <button className="button button-secondary button-small" onClick={() => setDefaultTemplate(template.id)} type="button">
+                                Set as default
+                              </button>
+                            ) : null}
+                            <button className="button button-secondary button-small" onClick={() => removeTemplate(template.id)} type="button">
+                              Remove
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <strong>Template slot available</strong>
+                            <small>.pptx only · maximum 10MB</small>
+                          </div>
+                          <label className="button button-secondary button-small" htmlFor={inputId}>
+                            Upload template
+                          </label>
+                          <input
+                            accept=".pptx"
+                            className="visually-hidden"
+                            id={inputId}
+                            type="file"
+                            onChange={(event) => handleTemplateFile(event)}
+                          />
+                        </>
+                      )}
+                    </article>
+                  );
+                })}
               </div>
-              <div className="cta-row">
-                <label className="button button-secondary button-small">
-                  {templateMeta ? "Replace template" : "Upload template"}
-                  <input className="visually-hidden" accept=".pptx" type="file" onChange={handleTemplateFile} />
-                </label>
-                {templateMeta ? (
-                  <button className="button button-secondary button-small" onClick={removeTemplate} type="button">
-                    Remove template
-                  </button>
-                ) : null}
-              </div>
+              {presentationTemplates.length >= PRESENTATION_TEMPLATE_LIBRARY_LIMIT ? (
+                <p className="helper-note">You can save up to 3 templates. Remove or replace one to add another.</p>
+              ) : null}
               <p className="helper-note">
-                Use a clean template with your preferred title slide, section slide and content slide layouts. APT will use it as the
-                starting point for future presentation exports.
+                Template file storage will be connected next. For now, upload a one-off template when building a deck.
               </p>
             </div>
           )}
