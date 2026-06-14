@@ -14,20 +14,18 @@ export type AptUserProfile = {
     customTaxLabel: string;
     taxRate: number;
     retailTaxBasis: string;
-    supportTerminology: string;
-    customSupportTerminology: string;
   };
   createdAt?: string;
   updatedAt?: string;
 };
 
-export function isTemporaryPlanToggleEnabled() {
+export function isDevPlanToggleEnabled() {
   return process.env.NEXT_PUBLIC_SHOW_PLAN_TOGGLE === "true";
 }
 
-export function getUserPlan(temporaryPlanMode: TemporaryPlanMode, accountPlan?: UserPlan | null): UserPlan {
-  // TODO: Replace temporary plan toggle with Stripe-backed plan detection.
+export function getUserPlan(temporaryPlanOverride: TemporaryPlanMode, accountPlan?: UserPlan | null): UserPlan {
+  // TODO: Replace temporary plan override with Stripe/Supabase plan lookup.
   if (accountPlan) return accountPlan;
-  if (isTemporaryPlanToggleEnabled() && temporaryPlanMode === "pro") return "pro";
+  if (isDevPlanToggleEnabled() && temporaryPlanOverride === "pro") return "pro";
   return "free";
 }

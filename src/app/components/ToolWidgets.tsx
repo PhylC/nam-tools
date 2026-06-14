@@ -6,7 +6,6 @@ import { useAptMode } from "./AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import type { QuickCalculatorId } from "../data/quickCalculators";
 import {
-  getActiveSupportTerminology,
   getActiveTaxLabel,
   readCalculatorDefaults,
   saveCalculatorDefaults,
@@ -66,18 +65,9 @@ type ToolDefaults = {
   customTaxLabel: string;
   taxRate: string;
   retailTaxBasis: VatBasis;
-  supportTerminology: "SOA" | "Trade spend" | "Promo support" | "Funding" | "Custom";
-  customSupportTerminology: string;
 };
 
 const marketOptions = ["UK", "France", "Spain", "Germany", "Ireland", "USA", "Other"];
-const supportTerminologyOptions: ToolDefaults["supportTerminology"][] = [
-  "SOA",
-  "Trade spend",
-  "Promo support",
-  "Funding",
-  "Custom",
-];
 
 function inferToolDefaultsFromBrowser(): ToolDefaults {
   const fallback: ToolDefaults = {
@@ -87,8 +77,6 @@ function inferToolDefaultsFromBrowser(): ToolDefaults {
     customTaxLabel: "",
     taxRate: "20",
     retailTaxBasis: "excludes",
-    supportTerminology: "SOA",
-    customSupportTerminology: "",
   };
 
   if (typeof window === "undefined") return fallback;
@@ -98,19 +86,19 @@ function inferToolDefaultsFromBrowser(): ToolDefaults {
   const signal = `${locales} ${timeZone}`;
 
   if (signal.includes("es") || signal.includes("madrid")) {
-    return { ...fallback, market: "Spain", currency: "EUR", taxLabel: "IVA", taxRate: "21", supportTerminology: "Trade spend" };
+    return { ...fallback, market: "Spain", currency: "EUR", taxLabel: "IVA", taxRate: "21" };
   }
   if (signal.includes("de") || signal.includes("berlin")) {
-    return { ...fallback, market: "Germany", currency: "EUR", taxLabel: "MwSt", taxRate: "19", supportTerminology: "Trade spend" };
+    return { ...fallback, market: "Germany", currency: "EUR", taxLabel: "MwSt", taxRate: "19" };
   }
   if (signal.includes("fr") || signal.includes("paris")) {
-    return { ...fallback, market: "France", currency: "EUR", taxLabel: "TVA", supportTerminology: "Trade spend" };
+    return { ...fallback, market: "France", currency: "EUR", taxLabel: "TVA" };
   }
   if (signal.includes("ie") || signal.includes("dublin")) {
-    return { ...fallback, market: "Ireland", currency: "EUR", taxRate: "23", supportTerminology: "Trade spend" };
+    return { ...fallback, market: "Ireland", currency: "EUR", taxRate: "23" };
   }
   if (signal.includes("us") || signal.includes("america/")) {
-    return { ...fallback, market: "USA", currency: "USD", taxLabel: "Sales tax", taxRate: "0", supportTerminology: "Trade spend" };
+    return { ...fallback, market: "USA", currency: "USD", taxLabel: "Sales tax", taxRate: "0" };
   }
 
   return fallback;
@@ -127,12 +115,18 @@ function readToolDefaults(): ToolDefaults {
     customTaxLabel: savedDefaults.customTaxLabel || "",
     taxRate: String(savedDefaults.taxRate || inferred.taxRate),
     retailTaxBasis: savedDefaults.retailTaxBasis === "includes_tax" ? "includes" : "excludes",
-    supportTerminology: savedDefaults.supportTerminology || inferred.supportTerminology,
-    customSupportTerminology: savedDefaults.customSupportTerminology || "",
   };
   if (typeof window === "undefined") return fallback;
   try {
-    return { ...fallback, ...(JSON.parse(window.localStorage.getItem(TOOL_DEFAULTS_KEY) ?? "{}") as Partial<ToolDefaults>) };
+    const saved = { ...fallback, ...(JSON.parse(window.localStorage.getItem(TOOL_DEFAULTS_KEY) ?? "{}") as Partial<ToolDefaults>) };
+    return {
+      market: saved.market,
+      currency: saved.currency,
+      taxLabel: saved.taxLabel,
+      customTaxLabel: saved.customTaxLabel,
+      taxRate: saved.taxRate,
+      retailTaxBasis: saved.retailTaxBasis,
+    };
   } catch {
     return fallback;
   }
@@ -829,8 +823,6 @@ function ContextualCalculatorSettings({
   });
   const initialDefaults = readToolDefaults();
   const [market, setMarket] = useState(initialDefaults.market);
-  const [supportTerminology, setSupportTerminology] = useState<ToolDefaults["supportTerminology"]>(initialDefaults.supportTerminology);
-  const [customSupportTerminology, setCustomSupportTerminology] = useState(initialDefaults.customSupportTerminology);
   const [localRetailTaxBasis, setLocalRetailTaxBasis] = useState<VatBasis>(retailTaxBasis ?? initialDefaults.retailTaxBasis);
   const activeRetailTaxBasis = retailTaxBasis ?? localRetailTaxBasis;
   const needsSettings = requirements.usesCurrency || requirements.usesRetailTaxBasis || requirements.usesVatRate;
@@ -839,12 +831,11 @@ function ContextualCalculatorSettings({
   if (!needsSettings) return null;
 
   const activeTaxLabel = getActiveTaxLabel({ taxLabel, customTaxLabel });
-  const activeSupportTerm = getActiveSupportTerminology({ supportTerminology, customSupportTerminology });
   const tax = taxLabelText(activeTaxLabel);
   const basisSummary = activeRetailTaxBasis === "includes" ? `retail prices inc ${tax}` : `retail prices ex ${tax}`;
   const summaryText = usesTax
-    ? `${currencyCode} · ${market} ${tax} ${Number(vatRate) || 0}% · ${basisSummary} · ${activeSupportTerm}`
-    : `${currencyCode} · ${market} · ${activeSupportTerm}`;
+    ? `${currencyCode} · ${market} ${tax} ${Number(vatRate) || 0}% · ${basisSummary}`
+    : `${currencyCode} · ${market}`;
 
   function saveDefaults() {
     const current = readCalculatorDefaults();
@@ -855,15 +846,9 @@ function ContextualCalculatorSettings({
       customTaxLabel: customTaxLabel.trim(),
       taxRate: vatRate,
       retailTaxBasis: activeRetailTaxBasis,
-      supportTerminology,
-      customSupportTerminology: customSupportTerminology.trim(),
     };
     if (taxLabel === "Custom" && !customTaxLabel.trim()) {
       setSavedMessage("Enter a custom tax label or choose VAT, IVA or Sales tax.");
-      return;
-    }
-    if (supportTerminology === "Custom" && !customSupportTerminology.trim()) {
-      setSavedMessage("Enter a custom support term or choose a preset support term.");
       return;
     }
     writeToolDefaults(nextToolDefaults);
@@ -875,8 +860,6 @@ function ContextualCalculatorSettings({
       taxLabel,
       customTaxLabel: customTaxLabel.trim(),
       retailTaxBasis: vatBasisToRetailTaxBasis(activeRetailTaxBasis),
-      supportTerminology,
-      customSupportTerminology: customSupportTerminology.trim(),
     });
     setSavedMessage(isAuthenticated ? "Defaults saved." : "Defaults saved on this device. Account syncing will be added next.");
     setIsExpanded(false);
@@ -1012,48 +995,18 @@ function ContextualCalculatorSettings({
             }}
           />
         ) : null}
-            {usesTax ? (
-              <SelectInput
-                label="Retail basis"
-                help="Default basis for retail price fields in this tool."
-                value={activeRetailTaxBasis}
-                onChange={(value) => updateRetailBasis(value as VatBasis)}
-                options={[
-                  { label: retailTaxBasisShortLabel("excludes", taxLabel), value: "excludes" },
-                  { label: retailTaxBasisShortLabel("includes", taxLabel), value: "includes" },
-                ]}
-              />
-            ) : null}
-            <SelectInput
-              label="Support term"
-              help="Your preferred label for deal support or funding."
-              value={supportTerminology}
-              onChange={(value) => {
-                const next = value as ToolDefaults["supportTerminology"];
-                setSupportTerminology(next);
-                rememberToolDefaults({ supportTerminology: next });
-              }}
-              options={supportTerminologyOptions.map((value) => ({ label: value, value }))}
-            />
-            {supportTerminology === "Custom" ? (
-              <Field
-                label={<InfoLabel label="Custom support term" info="Short label for support, funding or trade investment." required />}
-                help={!customSupportTerminology.trim() ? "Enter a custom support term or choose a preset support term." : "Used in the defaults summary."}
-              >
-                <input
-                  className="calc-input"
-                  maxLength={30}
-                  placeholder="e.g. Customer funding, Promo fund, Trade investment"
-                  required
-                  value={customSupportTerminology}
-                  onChange={(event) => {
-                    const next = event.target.value.slice(0, 30);
-                    setCustomSupportTerminology(next);
-                    rememberToolDefaults({ customSupportTerminology: next });
-                  }}
-                />
-              </Field>
-            ) : null}
+        {usesTax ? (
+          <SelectInput
+            label="Retail basis"
+            help="Default basis for retail price fields in this tool."
+            value={activeRetailTaxBasis}
+            onChange={(value) => updateRetailBasis(value as VatBasis)}
+            options={[
+              { label: retailTaxBasisShortLabel("excludes", taxLabel), value: "excludes" },
+              { label: retailTaxBasisShortLabel("includes", taxLabel), value: "includes" },
+            ]}
+          />
+        ) : null}
           </div>
           <div className="settings-save-row">
             <button className="button button-secondary button-small" type="button" onClick={() => setIsExpanded(false)}>
@@ -1766,7 +1719,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <NumericInput label="Forecast units during promotion" help="Expected units sold during the promotion or deal period." placeholder="e.g. 18,000" value={promoUnits} onChange={setPromoUnits} step="1" />
             <NumericInput label="Retailer invoice/buy price before promotion" help="The price the retailer/customer pays the supplier per unit before the promotion." placeholder="e.g. 1.75" value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
             {supportMethod === "soa" ? (
-              <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, scan support or per-unit promotional funding." placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
+              <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding." placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
             ) : (
               <NumericInput label="Promotional retailer invoice/buy price" help="Effective invoice/buy price during the promotion after supplier support." placeholder="e.g. 1.40" value={promoInvoicePrice} onChange={setPromoInvoicePrice} />
             )}
@@ -1838,7 +1791,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <dt>Supplier COGS</dt>
             <dd>Your internal cost of goods sold per unit. This is not the retailer invoice/buy price.</dd>
             <dt>SOA / supplier support</dt>
-            <dd>Supplier-funded per-unit promotional support, such as saving on allowance, off-invoice support or scan support.</dd>
+            <dd>Supplier-funded per-unit promotional support, such as saving on allowance, off-invoice support, trade spend or promotional funding.</dd>
             <dt>Fixed supplier support</dt>
             <dd>Fixed customer funding such as media, feature fees, activation support or lump-sum investment.</dd>
             <dt>Sales tax / VAT / IVA basis</dt>
@@ -2545,7 +2498,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       >
         <NumericInput label="Normal retailer invoice/buy price" help="Normal price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={actualInvoice} onChange={setActualInvoice} />
         <SelectInput label="Support input mode" help="Use SOA per unit or enter the final promo invoice price." value={actualMode} onChange={setActualMode} options={[{ label: "SOA / supplier support", value: "soa" }, { label: "Promo invoice price", value: "promoInvoice" }]} />
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" required={actualMode === "soa"} value={actualSupport} onChange={setActualSupport} />
+        <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding." placeholder="e.g. 0.35" required={actualMode === "soa"} value={actualSupport} onChange={setActualSupport} />
         <NumericInput label="Promo invoice price" help="Effective invoice/buy price during the promotion." placeholder="e.g. 1.40" required={actualMode === "promoInvoice"} value={actualPromoInvoice} onChange={setActualPromoInvoice} />
         <RetailPriceInput
           label="Promotional retail selling price"
@@ -2628,7 +2581,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "SOA as % of retail price including tax", value: safePercent(supportPercent.incVatRate) },
         ]}
       >
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" value={supportValue} onChange={setSupportValue} />
+        <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding." placeholder="e.g. 0.35" value={supportValue} onChange={setSupportValue} />
         <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={supportInvoice} onChange={setSupportInvoice} />
         <RetailPriceInput
           label="Retail selling price"
@@ -2666,7 +2619,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         ]}
       >
         <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={promoInvoiceCurrent} onChange={setPromoInvoiceCurrent} />
-        <NumericInput label="SOA / supplier support per unit" help="Per-unit support funded by the supplier." placeholder="e.g. 0.35" value={promoInvoiceSupport} onChange={setPromoInvoiceSupport} />
+        <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding." placeholder="e.g. 0.35" value={promoInvoiceSupport} onChange={setPromoInvoiceSupport} />
         <NumericInput label="Units" help="Optional units for total supplier support." placeholder="e.g. 10,000" required={false} value={promoInvoiceUnits} onChange={setPromoInvoiceUnits} step="1" />
       </QuickCalculatorCard>
       ) : null}

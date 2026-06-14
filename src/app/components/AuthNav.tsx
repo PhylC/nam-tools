@@ -26,7 +26,7 @@ export function HeaderAuthNav() {
     return (
       <div className="auth-nav">
         <Link className="text-link" href="/login">Log in</Link>
-        <Link className="button button-small" href="/create-account">Create free account</Link>
+        <Link className="button button-small" href="/create-account">Create account</Link>
       </div>
     );
   }

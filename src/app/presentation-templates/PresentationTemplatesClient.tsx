@@ -14,6 +14,8 @@ type FreeTemplate = {
   bestFor: string;
   slides: string;
   includes: string;
+  previewSrc?: string;
+  previewAlt?: string;
 };
 
 // Templates intentionally use editable example content so users can adapt them for real customer meetings.
@@ -27,6 +29,8 @@ const freeTemplates: FreeTemplate[] = [
     bestFor: "JBP meetings, account reviews and customer planning",
     slides: "11",
     includes: "objectives, growth plan, investment plan and success measures",
+    previewSrc: "/images/apt/apt-template-jbp-preview.webp",
+    previewAlt: "Preview of the APT Joint Business Plan PowerPoint template",
   },
   {
     title: "Quarterly Business Review",
@@ -37,6 +41,8 @@ const freeTemplates: FreeTemplate[] = [
     bestFor: "Customer reviews and internal commercial reviews",
     slides: "10",
     includes: "performance summary, insights, risks and next steps",
+    previewSrc: "/images/apt/apt-template-qbr-preview.webp",
+    previewAlt: "Preview of the APT Quarterly Business Review PowerPoint template",
   },
   {
     title: "Promotional Proposal",
@@ -47,6 +53,8 @@ const freeTemplates: FreeTemplate[] = [
     bestFor: "Promo proposals, trade marketing and buyer sign-off",
     slides: "8",
     includes: "mechanic, support, financial impact and recommendation",
+    previewSrc: "/images/apt/apt-template-promo-proposal-preview.webp",
+    previewAlt: "Preview of the APT Promotional Proposal PowerPoint template",
   },
   {
     title: "Range Review Template",
@@ -151,7 +159,6 @@ export function PresentationTemplatesFree() {
   return (
     <section className="shell section">
       <div className="section-header">
-        <p className="eyebrow">Presentations</p>
         <h2>Choose the output you need.</h2>
         <p className="section-lead">
           Create buyer-ready and internal sign-off outputs from your planning work.
@@ -175,6 +182,14 @@ export function PresentationTemplatesFree() {
           <div className="template-card-wrap" id={`template-${template.slug}`} key={template.title}>
             <article className="template-card">
               <div className="template-card-content">
+                {template.previewSrc ? (
+                  <img
+                    alt={template.previewAlt ?? `Preview of the APT ${template.title} PowerPoint template`}
+                    className="template-card-image"
+                    loading="lazy"
+                    src={template.previewSrc}
+                  />
+                ) : null}
                 <h2>{template.title}</h2>
                 <p className="template-support">Editable PowerPoint template</p>
                 <p className="template-description">{template.description}</p>

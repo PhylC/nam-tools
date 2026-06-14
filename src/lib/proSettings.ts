@@ -17,8 +17,6 @@ export type CalculatorDefaults = {
   taxLabel: "VAT" | "Sales tax" | "IVA" | "GST" | "TVA" | "MwSt" | "Custom";
   customTaxLabel: string;
   cogsBehaviour: "ask_when_needed" | "usually_include_cogs" | "hide_unless_enabled";
-  supportTerminology: "SOA" | "Trade spend" | "Promo support" | "Funding" | "Custom";
-  customSupportTerminology: string;
 };
 
 export type ExportDefaults = {
@@ -60,8 +58,6 @@ export const defaultCalculatorDefaults: CalculatorDefaults = {
   taxLabel: "VAT",
   customTaxLabel: "",
   cogsBehaviour: "ask_when_needed",
-  supportTerminology: "SOA",
-  customSupportTerminology: "",
 };
 
 export const defaultExportDefaults: ExportDefaults = {
@@ -93,7 +89,16 @@ function writeLocalObject<T>(key: string, value: T) {
 
 export function readCalculatorDefaults() {
   // TODO: Load authenticated Pro account defaults from Supabase profile storage before local fallback.
-  return readLocalObject(CALCULATOR_DEFAULTS_KEY, defaultCalculatorDefaults);
+  const saved = readLocalObject(CALCULATOR_DEFAULTS_KEY, defaultCalculatorDefaults);
+  return {
+    currency: saved.currency || defaultCalculatorDefaults.currency,
+    market: saved.market || defaultCalculatorDefaults.market,
+    retailTaxBasis: saved.retailTaxBasis || defaultCalculatorDefaults.retailTaxBasis,
+    taxRate: Number.isFinite(saved.taxRate) ? saved.taxRate : defaultCalculatorDefaults.taxRate,
+    taxLabel: saved.taxLabel || defaultCalculatorDefaults.taxLabel,
+    customTaxLabel: saved.customTaxLabel || defaultCalculatorDefaults.customTaxLabel,
+    cogsBehaviour: saved.cogsBehaviour || defaultCalculatorDefaults.cogsBehaviour,
+  };
 }
 
 export function saveCalculatorDefaults(defaults: CalculatorDefaults) {
@@ -205,13 +210,4 @@ export function getActiveTaxLabel(defaults: Pick<CalculatorDefaults, "taxLabel" 
     return defaults.customTaxLabel.trim();
   }
   return defaults.taxLabel || "VAT";
-}
-
-export function getActiveSupportTerminology(
-  defaults: Pick<CalculatorDefaults, "supportTerminology" | "customSupportTerminology">,
-) {
-  if (defaults.supportTerminology === "Custom" && defaults.customSupportTerminology?.trim()) {
-    return defaults.customSupportTerminology.trim();
-  }
-  return defaults.supportTerminology || "SOA";
 }

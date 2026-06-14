@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
-import { isTemporaryPlanToggleEnabled } from "../../lib/userPlan";
+import { isDevPlanToggleEnabled } from "../../lib/userPlan";
 
 type AptMode = "free" | "pro";
 
@@ -27,7 +27,7 @@ function subscribeToAptMode(onStoreChange: () => void) {
 }
 
 export function AptModeProvider({ children }: { children: React.ReactNode }) {
-  // Temporary plan selector. Replace with authenticated user plan later.
+  // Temporary development-only plan override. Remove after Stripe-backed plan detection is live.
   const aptMode: AptMode = useSyncExternalStore(subscribeToAptMode, readStoredAptMode, () => "free" as AptMode);
 
   function setAptMode(mode: AptMode) {
@@ -48,12 +48,12 @@ export function useAptMode() {
   return context;
 }
 
-export function PlanModeToggle() {
+export function TemporaryPlanToggle() {
   const { aptMode, setAptMode } = useAptMode();
-  if (!isTemporaryPlanToggleEnabled()) return null;
+  if (!isDevPlanToggleEnabled()) return null;
 
   return (
-    <div className="plan-toggle" aria-label="Temporary plan mode">
+    <div className="plan-toggle" aria-label="Temporary development plan mode">
       <span className="plan-toggle-label">Test mode</span>
       <button
         aria-pressed={aptMode === "free"}

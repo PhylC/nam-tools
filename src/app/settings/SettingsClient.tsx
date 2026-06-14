@@ -34,7 +34,6 @@ const cogsOptions = [
   { label: "Usually include COGS", value: "usually_include_cogs" },
   { label: "Hide unless I turn it on", value: "hide_unless_enabled" },
 ] as const;
-const supportTerms = ["SOA", "Trade spend", "Promo support", "Funding", "Custom"] as const;
 const exportFormats = [
   { label: "PowerPoint", value: "powerpoint" },
   { label: "Excel", value: "excel" },
@@ -54,20 +53,13 @@ export function SettingsClient() {
 
   function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
     const trimmedTaxLabel = next.customTaxLabel.trim();
-    const trimmedSupportTerm = next.customSupportTerminology.trim();
     const clean = {
       ...next,
       customTaxLabel: trimmedTaxLabel,
-      customSupportTerminology: trimmedSupportTerm,
     };
     if (clean.taxLabel === "Custom" && !trimmedTaxLabel) {
       setCalculatorDefaults(clean);
-      setMessage({ tone: "error", text: "Enter a custom tax label or choose VAT, IVA or Sales tax." });
-      return;
-    }
-    if (clean.supportTerminology === "Custom" && !trimmedSupportTerm) {
-      setCalculatorDefaults(clean);
-      setMessage({ tone: "error", text: "Enter a custom support term or choose a preset support term." });
+      setMessage({ tone: "error", text: "Enter a custom tax label or choose a preset." });
       return;
     }
     setCalculatorDefaults(clean);
@@ -197,12 +189,12 @@ export function SettingsClient() {
   return (
     <section className="shell section">
       <div className="settings-layout">
-        <article className="card pro-upgrade-panel">
+        <article className="settings-account-notice">
           {!isAuthenticated ? (
             <>
               <div>
-                <h3>Save calculator defaults with a free account.</h3>
-                <p>Use calculators without an account, or create a free account to keep your currency, market and tax defaults across visits.</p>
+                <h3>Save calculator defaults with a free account</h3>
+                <p>Create a free account to keep your market, currency and tax defaults across visits. You can still use calculators without an account.</p>
               </div>
               <div className="settings-banner-actions">
                 <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
@@ -212,44 +204,22 @@ export function SettingsClient() {
                   Use calculators without an account
                 </a>
               </div>
-              <img
-                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
-                className="settings-preview-image"
-                loading="lazy"
-                src="/images/apt/apt-settings-simplified-preview.webp"
-              />
             </>
           ) : isPro ? (
             <>
               <div>
                 <h3>Your calculator and export settings can be saved to your account.</h3>
-                <p>Review calculator defaults, export details and presentation template settings below.</p>
-                <Link className="text-link" href="/workspace">
-                  Manage saved analyses and scenarios in My workspace.
-                </Link>
               </div>
-              <img
-                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
-                className="settings-preview-image"
-                loading="lazy"
-                src="/images/apt/apt-settings-simplified-preview.webp"
-              />
             </>
           ) : (
             <>
               <div>
-                <h3>Calculator defaults are saved to your account.</h3>
-                <p>APT Pro adds saved analyses, scenarios, decks, exports and presentation settings.</p>
+                <h3>Your calculator defaults can be saved to your account.</h3>
+                <p>APT Pro adds export defaults, presentation templates and saved workspace features.</p>
               </div>
               <button className="button button-small" onClick={showProInfo} type="button">
                 See APT Pro
               </button>
-              <img
-                alt="APT settings showing calculator defaults, export defaults and presentation template settings"
-                className="settings-preview-image"
-                loading="lazy"
-                src="/images/apt/apt-settings-simplified-preview.webp"
-              />
             </>
           )}
         </article>
@@ -257,179 +227,164 @@ export function SettingsClient() {
         <article className="card settings-card">
           <div className="settings-card-header">
             <div>
-              <p className="eyebrow">Calculator defaults</p>
               <h2>Calculator defaults</h2>
-              <h3>Save your usual calculator setup.</h3>
-              <p>Free accounts can save currency, market, tax and support defaults.</p>
+              <p>Save your usual market, currency and tax setup.</p>
             </div>
             <button className="button button-secondary button-small" onClick={resetSettings} type="button">
               Reset
             </button>
           </div>
 
-          <div className="form-grid">
-            <label className="field">
-              <span>Default currency</span>
-              <select
-                value={calculatorDefaults.currency}
-                onChange={(event) => updateCalculatorDefaults({ ...calculatorDefaults, currency: event.target.value })}
-              >
-                {currencies.map((currency) => (
-                  <option key={currency}>{currency}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Default country / market</span>
-              <select
-                value={calculatorDefaults.market}
-                onChange={(event) => updateCalculatorDefaults({ ...calculatorDefaults, market: event.target.value })}
-              >
-                {markets.map((market) => (
-                  <option key={market}>{market}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Default retail price tax basis</span>
-              <select
-                value={calculatorDefaults.retailTaxBasis}
-                onChange={(event) =>
-                  updateCalculatorDefaults({
-                    ...calculatorDefaults,
-                    retailTaxBasis: event.target.value as CalculatorDefaults["retailTaxBasis"],
-                  })
-                }
-              >
-                {taxBasisOptions.map((basis) => (
-                  <option key={basis.value} value={basis.value}>
-                    {basis.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Default sales tax / VAT / IVA rate %</span>
-              <input
-                min="0"
-                step="0.01"
-                type="number"
-                value={calculatorDefaults.taxRate}
-                onChange={(event) =>
-                  updateCalculatorDefaults({ ...calculatorDefaults, taxRate: Number(event.target.value) || 0 })
-                }
-              />
-            </label>
-            <label className="field">
-              <span>Default tax label</span>
-              <select
-                value={calculatorDefaults.taxLabel}
-                onChange={(event) => {
-                  const next = {
-                    ...calculatorDefaults,
-                    taxLabel: event.target.value as CalculatorDefaults["taxLabel"],
-                  };
-                  if (next.taxLabel === "Custom") {
-                    if (next.customTaxLabel.trim()) {
-                      updateCalculatorDefaults(next);
-                    } else {
-                      setCalculatorDefaults(next);
-                      setMessage({ tone: "error", text: "Enter a custom tax label or choose VAT, IVA or Sales tax." });
-                    }
-                    return;
-                  }
-                  updateCalculatorDefaults(next);
-                }}
-              >
-                {taxLabels.map((label) => (
-                  <option key={label}>{label}</option>
-                ))}
-              </select>
-              {calculatorDefaults.taxLabel === "Custom" ? (
-                <>
-                  <input
-                    maxLength={20}
-                    placeholder="e.g. GST, TVA, MwSt"
-                    required
-                    value={calculatorDefaults.customTaxLabel}
-                    onBlur={() => updateCalculatorDefaults(calculatorDefaults)}
-                    onChange={(event) =>
-                      setCalculatorDefaults({
+          <div className="settings-defaults-groups">
+            <section className="settings-defaults-group" aria-labelledby="settings-market-currency">
+              <h3 id="settings-market-currency">Market and currency</h3>
+              <div className="settings-compact-grid">
+                <label className="field settings-field">
+                  <span>Default country / market</span>
+                  <select
+                    value={calculatorDefaults.market}
+                    onChange={(event) => updateCalculatorDefaults({ ...calculatorDefaults, market: event.target.value })}
+                  >
+                    {markets.map((market) => (
+                      <option key={market}>{market}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field settings-field">
+                  <span>Default currency</span>
+                  <select
+                    value={calculatorDefaults.currency}
+                    onChange={(event) => updateCalculatorDefaults({ ...calculatorDefaults, currency: event.target.value })}
+                  >
+                    {currencies.map((currency) => (
+                      <option key={currency}>{currency}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="settings-defaults-group" aria-labelledby="settings-tax">
+              <h3 id="settings-tax">Tax settings</h3>
+              <div className="settings-compact-grid">
+                <label className="field settings-field">
+                  <span>Default tax label</span>
+                  <select
+                    value={calculatorDefaults.taxLabel}
+                    onChange={(event) => {
+                      const next = {
                         ...calculatorDefaults,
-                        customTaxLabel: event.target.value.slice(0, 20),
+                        taxLabel: event.target.value as CalculatorDefaults["taxLabel"],
+                      };
+                      if (next.taxLabel === "Custom") {
+                        if (next.customTaxLabel.trim()) {
+                          updateCalculatorDefaults(next);
+                        } else {
+                          setCalculatorDefaults(next);
+                          setMessage({ tone: "error", text: "Enter a custom tax label or choose a preset." });
+                        }
+                        return;
+                      }
+                      updateCalculatorDefaults(next);
+                    }}
+                  >
+                    {taxLabels.map((label) => (
+                      <option key={label}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+                {calculatorDefaults.taxLabel === "Custom" ? (
+                  <label className="field settings-field">
+                    <span>Custom label</span>
+                    <input
+                      maxLength={20}
+                      placeholder="e.g. GST, TVA, MwSt"
+                      required
+                      value={calculatorDefaults.customTaxLabel}
+                      onBlur={() => updateCalculatorDefaults(calculatorDefaults)}
+                      onChange={(event) =>
+                        setCalculatorDefaults({
+                          ...calculatorDefaults,
+                          customTaxLabel: event.target.value.slice(0, 20),
+                        })
+                      }
+                    />
+                    {!calculatorDefaults.customTaxLabel.trim() ? (
+                      <small className="field-error">Enter a custom tax label or choose a preset.</small>
+                    ) : null}
+                  </label>
+                ) : (
+                  <label className="field settings-field">
+                    <span>Default tax rate %</span>
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      value={calculatorDefaults.taxRate}
+                      onChange={(event) =>
+                        updateCalculatorDefaults({ ...calculatorDefaults, taxRate: Number(event.target.value) || 0 })
+                      }
+                    />
+                  </label>
+                )}
+                {calculatorDefaults.taxLabel === "Custom" ? (
+                  <label className="field settings-field">
+                    <span>Default tax rate %</span>
+                    <input
+                      min="0"
+                      step="0.01"
+                      type="number"
+                      value={calculatorDefaults.taxRate}
+                      onChange={(event) =>
+                        updateCalculatorDefaults({ ...calculatorDefaults, taxRate: Number(event.target.value) || 0 })
+                      }
+                    />
+                  </label>
+                ) : null}
+                <label className="field settings-field">
+                  <span>Default retail price basis</span>
+                  <select
+                    value={calculatorDefaults.retailTaxBasis}
+                    onChange={(event) =>
+                      updateCalculatorDefaults({
+                        ...calculatorDefaults,
+                        retailTaxBasis: event.target.value as CalculatorDefaults["retailTaxBasis"],
                       })
                     }
-                  />
-                  {!calculatorDefaults.customTaxLabel.trim() ? (
-                    <small className="field-error">Enter a custom tax label or choose VAT, IVA or Sales tax.</small>
-                  ) : null}
-                </>
-              ) : null}
-            </label>
-            <label className="field">
-              <span>COGS behaviour</span>
-              <select
-                value={calculatorDefaults.cogsBehaviour}
-                onChange={(event) =>
-                  updateCalculatorDefaults({
-                    ...calculatorDefaults,
-                    cogsBehaviour: event.target.value as CalculatorDefaults["cogsBehaviour"],
-                  })
-                }
-              >
-                {cogsOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>Support terminology</span>
-              <select
-                value={calculatorDefaults.supportTerminology}
-                onChange={(event) => {
-                  const next = {
-                    ...calculatorDefaults,
-                    supportTerminology: event.target.value as CalculatorDefaults["supportTerminology"],
-                  };
-                  if (next.supportTerminology === "Custom") {
-                    if (next.customSupportTerminology.trim()) {
-                      updateCalculatorDefaults(next);
-                    } else {
-                      setCalculatorDefaults(next);
-                      setMessage({ tone: "error", text: "Enter a custom support term or choose a preset support term." });
-                    }
-                    return;
-                  }
-                  updateCalculatorDefaults(next);
-                }}
-              >
-                {supportTerms.map((term) => (
-                  <option key={term}>{term}</option>
-                ))}
-              </select>
-              {calculatorDefaults.supportTerminology === "Custom" ? (
-                <>
-                  <input
-                    maxLength={30}
-                    placeholder="e.g. Customer funding, Promo fund, Trade investment"
-                    required
-                    value={calculatorDefaults.customSupportTerminology}
-                    onBlur={() => updateCalculatorDefaults(calculatorDefaults)}
+                  >
+                    {taxBasisOptions.map((basis) => (
+                      <option key={basis.value} value={basis.value}>
+                        {basis.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
+
+            <section className="settings-defaults-group" aria-labelledby="settings-calculation">
+              <h3 id="settings-calculation">Calculation settings</h3>
+              <div className="settings-compact-grid">
+                <label className="field settings-field">
+                  <span>COGS behaviour</span>
+                  <select
+                    value={calculatorDefaults.cogsBehaviour}
                     onChange={(event) =>
-                      setCalculatorDefaults({
+                      updateCalculatorDefaults({
                         ...calculatorDefaults,
-                        customSupportTerminology: event.target.value.slice(0, 30),
+                        cogsBehaviour: event.target.value as CalculatorDefaults["cogsBehaviour"],
                       })
                     }
-                  />
-                  {!calculatorDefaults.customSupportTerminology.trim() ? (
-                    <small className="field-error">Enter a custom support term or choose a preset support term.</small>
-                  ) : null}
-                </>
-              ) : null}
-            </label>
+                  >
+                    {cogsOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </section>
           </div>
           {!isAuthenticated ? (
             <div className="settings-save-row">
@@ -438,13 +393,19 @@ export function SettingsClient() {
                 Create free account
               </Link>
             </div>
-          ) : null}
+          ) : (
+            <div className="settings-save-row">
+              <small>Changes apply to your saved calculator defaults.</small>
+              <button className="button button-secondary button-small" onClick={() => updateCalculatorDefaults(calculatorDefaults, "Defaults saved.")} type="button">
+                Save defaults
+              </button>
+            </div>
+          )}
         </article>
 
         <article className="card settings-card">
           <div className="settings-card-header">
             <div>
-              <p className="eyebrow">Export defaults</p>
               <h2>Export defaults</h2>
               <h3>Use consistent export details.</h3>
             </div>
@@ -521,7 +482,6 @@ export function SettingsClient() {
         <article className={`card settings-card presentation-template-card ${!isPro ? "settings-locked" : ""}`} id="presentation-templates">
           <div className="settings-card-header">
             <div>
-              <p className="eyebrow">Presentation templates</p>
               <h2>Presentation templates</h2>
               <h3>Save up to 3 PowerPoint templates for custom decks and exports.</h3>
             </div>

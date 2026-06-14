@@ -98,7 +98,7 @@ const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info
   soa: {
     label: "SOA/support",
     required: false,
-    info: "Supplier-funded support per unit, such as saving on allowance, off-invoice support or promotional funding.",
+    info: "Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding.",
   },
   baselineUnits: {
     label: "Baseline units",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useState } from "react";
 import { MobileAuthLinks } from "./AuthNav";
+import { TemporaryPlanToggle } from "./AptMode";
 
 const mobileLinks = [
   { href: "/roi-tool", label: "ROI Tool", match: ["/roi-tool"] },
@@ -55,6 +56,9 @@ export function MobileNav() {
           </Link>
         ))}
         <MobileAuthLinks onNavigate={closeMenu} />
+        <div className="mobile-menu-test-toggle">
+          <TemporaryPlanToggle />
+        </div>
       </nav>
     </>
   );
