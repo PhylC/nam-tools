@@ -137,7 +137,7 @@ export function SettingsClient() {
       next,
       storagePath && !uploadError
         ? "Presentation template saved."
-        : "Template metadata saved on this device. Template file storage will be connected next.",
+        : "Template details saved on this device.",
     );
   }
 

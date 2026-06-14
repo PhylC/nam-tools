@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Hero, ProductVisual } from "../components/Shell";
+import { Hero } from "../components/Shell";
 import { RoiToolProduct } from "./RoiToolClient";
 
 export const metadata: Metadata = {
@@ -14,14 +14,6 @@ export default function RoiToolPage() {
       <Hero
         eyebrow="ROI Tool"
         title="ROI planner"
-        visual={
-          <ProductVisual
-            aspectRatio="16 / 9"
-            description="Promotion scenario planning and ROI comparison view."
-            filename="/images/commercial-deal-calculator.svg"
-            title="ROI planner workspace"
-          />
-        }
       >
         <p>
           Model one SKU or a full multi-line promotion, compare scenarios and

@@ -327,11 +327,22 @@ textarea:focus {
 .auth-section {
   display: grid;
   justify-items: center;
+  gap: 1rem;
 }
 
 .auth-card,
-.account-card {
+.account-card,
+.auth-notice {
   width: min(100%, 560px);
+}
+
+.auth-notice {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.auth-notice span {
+  font-weight: 700;
 }
 
 .auth-card,
@@ -598,6 +609,12 @@ p {
 .pro-workflow-home-visual {
   max-width: 420px;
   margin-top: 1rem;
+}
+
+.pricing-workflow-visual {
+  align-self: center;
+  justify-self: end;
+  width: min(100%, 420px);
 }
 
 .copy-stack {
@@ -3321,6 +3338,7 @@ p {
   .split-band,
   .free-pro-columns,
   .home-template-grid,
+  .pricing-workflow-visual,
   .pro-explainer-panel,
   .tool-layout,
   .footer-grid,

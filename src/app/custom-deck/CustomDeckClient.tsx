@@ -275,7 +275,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
               <div className="supporting-data-note">
                 <div>
                   <strong>Supporting file upload</strong>
-                  <span>Supporting file upload is being prepared. For now, describe the source data in the brief below.</span>
+                  <span>Supporting file uploads are being prepared. For now, describe the source data in the brief below.</span>
                 </div>
                 <button className="button button-secondary button-small" disabled type="button">
                   Upload supporting data
@@ -341,11 +341,11 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
 
           <div className="custom-deck-action-area">
             <button className="button" disabled type="button">
-              Custom deck generation is being prepared
+              Custom deck requests are being prepared
             </button>
             <p>
-              Custom deck generation is being prepared. For now, download the editable templates or use APT Pro
-              settings to save your presentation template.
+              Custom deck requests are being prepared. For now, download the editable templates or save your
+              presentation templates in APT Pro settings.
             </p>
           </div>
         </form>

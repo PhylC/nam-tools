@@ -35,9 +35,9 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       setTone("error");
-      setMessage("Password must be at least 6 characters.");
+      setMessage("Your password must be at least 8 characters.");
       return;
     }
 
@@ -62,7 +62,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     <form className="card auth-card" onSubmit={handleSubmit}>
       {!isConfigured ? (
         <p className="settings-message settings-message-warning">
-          Auth is not configured yet. Add Supabase environment variables.
+          Sign-in is temporarily unavailable. Please try again later.
         </p>
       ) : null}
       <label className="field">
@@ -90,6 +90,16 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
         )}
       </div>
       {message ? <p className={`settings-message settings-message-${tone}`} role="status">{message}</p> : null}
+      {isCreate && tone === "success" ? (
+        <div className="auth-actions auth-actions-followup">
+          <Link className="button button-secondary" href="/login">
+            Go to login
+          </Link>
+          <Link className="text-link" href="/calculators">
+            Back to calculators
+          </Link>
+        </div>
+      ) : null}
     </form>
   );
 }

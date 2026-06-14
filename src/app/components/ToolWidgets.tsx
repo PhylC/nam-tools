@@ -863,7 +863,7 @@ function ContextualCalculatorSettings({
       customTaxLabel: customTaxLabel.trim(),
       retailTaxBasis: vatBasisToRetailTaxBasis(activeRetailTaxBasis),
     });
-    setSavedMessage(isAuthenticated ? "Defaults saved." : "Defaults saved on this device. Account syncing will be added next.");
+    setSavedMessage(isAuthenticated ? "Defaults saved." : "Defaults saved on this device.");
     setIsExpanded(false);
     window.setTimeout(() => setSavedMessage(""), 3200);
   }

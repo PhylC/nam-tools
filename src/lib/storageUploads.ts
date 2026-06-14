@@ -5,7 +5,7 @@ import { getSupabaseBrowserClient } from "./supabaseClient";
 async function uploadPrivateFile(bucket: string, file: File, userId: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    return { path: null, error: "Supabase is not configured." };
+    return { path: null, error: "File upload is temporarily unavailable." };
   }
 
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-");

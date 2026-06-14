@@ -47,10 +47,10 @@ export function useAuth() {
   const signIn = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
       if (!supabase) {
-        return { ok: false, message: "Auth is not configured yet. Add Supabase environment variables." };
+        return { ok: false, message: "Sign-in is temporarily unavailable. Please try again later." };
       }
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return { ok: false, message: "Check your email and password, then try again." };
+      if (error) return { ok: false, message: "We could not log you in. Check your email and password." };
       return { ok: true, message: "Logged in." };
     },
     [supabase],
@@ -59,11 +59,11 @@ export function useAuth() {
   const signUp = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
       if (!supabase) {
-        return { ok: false, message: "Auth is not configured yet. Add Supabase environment variables." };
+        return { ok: false, message: "Account creation is temporarily unavailable. Please try again later." };
       }
       const { error } = await supabase.auth.signUp({ email, password });
-      if (error) return { ok: false, message: "Account creation failed. Please try again." };
-      return { ok: true, message: "Account created. If email confirmation is enabled, check your inbox before logging in." };
+      if (error) return { ok: false, message: "We could not create your account. Please try again." };
+      return { ok: true, message: "Account created. Check your inbox to confirm your email, then log in." };
     },
     [supabase],
   );

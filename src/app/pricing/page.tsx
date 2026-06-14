@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Hero, SectionHeader } from "../components/Shell";
+import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 
 export const metadata: Metadata = {
   title: "Pricing | Free vs APT Pro",
@@ -173,6 +173,14 @@ export default function PricingPage() {
               versions, keeping your default setup, and turning results into
               cleaner outputs for meetings and reviews.
             </p>
+          </div>
+          <div className="pricing-workflow-visual">
+            <ProductVisual
+              alt="APT workspace showing saved analyses, scenarios, decks and exports"
+              description="Saved analyses, scenarios, decks and exports in one workspace."
+              filename="/images/apt/apt-workspace-dashboard-preview.webp"
+              title="My workspace"
+            />
           </div>
         </article>
       </section>

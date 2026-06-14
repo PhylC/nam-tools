@@ -17,7 +17,12 @@ This backlog keeps image usage focused. Every image should explain the product, 
 | `apt-icon-export.svg` | Homepage and workspace cards | Presentation/export/deck card icon. |
 | `apt-icon-scenario-compare.svg` | Homepage and workspace cards | ROI planner and saved scenario card icon. |
 | `apt-workspace-dashboard-preview.webp` | `/workspace` Pro intro | Shows saved analyses, scenarios, decks and exports. |
+| `apt-workspace-dashboard-preview.webp` | `/pricing` Pro explanation | Adds one compact workflow visual away from the pricing cards. |
 | `apt-custom-deck-builder-preview.webp` | `/custom-deck` sidebar | Shows deck type, uploads and brief fields as a supporting visual. |
+| `apt-icon-promo-roi.svg` | Tools/resource cards | Small icon for ROI and promotion planning resources. |
+| `apt-icon-support.svg` | Tools/resource cards | Small icon for trade spend, support and investment resources. |
+| `apt-icon-export.svg` | Tools/resource cards | Small icon for presentation/template resources. |
+| `apt-icon-scenario-compare.svg` | Tools/resource cards | Small icon for planning resources where comparison/workflow matters. |
 
 ## Created but not wired
 | Filename | Reason |
@@ -45,11 +50,14 @@ This backlog keeps image usage focused. Every image should explain the product, 
 
 ## Usage rules
 - Large mockups should be used sparingly and never placed above calculator inputs.
+- Live calculator pages should prioritize title, defaults, inputs and results; use large mockups only in marketing/help/pro explanation sections.
 - Large WebP mockups are for workflow explanation only. Do not make template cards image-led.
 - Template preview images are restored as flat thumbnails because they add useful visual confidence on the presentation templates page. They should not be wrapped in nested cards or large preview frames.
 - The separate presentation hero preview strip was removed because it duplicated the template cards and pushed useful actions down. Template images should only be used inside actual cards or optional previews.
+- Do not add a separate template hero preview strip.
 - Settings visuals should not appear above the settings form; the top account prompt should stay compact and text-led.
 - Icons can be used on tool cards and workspace cards where they improve scanability.
+- Use visuals to support workflow, trust or task selection; do not add images as decoration.
 - Do not add placeholder images that only decorate the page.
 - Do not wire reference images directly.
 - Use one strong visual per section; avoid repeating similar dashboard mockups across adjacent sections.

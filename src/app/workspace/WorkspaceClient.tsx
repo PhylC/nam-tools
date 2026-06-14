@@ -349,8 +349,8 @@ export function WorkspaceClient() {
           <div className="workspace-message-copy">
             <h2>Your Pro workspace</h2>
             <p>
-              Saved work from ROI plans and custom deck briefs appears here when it is available. Exports and richer
-              saved analyses will connect here as Pro features are added.
+              Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
+              when you export your work.
             </p>
             {isLoadingSavedWork ? <small className="workspace-kicker">Loading saved work...</small> : null}
             {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
@@ -386,10 +386,6 @@ export function WorkspaceClient() {
             emptyCta="Open ROI planner"
             emptyHref="/roi-tool"
             emptyTitle="No saved scenarios yet."
-            emptyImage={{
-              alt: "APT saved scenarios empty state",
-              src: "/images/apt/apt-workspace-empty-state-preview.webp",
-            }}
             href="/workspace#scenarios"
             icon="/images/apt/apt-icon-scenario-compare.svg"
             id="scenarios"
@@ -401,7 +397,7 @@ export function WorkspaceClient() {
           <WorkspaceSection
             cta="View saved decks"
             description="Presentation outputs and meeting-ready summaries."
-            emptyBody="Saved decks will appear here once deck exports are available."
+            emptyBody="Saved decks will appear here when you create them."
             emptyCta="View presentation templates"
             emptyHref="/presentation-templates"
             emptyTitle="No saved decks yet."
@@ -415,7 +411,7 @@ export function WorkspaceClient() {
           <WorkspaceSection
             cta="View exports"
             description="PowerPoint, Excel and CSV exports created from your work."
-            emptyBody="Exports will appear here once PowerPoint and Excel exports are available."
+            emptyBody="Exports will appear here when you export your work."
             emptyCta="Open calculators"
             emptyHref="/calculators"
             emptyTitle="No exports yet."
