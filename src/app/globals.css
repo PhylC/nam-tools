@@ -725,34 +725,74 @@ p {
   box-shadow: 0 24px 60px rgba(28, 45, 43, 0.16);
 }
 
-.home-tool-chooser,
-.home-workflows,
+.home-starting-section,
 .home-free-pro-summary,
 .home-output-section {
   position: relative;
 }
 
-.home-tool-chooser {
+.home-starting-section {
   margin-top: 0.75rem;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(244, 251, 250, 0.74));
 }
 
-.home-tool-grid {
+.home-starting-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1.15rem;
+  align-items: stretch;
 }
 
-.home-tool-card {
-  min-height: 225px;
+.home-featured-tool-card {
+  display: grid;
+  gap: 0.95rem;
+  overflow: hidden;
+  border-color: rgba(15, 118, 110, 0.24);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(170, 198, 194, 0.45), transparent 34%),
+    linear-gradient(135deg, #ffffff, #f4fbfa);
+  box-shadow: 0 18px 45px rgba(28, 45, 43, 0.1);
+}
+
+.home-featured-tool-card h2 {
+  margin: 0;
+}
+
+.home-featured-tool-card .button {
+  align-self: end;
+  justify-self: start;
+}
+
+.home-featured-tool-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.home-featured-tool-top .pill {
+  width: auto;
+}
+
+.home-quick-checks {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.home-quick-check-card {
+  display: grid;
+  gap: 0.7rem;
+  min-height: 0;
   transition:
     border-color 160ms ease,
     transform 160ms ease,
     box-shadow 160ms ease;
 }
 
-.home-tool-card:hover {
+.home-quick-check-card:hover {
   border-color: #aac6c2;
   box-shadow: 0 16px 38px rgba(28, 45, 43, 0.1);
   transform: translateY(-2px);
@@ -767,6 +807,13 @@ p {
 
 .home-card-topline h3 {
   margin-top: 0.1rem;
+}
+
+.home-starting-link-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.1rem;
 }
 
 .home-section-heading-row {
@@ -788,37 +835,6 @@ p {
   font-weight: 750;
 }
 
-.home-workflow-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
-}
-
-.home-workflow-card {
-  position: relative;
-  display: grid;
-  gap: 0.75rem;
-  min-height: 245px;
-  overflow: hidden;
-}
-
-.home-workflow-card::after {
-  position: absolute;
-  right: -2rem;
-  bottom: -2.4rem;
-  width: 8rem;
-  height: 8rem;
-  border-radius: 999px;
-  background: rgba(15, 118, 110, 0.08);
-  content: "";
-}
-
-.home-workflow-number {
-  color: #91aaa6;
-  font-size: 0.86rem;
-  font-weight: 900;
-}
-
 .home-pro-band {
   border-block: 1px solid rgba(170, 198, 194, 0.55);
   background:
@@ -826,48 +842,121 @@ p {
     linear-gradient(135deg, #e4f0ee, #f7f2e9);
 }
 
-.home-pro-layout {
-  align-items: center;
-  gap: 2rem;
-}
-
-.home-pro-layout .product-image-card {
-  min-height: 300px;
-}
-
 .home-feature-list {
   margin-top: 1rem;
 }
 
-.home-output-section {
+.home-split-section {
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(300px, 0.78fr);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.86fr);
   gap: 2rem;
   align-items: center;
 }
 
-.home-output-copy .section-header {
-  margin-bottom: 0;
+.home-split-copy {
+  display: grid;
+  gap: 1rem;
+  align-content: center;
 }
 
-.home-output-visual .product-image-card {
-  min-height: 280px;
+.home-split-copy h2 {
+  margin: 0;
+}
+
+.home-split-copy .section-lead {
+  max-width: 640px;
+}
+
+.home-split-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 0.5rem;
+}
+
+.home-split-visual {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.home-split-visual .product-image-card {
+  width: 100%;
+  max-width: 520px;
+  min-height: 0;
+  border-radius: 18px;
+  border-color: rgba(170, 198, 194, 0.78);
+  background: #ffffff;
+  box-shadow: 0 18px 45px rgba(28, 45, 43, 0.12);
+}
+
+.home-split-visual .product-image-card img {
+  object-fit: cover;
+}
+
+.home-split-visual .product-image-card figcaption {
+  left: 1rem;
+  right: auto;
+  bottom: 1rem;
+  width: min(82%, 360px);
+  border-color: rgba(222, 217, 207, 0.82);
+  background: rgba(255, 255, 255, 0.93);
 }
 
 .home-free-pro-summary {
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.68);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(170, 198, 194, 0.28), transparent 24%),
+    rgba(255, 255, 255, 0.72);
+}
+
+.home-free-pro-heading {
+  max-width: 780px;
+  margin-bottom: 1.25rem;
 }
 
 .home-plan-card {
-  min-height: 0;
-  box-shadow: none;
+  display: grid;
+  gap: 0.78rem;
+  min-height: 100%;
+  box-shadow: var(--shadow-soft);
+}
+
+.home-plan-card .tool-card-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.home-plan-card h3 {
+  margin: 0;
+}
+
+.home-plan-card p {
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.home-plan-card .compact-list {
+  margin-bottom: 0.25rem;
+}
+
+.home-plan-card .button {
+  align-self: end;
+  justify-self: start;
+  margin-top: auto;
+}
+
+.home-plan-label {
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 900;
 }
 
 .home-plan-card-pro {
   border-color: rgba(15, 118, 110, 0.35);
   background:
-    linear-gradient(135deg, rgba(244, 251, 250, 0.92), rgba(255, 255, 255, 0.96)),
+    radial-gradient(circle at 100% 0%, rgba(170, 198, 194, 0.35), transparent 30%),
+    linear-gradient(135deg, rgba(244, 251, 250, 0.96), rgba(255, 255, 255, 0.98)),
     var(--surface);
 }
 
@@ -891,6 +980,14 @@ p {
   border-color: rgba(255, 255, 255, 0.44);
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+}
+
+.final-cta-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .hero-visual {
@@ -2577,6 +2674,67 @@ p {
   margin-right: 0.5rem;
 }
 
+.mobile-comparison-table,
+.mobile-comparison-cta {
+  display: none;
+}
+
+.mobile-comparison-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: var(--shadow-soft);
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-comparison-header,
+.mobile-comparison-row {
+  display: grid;
+  grid-template-columns: minmax(92px, 1.1fr) minmax(72px, 0.8fr) minmax(104px, 1fr);
+  min-width: 0;
+}
+
+.mobile-comparison-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-size: 0.76rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mobile-comparison-header > div,
+.mobile-comparison-row > div {
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 0.7rem 0.55rem;
+}
+
+.mobile-comparison-row {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 760;
+  line-height: 1.25;
+}
+
+.mobile-comparison-feature {
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.mobile-comparison-header > div:nth-child(3),
+.mobile-comparison-pro {
+  background: #f4fbfa;
+}
+
+.mobile-comparison-row:last-child > div {
+  border-bottom: 0;
+}
+
 .recommended-pill {
   padding: 0.3rem 0.55rem;
   font-size: 0.72rem;
@@ -3775,9 +3933,9 @@ p {
   .hero-with-media,
   .split-band,
   .free-pro-columns,
-  .home-tool-grid,
-  .home-workflow-grid,
-  .home-output-section,
+  .home-starting-grid,
+  .home-quick-checks,
+  .home-split-section,
   .home-template-grid,
   .pricing-workflow-visual,
   .pro-explainer-panel,
@@ -3885,8 +4043,7 @@ p {
     max-width: none;
   }
 
-  .home-pro-layout > .product-image-card,
-  .home-output-visual {
+  .home-split-visual {
     display: none;
   }
 
@@ -4124,13 +4281,13 @@ p {
     margin-top: 0.95rem;
   }
 
-  .home-tool-chooser,
+  .home-starting-section,
   .home-free-pro-summary {
     border-radius: 12px;
   }
 
-  .home-tool-card,
-  .home-workflow-card {
+  .home-featured-tool-card,
+  .home-quick-check-card {
     min-height: 0;
   }
 
@@ -4138,9 +4295,31 @@ p {
     grid-template-columns: 36px 1fr;
   }
 
+  .home-featured-tool-card .button {
+    justify-self: stretch;
+  }
+
+  .home-starting-link-row {
+    justify-content: flex-start;
+  }
+
   .home-page .final-cta {
     border-radius: 12px;
     padding: 1.25rem;
+  }
+
+  .home-plan-card .button {
+    justify-self: stretch;
+  }
+
+  .final-cta-actions {
+    flex-direction: column;
+  }
+
+  .final-cta-actions .button,
+  .final-cta-actions .text-link {
+    width: 100%;
+    max-width: 320px;
   }
 
   .roi-desktop-table,
@@ -4625,10 +4804,17 @@ p {
     width: 100%;
   }
 
-  .comparison-table-wrap {
-    border-radius: 10px;
-    overflow: visible;
-    box-shadow: none;
+  .desktop-comparison-table,
+  .comparison-cta-desktop {
+    display: none;
+  }
+
+  .mobile-comparison-table {
+    display: block;
+  }
+
+  .mobile-comparison-cta {
+    display: grid;
   }
 
   .pricing-comparison-table,

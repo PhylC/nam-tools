@@ -76,6 +76,21 @@ const comparisonRows = [
   ["Best for", "Quick one-off checks", "Repeated commercial planning and retailer meetings"],
 ];
 
+const mobileComparisonRows = [
+  ["Calculators", "Included", "Included"],
+  ["Products", "1", "Multiple"],
+  ["Scenarios", "1", "Save + compare"],
+  ["Summary", "Basic", "Advanced"],
+  ["Copy summary", "Included", "Included"],
+  ["CSV", "Current calc", "Included"],
+  ["Excel", "—", "Workbook"],
+  ["PowerPoint", "—", "Deck export"],
+  ["Branding", "—", "Logo + disclaimer"],
+  ["Templates", "Download", "Save templates"],
+  ["Defaults", "Account defaults", "Account + exports"],
+  ["Best for", "Quick checks", "Repeat planning"],
+];
+
 export default function PricingPage() {
   return (
     <div className="page-stack">
@@ -95,7 +110,7 @@ export default function PricingPage() {
         </SectionHeader>
         <div className="grid">
           {plans.map((plan) => (
-            <article className="card pricing-card" key={plan.name}>
+            <article className="card pricing-card" id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
               <h2>{plan.name}</h2>
               <div className="price">{plan.price}</div>
               <p>{plan.detail}</p>
@@ -118,7 +133,7 @@ export default function PricingPage() {
             comparing and exporting commercial scenarios.
           </p>
         </SectionHeader>
-        <div className="comparison-table-wrap">
+        <div className="comparison-table-wrap desktop-comparison-table">
           <table className="pricing-comparison-table">
             <caption>Free and APT Pro feature comparison</caption>
             <thead>
@@ -142,7 +157,35 @@ export default function PricingPage() {
             </tbody>
           </table>
         </div>
-        <article className="card comparison-cta">
+        <div className="mobile-comparison-table" aria-label="Free and APT Pro feature comparison">
+          <div className="mobile-comparison-header" role="row">
+            <div role="columnheader">Feature</div>
+            <div role="columnheader">Free</div>
+            <div role="columnheader">APT Pro</div>
+          </div>
+          {mobileComparisonRows.map(([feature, free, pro]) => (
+            <div className="mobile-comparison-row" role="row" key={feature}>
+              <div className="mobile-comparison-feature" role="cell">{feature}</div>
+              <div role="cell">{free}</div>
+              <div className="mobile-comparison-pro" role="cell">{pro}</div>
+            </div>
+          ))}
+        </div>
+        <article className="card comparison-cta mobile-comparison-cta">
+          <div>
+            <h3>Use Free for quick checks.</h3>
+            <p>Use APT Pro when you need to save, compare and export your work.</p>
+          </div>
+          <div className="cta-row">
+            <Link className="button button-secondary" href="/calculators">
+              Use free calculators
+            </Link>
+            <Link className="button" href="#apt-pro-plan">
+              See APT Pro
+            </Link>
+          </div>
+        </article>
+        <article className="card comparison-cta comparison-cta-desktop">
           <div>
             <h3>Use Free for quick checks.</h3>
             <p>APT Pro checkout is being prepared. Create an account now, or contact us if you want Pro access.</p>
