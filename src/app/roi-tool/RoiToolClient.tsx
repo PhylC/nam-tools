@@ -1092,9 +1092,9 @@ function FreeProPrompt({ onSwitchToPro }: { onSwitchToPro: () => void }) {
 }
 
 export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
-  const isPro = getUserPlan(mode) === "pro";
   const { setAptMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
+  const isPro = getUserPlan(mode, null, isAuthenticated) === "pro";
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);

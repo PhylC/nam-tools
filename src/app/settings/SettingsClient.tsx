@@ -49,7 +49,7 @@ export function SettingsClient() {
   const [exportDefaults, setExportDefaults] = useState<ExportDefaults>(() => readExportDefaults());
   const [presentationTemplates, setPresentationTemplates] = useState<SavedPresentationTemplate[]>(() => readPresentationTemplates());
   const [message, setMessage] = useState<Message>(null);
-  const isPro = getUserPlan(aptMode) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
 
   function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
     const trimmedTaxLabel = next.customTaxLabel.trim();

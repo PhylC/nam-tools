@@ -17,7 +17,8 @@ export function useAuth() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(() => Boolean(getSupabaseBrowserClient()));
   const supabase = getSupabaseBrowserClient();
   const isConfigured = Boolean(supabase);
-  const plan: UserPlan = getUserPlan(aptMode);
+  const isSignedIn = Boolean(user);
+  const plan: UserPlan = getUserPlan(aptMode, null, isSignedIn);
 
   useEffect(() => {
     if (!supabase) {
@@ -78,8 +79,8 @@ export function useAuth() {
   return useMemo(
     () => ({
       user,
-      isSignedIn: Boolean(user),
-      isAuthenticated: Boolean(user),
+      isSignedIn,
+      isAuthenticated: isSignedIn,
       isLoadingAuth,
       isLoading: isLoadingAuth,
       isConfigured,
@@ -88,6 +89,6 @@ export function useAuth() {
       signOut,
       plan,
     }),
-    [user, isLoadingAuth, isConfigured, signIn, signUp, signOut, plan],
+    [user, isSignedIn, isLoadingAuth, isConfigured, signIn, signUp, signOut, plan],
   );
 }

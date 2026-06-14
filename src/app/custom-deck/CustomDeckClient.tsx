@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { useAptMode } from "../components/AptMode";
+import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { getUserPlan } from "../../lib/userPlan";
 import { readPresentationTemplates } from "../../lib/proSettings";
 
@@ -87,6 +88,7 @@ function FileUploadField({
 
 export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
   const { aptMode, setAptMode } = useAptMode();
+  const { isAuthenticated } = useSupabaseAuth();
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
@@ -102,7 +104,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [tone, setTone] = useState("concise_commercial");
   const [financialSummary, setFinancialSummary] = useState("Yes");
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
-  const isPro = getUserPlan(aptMode) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],

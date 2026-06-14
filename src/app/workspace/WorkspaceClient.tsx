@@ -224,7 +224,7 @@ export function WorkspaceClient() {
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
   const [isLoadingSavedWork, setIsLoadingSavedWork] = useState(false);
   const [loadMessage, setLoadMessage] = useState("");
-  const isPro = getUserPlan(aptMode) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
 
   useEffect(() => {
     if (!isAuthenticated || !isPro) {

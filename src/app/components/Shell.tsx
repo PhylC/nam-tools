@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { AptModeProvider, TemporaryPlanToggle } from "./AptMode";
+import { AptModeProvider } from "./AptMode";
 import { HeaderAuthNav } from "./AuthNav";
+import { DevPlanToggle } from "./DevPlanToggle";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
 import type { Tool } from "../data/tools";
@@ -49,9 +50,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="header-actions">
             <HeaderAuthNav />
-            <div className="plan-toggle-wrap">
-              <TemporaryPlanToggle />
-            </div>
+            <DevPlanToggle className="plan-toggle-wrap" />
           </div>
           <MobileNav />
         </div>

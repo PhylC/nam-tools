@@ -23,9 +23,13 @@ export function isDevPlanToggleEnabled() {
   return process.env.NEXT_PUBLIC_SHOW_PLAN_TOGGLE === "true";
 }
 
-export function getUserPlan(temporaryPlanOverride: TemporaryPlanMode, accountPlan?: UserPlan | null): UserPlan {
-  // TODO: Replace temporary plan override with Stripe/Supabase plan lookup.
+export function getUserPlan(
+  temporaryPlanOverride: TemporaryPlanMode,
+  accountPlan?: UserPlan | null,
+  isSignedIn = false,
+): UserPlan {
+  // TODO: Replace logged-in test plan toggle with Stripe/Supabase plan lookup.
   if (accountPlan) return accountPlan;
-  if (isDevPlanToggleEnabled() && temporaryPlanOverride === "pro") return "pro";
+  if (isSignedIn && isDevPlanToggleEnabled() && temporaryPlanOverride === "pro") return "pro";
   return "free";
 }
