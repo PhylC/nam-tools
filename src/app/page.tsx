@@ -14,21 +14,18 @@ const quickCheckCards = [
     description: "Check whether extra volume offsets price investment and support.",
     href: "/tools/promotion-roi-calculator",
     cta: "Open Promo ROI",
-    icon: "/images/apt/apt-icon-promo-roi.svg",
   },
   {
     title: "Margin check",
     description: "Estimate supplier and retailer margin from invoice, COGS and retail price.",
     href: "/tools/gross-margin-calculator",
     cta: "Open Margin Calculator",
-    icon: "/images/apt/apt-icon-margin.svg",
   },
   {
     title: "Support / SOA",
     description: "Turn fixed support, SOA or trade spend into a clearer deal view.",
     href: "/calculators/soa-support-percent-calculator",
     cta: "Open Support Calculator",
-    icon: "/images/apt/apt-icon-support.svg",
   },
 ];
 
@@ -103,7 +100,6 @@ export default function Home() {
         <div className="home-starting-grid">
           <article className="card home-featured-tool-card">
             <div className="home-featured-tool-top">
-              <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-promo-roi.svg" />
               <span className="pill pro-pill">Best starting point</span>
             </div>
             <h2>Full ROI planner</h2>
@@ -124,10 +120,7 @@ export default function Home() {
           <div className="home-quick-checks">
             {quickCheckCards.map((item) => (
               <article className="card home-quick-check-card" key={item.title}>
-                <div className="home-card-topline">
-                  <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={item.icon} />
-                  <h3>{item.title}</h3>
-                </div>
+                <h3>{item.title}</h3>
                 <p>{item.description}</p>
                 <Link className="text-link" href={item.href}>
                   {item.cta}
