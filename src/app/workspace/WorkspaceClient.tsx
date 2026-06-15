@@ -24,7 +24,6 @@ type WorkspaceSectionProps = {
   items?: SavedRecord[];
   itemType?: "Analysis" | "Scenario" | "Deck";
   onDuplicate?: (id: string, type: "Analysis" | "Scenario" | "Deck") => void | Promise<void>;
-  icon?: string;
   emptyImage?: {
     src: string;
     alt: string;
@@ -183,7 +182,6 @@ function WorkspaceSection({
   href,
   items = [],
   itemType,
-  icon,
   emptyImage,
   emptyTitle,
   emptyBody,
@@ -195,7 +193,6 @@ function WorkspaceSection({
     <article className="card workspace-card" id={id}>
       <div className="workspace-card-header">
         <div>
-          {icon ? <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={icon} /> : null}
           <h2>{title}</h2>
           <p>{description}</p>
         </div>
@@ -362,7 +359,6 @@ export function WorkspaceClient() {
             emptyHref="/calculators"
             emptyTitle="No saved analyses yet."
             href="/workspace#analyses"
-            icon="/images/apt/apt-icon-promo-roi.svg"
             id="analyses"
             items={savedAnalyses}
             itemType="Analysis"
@@ -377,7 +373,6 @@ export function WorkspaceClient() {
             emptyHref="/roi-tool"
             emptyTitle="No saved scenarios yet."
             href="/workspace#scenarios"
-            icon="/images/apt/apt-icon-scenario-compare.svg"
             id="scenarios"
             items={savedScenarios}
             itemType="Scenario"
@@ -392,7 +387,6 @@ export function WorkspaceClient() {
             emptyHref="/presentation-templates"
             emptyTitle="No saved decks yet."
             href="/workspace#decks"
-            icon="/images/apt/apt-icon-export.svg"
             id="decks"
             items={deckBriefs}
             itemType="Deck"
@@ -406,7 +400,6 @@ export function WorkspaceClient() {
             emptyHref="/calculators"
             emptyTitle="No exports yet."
             href="/workspace#exports"
-            icon="/images/apt/apt-icon-export.svg"
             id="exports"
             title="Exports"
           />
@@ -418,7 +411,6 @@ export function WorkspaceClient() {
             emptyHref="/settings#presentation-templates"
             emptyTitle="No template preferences saved yet."
             href="/settings#presentation-templates"
-            icon="/images/apt/apt-icon-export.svg"
             id="templates"
             title="Templates"
           />

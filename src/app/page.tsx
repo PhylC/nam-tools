@@ -255,7 +255,6 @@ export default function Home() {
         </div>
         <div className="free-pro-columns">
           <article className="card mini-card home-plan-card">
-            <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-promo-roi.svg" />
             <span className="home-plan-label">For one-off checks</span>
             <h3>Free</h3>
             <p>Use the calculators when you need a quick read on a single product, scenario or commercial question.</p>
@@ -269,7 +268,6 @@ export default function Home() {
             </Link>
           </article>
           <article className="card mini-card home-plan-card home-plan-card-pro">
-            <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src="/images/apt/apt-icon-scenario-compare.svg" />
             <span className="home-plan-label">For repeat planning</span>
             <h3>APT Pro</h3>
             <p>Use Pro when you need to save work, compare versions, build decks and return to commercial scenarios later.</p>

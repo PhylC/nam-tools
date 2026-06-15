@@ -144,18 +144,9 @@ export function SectionHeader({
   );
 }
 
-function iconForTool(tool: Tool) {
-  if (tool.slug.includes("margin")) return "/images/apt/apt-icon-margin.svg";
-  if (tool.slug.includes("trade-spend") || tool.slug.includes("terms-investment")) return "/images/apt/apt-icon-support.svg";
-  if (tool.slug.includes("promotion-roi") || tool.slug.includes("commercial-deal")) return "/images/apt/apt-icon-promo-roi.svg";
-  if (tool.category === "Template" || tool.slug.includes("meeting") || tool.slug.includes("business-plan")) return "/images/apt/apt-icon-export.svg";
-  return "/images/apt/apt-icon-scenario-compare.svg";
-}
-
 export function ToolCard({ tool }: { tool: Tool }) {
   return (
     <article className="card tool-card">
-      <img alt="" aria-hidden="true" className="tool-card-icon" loading="lazy" src={iconForTool(tool)} />
       <h3>{tool.title}</h3>
       <p>{tool.description}</p>
       <Link className="text-link" href={tool.href}>

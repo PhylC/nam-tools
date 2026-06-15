@@ -578,19 +578,8 @@ p {
 .tool-card {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  min-height: 240px;
-}
-
-.tool-card-icon {
-  width: 38px;
-  height: 38px;
-  flex: 0 0 auto;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: #f4fbfa;
-  object-fit: contain;
-  padding: 0.42rem;
+  gap: 0.7rem;
+  min-height: 210px;
 }
 
 .start-card {
@@ -1234,14 +1223,9 @@ p {
 
 .home-plan-card {
   display: grid;
-  gap: 0.78rem;
+  gap: 0.72rem;
   min-height: 100%;
   box-shadow: var(--shadow-soft);
-}
-
-.home-plan-card .tool-card-icon {
-  width: 38px;
-  height: 38px;
 }
 
 .home-plan-card h3 {
