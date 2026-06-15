@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Hero, ProductVisual, SectionHeader } from "./components/Shell";
+import { Hero, SectionHeader } from "./components/Shell";
 
 export const metadata: Metadata = {
   title: "Account Planning Tools | Promo ROI, Margin and Support Calculators",
@@ -14,18 +14,21 @@ const quickCheckCards = [
     description: "Check whether extra volume offsets price investment and support.",
     href: "/tools/promotion-roi-calculator",
     cta: "Open Promo ROI",
+    preview: "Spend £10k → Return £14k → ROI 1.4x",
   },
   {
     title: "Margin check",
     description: "Estimate supplier and retailer margin from invoice, COGS and retail price.",
     href: "/tools/gross-margin-calculator",
     cta: "Open Margin Calculator",
+    preview: "Invoice £5.00 → Retail £8.00 → Margin 37.5%",
   },
   {
     title: "Support / SOA",
     description: "Turn fixed support, SOA or trade spend into a clearer deal view.",
     href: "/calculators/soa-support-percent-calculator",
     cta: "Open Support Calculator",
+    preview: "Invoice £5.00 - SOA £0.50 = Net £4.50",
   },
 ];
 
@@ -36,18 +39,21 @@ const planningCards = [
       "Structure the objective, ask, risk, negotiation points and next steps for a retailer conversation.",
     href: "/tools/buyer-meeting-prep",
     cta: "Plan a meeting",
+    preview: "Objective → Ask → Risks → Next steps",
   },
   {
     title: "Account Plan",
     description: "Turn customer priorities, opportunities and risks into a clearer account plan.",
     href: "/tools/account-plan-generator",
     cta: "Build account plan",
+    preview: "Priorities → Opportunities → Actions",
   },
   {
     title: "JBP Builder",
     description: "Create a practical joint business planning structure for customer conversations.",
     href: "/tools/joint-business-plan-builder",
     cta: "Build JBP",
+    preview: "Goals → Initiatives → Measures",
   },
 ];
 
@@ -82,50 +88,71 @@ const bestChoiceCards = [
   },
 ];
 
-const proWorkflowFeatures = [
-  "Save analyses and scenarios",
-  "Compare different deal versions",
-  "Use account-level defaults",
-  "Export cleaner outputs",
-  "Build custom decks from templates and briefs",
+const heroMetrics = [
+  ["Product line", "Core range"],
+  ["Revenue uplift", "£24,000"],
+  ["Support", "£6,200"],
+  ["Gross profit", "£8,900"],
+  ["ROI", "1.4x"],
+];
+
+const credibilityPoints = [
+  "Built around real NAM workflows",
+  "Free calculators available",
+  "Pro adds saved scenarios and exports",
 ];
 
 export default function Home() {
   return (
     <div className="page-stack home-page">
       <Hero
-        title="Commercial planning tools for account managers"
+        eyebrow="Commercial planning tools for account managers"
+        title="Plan better deals. Explain the numbers faster."
         visual={
-          <ProductVisual
-            alt="APT calculator dashboard showing inputs, results and export options"
-            aspectRatio="3 / 2"
-            description="APT calculator dashboard showing inputs, result summary and export options."
-            filename="/images/apt/apt-homepage-hero-dashboard.webp"
-            loading="eager"
-            title="Commercial dashboard"
-          />
+          <aside className="home-deal-preview" aria-label="Example APT deal summary">
+            <div className="home-deal-preview-header">
+              <div>
+                <span>Mini deal summary</span>
+                <strong>Promo scenario</strong>
+              </div>
+              <span className="home-preview-badge">Free preview</span>
+            </div>
+            <dl className="home-deal-metrics">
+              {heroMetrics.map(([label, value]) => (
+                <div className={label === "ROI" ? "home-deal-metric home-deal-metric-strong" : "home-deal-metric"} key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+            <div className="home-preview-summary">
+              <span>Scenario saved</span>
+              <strong>Clean summary ready for buyer conversation.</strong>
+            </div>
+          </aside>
         }
         actions={
           <>
-            <Link className="button" href="#tool-chooser">
-              Find the right tool
+            <Link className="button" href="/roi-tool">
+              Start with ROI planner
             </Link>
             <Link className="button button-secondary" href="/calculators">
-              Try free calculators
-            </Link>
-            <Link className="text-link" href="/pricing">
-              See APT Pro
+              Browse tools
             </Link>
           </>
         }
       >
         <p>
-          Run quick promo, margin and support checks — then turn the numbers
-          into cleaner summaries for retailer meetings, internal reviews and
-          account planning.
+          APT helps sales teams model ROI, margin, support and buyer conversations without rebuilding spreadsheets
+          every time.
         </p>
-        <p>APT helps when the question is simple but the spreadsheet never is.</p>
       </Hero>
+
+      <section className="shell home-credibility-strip" aria-label="APT value points">
+        {credibilityPoints.map((point) => (
+          <span key={point}>{point}</span>
+        ))}
+      </section>
 
       <section className="section shell home-starting-section" id="tool-chooser">
         <SectionHeader title="Choose your starting point">
@@ -144,6 +171,14 @@ export default function Home() {
               Use this when you need the complete deal view: product lines, support, revenue, profit, ROI and scenario
               summary.
             </p>
+            <div className="home-card-preview home-featured-preview" aria-label="Example ROI planner calculation">
+              <span>Volume uplift</span>
+              <strong>+12,000 units</strong>
+              <span>Support spend</span>
+              <strong>£6,200</strong>
+              <span>ROI</span>
+              <strong>1.4x</strong>
+            </div>
             <ul className="compact-list">
               <li>Model one product line for free</li>
               <li>Add multi-line scenarios with APT Pro</li>
@@ -159,6 +194,7 @@ export default function Home() {
               <article className="card home-quick-check-card" key={item.title}>
                 <h3>{item.title}</h3>
                 <p>{item.description}</p>
+                <div className="home-card-preview">{item.preview}</div>
                 <Link className="text-link" href={item.href}>
                   {item.cta}
                 </Link>
@@ -185,77 +221,12 @@ export default function Home() {
             <article className="card home-planning-card" key={item.title}>
               <h3>{item.title}</h3>
               <p>{item.description}</p>
+              <div className="home-card-preview">{item.preview}</div>
               <Link className="text-link" href={item.href}>
                 {item.cta}
               </Link>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section className="section home-pro-band">
-        <div className="shell home-split-section">
-          <div className="home-split-copy">
-            <h2>APT Pro is for repeat commercial planning</h2>
-            <p className="section-lead">
-              Save analyses, compare scenarios, keep your defaults and return to your work without rebuilding the
-              numbers every time.
-            </p>
-            <ul className="compact-list home-feature-list">
-              {proWorkflowFeatures.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-            <div className="home-split-actions">
-              <Link className="button" href="/pricing">
-                Compare Free and Pro
-              </Link>
-              <Link className="button button-secondary" href="/workspace">
-                Open My workspace
-              </Link>
-            </div>
-          </div>
-          <div className="home-split-visual">
-            <ProductVisual
-              alt="APT Pro workflow showing saved scenarios, comparison and export options"
-              aspectRatio="16 / 10"
-              description="Saved scenarios, comparison and export workflow."
-              filename="/images/apt/apt-pro-workflow-visual.webp"
-              title="APT Pro workflow"
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="section shell home-split-section home-output-section">
-        <div className="home-split-copy">
-          <h2>Turn the numbers into a cleaner story</h2>
-          <p className="section-lead">
-            Download editable PowerPoint templates or use the custom deck flow to shape a meeting-ready first draft
-            from your brief and supporting data.
-          </p>
-          <ul className="compact-list home-feature-list">
-            <li>Choose a template</li>
-            <li>Add supporting data</li>
-            <li>Write a clear brief</li>
-          </ul>
-          <div className="home-split-actions">
-            <Link className="button" href="/presentation-templates">
-              View presentation templates
-            </Link>
-            <Link className="button button-secondary" href="/custom-deck">
-              Build custom deck
-            </Link>
-          </div>
-        </div>
-        <div className="home-split-visual">
-          <ProductVisual
-            alt="APT custom deck builder showing deck type, uploads and brief fields"
-            aspectRatio="16 / 10"
-            description="Deck type, template choice, supporting data and brief fields."
-            filename="/images/apt/apt-custom-deck-builder-preview.webp"
-            title="Custom deck workflow"
-          />
         </div>
       </section>
 
