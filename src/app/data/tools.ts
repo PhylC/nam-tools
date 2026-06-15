@@ -95,13 +95,13 @@ export const tools: Tool[] = [
   },
   {
     slug: "buyer-meeting-prep",
-    title: "Buyer Meeting Prep Tool",
-    shortTitle: "Buyer Meeting Prep",
+    title: "Buyer Meeting Planner",
+    shortTitle: "Buyer Meeting Planner",
     description:
       "Turn a buyer challenge, commercial ask and benefit story into meeting notes you can use.",
     category: "Planning",
     href: "/tools/buyer-meeting-prep",
-    related: ["account-plan-generator", "joint-business-plan-builder", "customer-review-template"],
+    related: ["account-plan-generator", "joint-business-plan-builder", "commercial-deal-calculator"],
     useCases: [
       "Prepare a buyer meeting with a clear commercial ask",
       "Anticipate objections before a negotiation",
@@ -116,7 +116,7 @@ export const tools: Tool[] = [
       "Draft a practical JBP structure with growth pillars, activation, investment and success measures.",
     category: "Planning",
     href: "/tools/joint-business-plan-builder",
-    related: ["account-plan-generator", "buyer-meeting-prep", "terms-investment-calculator"],
+    related: ["buyer-meeting-prep", "account-plan-generator", "commercial-deal-calculator"],
     useCases: [
       "Create the first draft of a customer JBP",
       "Align category opportunity, activation and investment",
@@ -131,7 +131,7 @@ export const tools: Tool[] = [
       "Turn account notes into a clearer plan with opportunities, risks, strategy and 30/60/90 actions.",
     category: "Planning",
     href: "/tools/account-plan-generator",
-    related: ["buyer-meeting-prep", "joint-business-plan-builder", "customer-review-template"],
+    related: ["buyer-meeting-prep", "joint-business-plan-builder", "commercial-deal-calculator"],
     useCases: [
       "Turn account notes into a structured plan",
       "Prepare internal account reviews",

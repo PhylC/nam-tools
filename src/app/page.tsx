@@ -29,6 +29,28 @@ const quickCheckCards = [
   },
 ];
 
+const planningCards = [
+  {
+    title: "Buyer Meeting Planner",
+    description:
+      "Structure the objective, ask, risk, negotiation points and next steps for a retailer conversation.",
+    href: "/tools/buyer-meeting-prep",
+    cta: "Plan a meeting",
+  },
+  {
+    title: "Account Plan",
+    description: "Turn customer priorities, opportunities and risks into a clearer account plan.",
+    href: "/tools/account-plan-generator",
+    cta: "Build account plan",
+  },
+  {
+    title: "JBP Builder",
+    description: "Create a practical joint business planning structure for customer conversations.",
+    href: "/tools/joint-business-plan-builder",
+    cta: "Build JBP",
+  },
+];
+
 const freeFeatures = [
   "Single product",
   "Single scenario",
@@ -133,6 +155,26 @@ export default function Home() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="section shell home-planning-section">
+        <SectionHeader title="More than calculators">
+          <p>
+            APT also helps you prepare the commercial story behind the numbers — buyer meetings, account plans and
+            joint business planning.
+          </p>
+        </SectionHeader>
+        <div className="home-planning-grid">
+          {planningCards.map((item) => (
+            <article className="card home-planning-card" key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+              <Link className="text-link" href={item.href}>
+                {item.cta}
+              </Link>
+            </article>
+          ))}
         </div>
       </section>
 

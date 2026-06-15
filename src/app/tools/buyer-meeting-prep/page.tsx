@@ -3,7 +3,7 @@ import { ToolPage } from "../../components/Shell";
 import { BuyerMeetingPrepTool } from "../../components/ToolWidgets";
 
 export const metadata: Metadata = {
-  title: "Buyer Meeting Prep Tool",
+  title: "Buyer Meeting Planner",
   description: "Generate a structured buyer meeting plan with talking points, objections and responses.",
 };
 

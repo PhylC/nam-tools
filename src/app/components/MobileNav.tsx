@@ -9,7 +9,12 @@ import { DevPlanToggle } from "./DevPlanToggle";
 const mobileLinks = [
   { href: "/roi-tool", label: "ROI Tool", match: ["/roi-tool"] },
   { href: "/calculators", label: "Calculators", match: ["/calculators"] },
-  { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates", "/tools/buyer-meeting-prep", "/tools/customer-review-template", "/tools/joint-business-plan-builder"] },
+  {
+    href: "/tools",
+    label: "Planning",
+    match: ["/tools/buyer-meeting-prep", "/tools/account-plan-generator", "/tools/joint-business-plan-builder", "/tools/customer-review-template"],
+  },
+  { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates"] },
   { href: "/pricing", label: "Pricing", match: ["/pricing"] },
   { href: "/workspace", label: "Workspace", match: ["/workspace"] },
   { href: "/settings", label: "Settings", match: ["/settings"] },

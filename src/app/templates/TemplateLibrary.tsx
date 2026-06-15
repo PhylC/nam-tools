@@ -103,11 +103,11 @@ Slide 8: Internal asks
 - Marketing:`,
   },
   {
-    name: "Buyer Meeting Prep PowerPoint Template",
+    name: "Buyer Meeting Planner PowerPoint Template",
     file: "buyer-meeting-prep-template.pptx",
     useCase: "Prepare a buyer conversation with a sharper ask, story and objection plan.",
     includes: ["Meeting objective", "Opening", "Commercial story", "Evidence", "Objections", "Questions", "Closing ask", "Follow-up"],
-    outline: `Buyer Meeting Prep PowerPoint Outline
+    outline: `Buyer Meeting Planner PowerPoint Outline
 
 Slide 1: Meeting objective
 - Customer:

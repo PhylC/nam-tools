@@ -88,10 +88,10 @@ const freeTemplates: FreeTemplate[] = [
     includes: "review slides, targets, investment priorities and quarterly roadmap",
   },
   {
-    title: "Buyer Meeting Prep Template",
+    title: "Buyer Meeting Planner Template",
     slug: "buyer-meeting",
     pptx: "buyer-meeting-prep-template.pptx",
-    deckType: "Buyer Meeting Prep",
+    deckType: "Buyer Meeting Planner",
     description: "Prepare the meeting objective, buyer priorities, talking points, objections and follow-up actions.",
     bestFor: "Account managers, KAMs and customer-facing commercial teams",
     slides: "8",

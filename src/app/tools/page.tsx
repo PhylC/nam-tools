@@ -14,13 +14,13 @@ const groups = [
     title: "Planning tools",
     intro:
       "Turn account knowledge into structured plans for customers, internal reviews and joint growth conversations.",
-    slugs: ["account-plan-generator", "joint-business-plan-builder"],
+    slugs: ["buyer-meeting-prep", "account-plan-generator", "joint-business-plan-builder"],
   },
   {
     title: "Meeting/review tools",
     intro:
       "Prepare buyer conversations and customer reviews with clearer sections, sharper asks and copy-ready outputs.",
-    slugs: ["buyer-meeting-prep", "customer-review-template"],
+    slugs: ["customer-review-template"],
   },
 ];
 

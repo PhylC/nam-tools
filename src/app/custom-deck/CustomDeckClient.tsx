@@ -21,7 +21,7 @@ const deckTypes = [
   { label: "Range Review", value: "range-review" },
   { label: "New Product Launch", value: "product-launch" },
   { label: "Annual Planning", value: "annual-planning" },
-  { label: "Buyer Meeting Prep", value: "buyer-meeting" },
+  { label: "Buyer Meeting Planner", value: "buyer-meeting" },
   { label: "Category Opportunity", value: "category-opportunity" },
 ];
 
