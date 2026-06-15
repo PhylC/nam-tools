@@ -51,20 +51,35 @@ const planningCards = [
   },
 ];
 
-const freeFeatures = [
-  "Single product",
-  "Single scenario",
-  "Basic result summary",
-  "CSV download",
-  "Calculator defaults with a free account",
+const comparisonRows = [
+  ["Calculators", "Included", "Included"],
+  ["Product lines", "1", "Multiple"],
+  ["Scenarios", "1", "Save + compare"],
+  ["Result summary", "Basic", "Advanced"],
+  ["Copy summary", "Included", "Included"],
+  ["CSV export", "Current calculation", "Included"],
+  ["Excel export", "—", "Workbook"],
+  ["PowerPoint export", "—", "Deck export"],
+  ["Branding/disclaimer", "—", "Logo + disclaimer"],
+  ["Templates", "Download", "Save templates"],
+  ["Saved defaults", "Account defaults", "Account + export defaults"],
 ];
 
-const proFeatures = [
-  "Save analyses and scenarios",
-  "Compare deal versions",
-  "Workspace for saved work",
-  "PowerPoint and Excel exports",
-  "Company templates and export settings",
+const bestChoiceCards = [
+  {
+    plan: "Free",
+    label: "For quick one-off checks",
+    cta: "Try free calculators",
+    href: "/calculators",
+    emphasis: false,
+  },
+  {
+    plan: "APT Pro",
+    label: "For saved scenarios, exports and repeat planning",
+    cta: "See APT Pro",
+    href: "/pricing",
+    emphasis: true,
+  },
 ];
 
 const proWorkflowFeatures = [
@@ -248,38 +263,69 @@ export default function Home() {
         <div className="home-free-pro-heading">
           <SectionHeader title="Free for quick checks. Pro for repeat work.">
             <p>
-              Use Free when you need a quick answer. Use APT Pro when you need to save, compare and turn your work
-              into cleaner outputs.
+              Use Free when you need a fast answer. Use APT Pro when you need to save, compare and export commercial
+              scenarios.
             </p>
           </SectionHeader>
         </div>
-        <div className="free-pro-columns">
-          <article className="card mini-card home-plan-card">
-            <span className="home-plan-label">For one-off checks</span>
-            <h3>Free</h3>
-            <p>Use the calculators when you need a quick read on a single product, scenario or commercial question.</p>
-            <ul className="compact-list">
-              {freeFeatures.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-            <Link className="button button-secondary" href="/calculators">
-              Try free calculators
-            </Link>
-          </article>
-          <article className="card mini-card home-plan-card home-plan-card-pro">
-            <span className="home-plan-label">For repeat planning</span>
-            <h3>APT Pro</h3>
-            <p>Use Pro when you need to save work, compare versions, build decks and return to commercial scenarios later.</p>
-            <ul className="compact-list">
-              {proFeatures.map((feature) => (
-                <li key={feature}>{feature}</li>
-              ))}
-            </ul>
-            <Link className="button" href="/pricing">
-              Compare Free and Pro
-            </Link>
-          </article>
+
+        <div className="home-best-choice-strip" aria-label="Best choice by planning need">
+          {bestChoiceCards.map((card) => (
+            <article className={`home-choice-card${card.emphasis ? " home-choice-card-pro" : ""}`} key={card.plan}>
+              <div>
+                <h3>{card.plan}</h3>
+                <p>{card.label}</p>
+              </div>
+              <Link className={card.emphasis ? "button" : "button button-secondary"} href={card.href}>
+                {card.cta}
+              </Link>
+            </article>
+          ))}
+        </div>
+
+        <div className="home-comparison-card">
+          <div className="home-comparison-table-wrap" aria-label="Free and APT Pro comparison">
+            <table className="home-comparison-table">
+              <caption>Free and APT Pro feature comparison</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Feature</th>
+                  <th scope="col">Free</th>
+                  <th className="home-pro-column" scope="col">
+                    <span>APT Pro</span>
+                    <span className="home-pro-badge">Best for repeat planning</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map(([feature, free, pro]) => (
+                  <tr key={feature}>
+                    <th scope="row">{feature}</th>
+                    <td>{free}</td>
+                    <td className="home-pro-column">{pro}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="home-mobile-comparison" aria-label="Free and APT Pro comparison">
+            {comparisonRows.map(([feature, free, pro]) => (
+              <article className="home-mobile-comparison-row" key={feature}>
+                <h3>{feature}</h3>
+                <div className="home-mobile-comparison-values">
+                  <div>
+                    <span>Free</span>
+                    <strong>{free}</strong>
+                  </div>
+                  <div className="home-mobile-pro-value">
+                    <span>APT Pro</span>
+                    <strong>{pro}</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 

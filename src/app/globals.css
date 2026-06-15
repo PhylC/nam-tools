@@ -917,17 +917,6 @@ p {
   align-items: stretch;
 }
 
-.free-pro-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.9rem;
-}
-
-.free-pro-columns .button {
-  grid-column: 1 / -1;
-  justify-self: start;
-}
-
 .pro-workflow-home-visual {
   max-width: 420px;
   margin-top: 1rem;
@@ -1244,8 +1233,8 @@ p {
 .home-free-pro-summary {
   border-radius: 18px;
   background:
-    radial-gradient(circle at 90% 10%, rgba(170, 198, 194, 0.28), transparent 24%),
-    rgba(255, 255, 255, 0.72);
+    radial-gradient(circle at 88% 8%, rgba(170, 198, 194, 0.32), transparent 26%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(247, 242, 233, 0.78));
 }
 
 .home-free-pro-heading {
@@ -1253,44 +1242,131 @@ p {
   margin-bottom: 1.25rem;
 }
 
-.home-plan-card {
+.home-best-choice-strip {
   display: grid;
-  gap: 0.72rem;
-  min-height: 100%;
-  box-shadow: var(--shadow-soft);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.95rem;
+  margin-bottom: 1rem;
 }
 
-.home-plan-card h3 {
+.home-choice-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(222, 217, 207, 0.9);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(28, 45, 43, 0.07);
+  padding: 1.05rem;
+}
+
+.home-choice-card h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.04rem;
+}
+
+.home-choice-card p {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
   margin: 0;
 }
 
-.home-plan-card p {
-  color: var(--muted);
-  font-weight: 750;
+.home-choice-card .button {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
-.home-plan-card .compact-list {
-  margin-bottom: 0.25rem;
+.home-choice-card-pro {
+  border-color: rgba(15, 118, 110, 0.34);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(170, 198, 194, 0.36), transparent 36%),
+    linear-gradient(135deg, #f4fbfa, rgba(255, 255, 255, 0.96));
 }
 
-.home-plan-card .button {
-  align-self: end;
-  justify-self: start;
-  margin-top: auto;
+.home-comparison-card {
+  overflow: hidden;
+  border: 1px solid rgba(222, 217, 207, 0.92);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 45px rgba(28, 45, 43, 0.09);
 }
 
-.home-plan-label {
-  color: var(--accent-dark);
-  font-size: 0.8rem;
+.home-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.home-comparison-table caption {
+  height: 1px;
+  width: 1px;
+  position: absolute;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.home-comparison-table th,
+.home-comparison-table td {
+  border-bottom: 1px solid rgba(222, 217, 207, 0.72);
+  padding: 1rem 1.1rem;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.home-comparison-table thead th {
+  background: rgba(247, 242, 233, 0.78);
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.home-comparison-table tbody th {
+  color: var(--foreground);
   font-weight: 900;
 }
 
-.home-plan-card-pro {
-  border-color: rgba(15, 118, 110, 0.35);
-  background:
-    radial-gradient(circle at 100% 0%, rgba(170, 198, 194, 0.35), transparent 30%),
-    linear-gradient(135deg, rgba(244, 251, 250, 0.96), rgba(255, 255, 255, 0.98)),
-    var(--surface);
+.home-comparison-table tbody td {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.home-comparison-table tr:last-child th,
+.home-comparison-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.home-comparison-table .home-pro-column {
+  background: rgba(228, 240, 238, 0.72);
+  color: var(--accent-dark);
+}
+
+.home-comparison-table thead .home-pro-column {
+  background: rgba(209, 229, 226, 0.86);
+}
+
+.home-comparison-table thead .home-pro-column span:first-child {
+  display: block;
+}
+
+.home-pro-badge {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  border: 1px solid rgba(15, 118, 110, 0.22);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--accent-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  margin-top: 0.4rem;
+  padding: 0.24rem 0.55rem;
+}
+
+.home-mobile-comparison {
+  display: none;
 }
 
 .home-page .final-cta {
@@ -4398,7 +4474,6 @@ p {
   .card-grid,
   .hero-with-media,
   .split-band,
-  .free-pro-columns,
   .calculator-task-grid,
   .calculator-roi-hero,
   .calculator-search-panel,
@@ -4436,10 +4511,6 @@ p {
 
   .defaults-actions .button {
     flex: 1 1 150px;
-  }
-
-  .free-pro-columns .button {
-    justify-self: stretch;
   }
 
   .tool-side {
@@ -4757,6 +4828,89 @@ p {
     border-radius: 12px;
   }
 
+  .home-best-choice-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .home-choice-card {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.95rem;
+  }
+
+  .home-choice-card .button {
+    width: 100%;
+  }
+
+  .home-comparison-card {
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+    border: 0;
+  }
+
+  .home-comparison-table-wrap {
+    display: none;
+  }
+
+  .home-mobile-comparison {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .home-mobile-comparison-row {
+    display: grid;
+    gap: 0.7rem;
+    border: 1px solid rgba(222, 217, 207, 0.9);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 10px 26px rgba(28, 45, 43, 0.06);
+    padding: 0.82rem;
+  }
+
+  .home-mobile-comparison-row h3 {
+    margin: 0;
+    font-size: 0.98rem;
+  }
+
+  .home-mobile-comparison-values {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.62rem;
+  }
+
+  .home-mobile-comparison-values > div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    border: 1px solid rgba(222, 217, 207, 0.74);
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 0.62rem;
+  }
+
+  .home-mobile-comparison-values span {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 900;
+  }
+
+  .home-mobile-comparison-values strong {
+    color: var(--foreground);
+    font-size: 0.9rem;
+    line-height: 1.28;
+    overflow-wrap: anywhere;
+  }
+
+  .home-mobile-comparison-values .home-mobile-pro-value {
+    border-color: rgba(15, 118, 110, 0.25);
+    background: rgba(228, 240, 238, 0.72);
+  }
+
+  .home-mobile-comparison-values .home-mobile-pro-value strong {
+    color: var(--accent-dark);
+  }
+
   .home-featured-tool-card,
   .home-quick-check-card {
     min-height: 0;
@@ -4773,10 +4927,6 @@ p {
   .home-page .final-cta {
     border-radius: 12px;
     padding: 1.25rem;
-  }
-
-  .home-plan-card .button {
-    justify-self: stretch;
   }
 
   .final-cta-actions {
