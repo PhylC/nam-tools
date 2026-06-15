@@ -14,6 +14,30 @@ function readUrlError(searchParams: URLSearchParams) {
   return Boolean(hashParams.get("error") || hashParams.get("error_description"));
 }
 
+function logPasswordUpdateError(context: string, error: unknown) {
+  if (process.env.NODE_ENV === "production") return;
+  console.warn(`Password reset flow failed: ${context}`, error);
+}
+
+function passwordUpdateErrorMessage(error: unknown) {
+  const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("weak") || lowerMessage.includes("password")) {
+    return "Choose a stronger password with at least 8 characters.";
+  }
+
+  if (lowerMessage.includes("expired") || lowerMessage.includes("invalid") || lowerMessage.includes("token")) {
+    return "This password reset link has expired or could not be used. Request a new password reset link.";
+  }
+
+  if (lowerMessage.includes("fetch") || lowerMessage.includes("network") || lowerMessage.includes("failed to fetch")) {
+    return "Network error. Check your connection and try again.";
+  }
+
+  return "Password reset service unavailable. Please try again later.";
+}
+
 export function UpdatePasswordClient() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [newPassword, setNewPassword] = useState("");
@@ -39,6 +63,13 @@ export function UpdatePasswordClient() {
 
       if (readUrlError(new URLSearchParams(window.location.search))) {
         if (!isMounted) return;
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+        logPasswordUpdateError("reset link contained an error", {
+          queryError: Boolean(new URLSearchParams(window.location.search).get("error")),
+          queryErrorDescription: Boolean(new URLSearchParams(window.location.search).get("error_description")),
+          hashError: Boolean(hashParams.get("error")),
+          hashErrorDescription: Boolean(hashParams.get("error_description")),
+        });
         setTone("error");
         setMessage("This password reset link has expired or could not be used. Request a new password reset link.");
         setIsCheckingLink(false);
@@ -50,8 +81,9 @@ export function UpdatePasswordClient() {
         const { error } = await supabase.auth.exchangeCodeForSession(code);
         if (error) {
           if (!isMounted) return;
+          logPasswordUpdateError("code exchange", error);
           setTone("error");
-          setMessage("This password reset link has expired or could not be used. Request a new password reset link.");
+          setMessage(passwordUpdateErrorMessage(error));
           setIsCheckingLink(false);
           return;
         }
@@ -120,8 +152,9 @@ export function UpdatePasswordClient() {
     setIsSubmitting(false);
 
     if (error) {
+      logPasswordUpdateError("password update", error);
       setTone("error");
-      setMessage("We could not update your password. Please try again.");
+      setMessage(passwordUpdateErrorMessage(error));
       return;
     }
 

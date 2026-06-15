@@ -7,16 +7,45 @@ import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getPasswordResetRedirectUrl() {
-  if (typeof window === "undefined") {
-    return "https://accountplanningtools.com/update-password";
+  const configuredRedirect = process.env.NEXT_PUBLIC_PASSWORD_RESET_REDIRECT_URL?.trim();
+  if (configuredRedirect) {
+    return configuredRedirect;
   }
 
-  const isLocal = ["localhost", "127.0.0.1"].includes(window.location.hostname);
-  if (isLocal) {
+  if (typeof window !== "undefined") {
     return `${window.location.origin}/update-password`;
   }
 
-  return "https://accountplanningtools.com/update-password";
+  return "https://accountplanningtools.co.uk/update-password";
+}
+
+function logPasswordResetError(error: unknown, redirectTo: string) {
+  if (process.env.NODE_ENV === "production") return;
+  console.warn("Password reset request failed", { error, redirectTo });
+}
+
+function passwordResetErrorMessage(error: unknown) {
+  const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
+  const status = error && typeof error === "object" && "status" in error ? Number(error.status) : undefined;
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("redirect") || lowerMessage.includes("url") || lowerMessage.includes("site url")) {
+    return "Password reset is not configured correctly. Please contact support.";
+  }
+
+  if (lowerMessage.includes("fetch") || lowerMessage.includes("network") || lowerMessage.includes("failed to fetch")) {
+    return "Network error. Check your connection and try again.";
+  }
+
+  if (status === 429 || lowerMessage.includes("rate")) {
+    return "Too many reset requests. Please wait a few minutes and try again.";
+  }
+
+  if (lowerMessage.includes("smtp") || lowerMessage.includes("email")) {
+    return "Email service is temporarily unavailable. Please try again later.";
+  }
+
+  return "Password reset service unavailable. Please try again later.";
 }
 
 export function ForgotPasswordClient() {
@@ -43,15 +72,17 @@ export function ForgotPasswordClient() {
       return;
     }
 
+    const redirectTo = getPasswordResetRedirectUrl();
     setIsSubmitting(true);
     const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo: getPasswordResetRedirectUrl(),
+      redirectTo,
     });
     setIsSubmitting(false);
 
     if (error) {
+      logPasswordResetError(error, redirectTo);
       setTone("error");
-      setMessage("We could not send a password reset link right now. Please try again.");
+      setMessage(passwordResetErrorMessage(error));
       return;
     }
 
