@@ -73,6 +73,11 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
         <span>Password</span>
         <input autoComplete={isCreate ? "new-password" : "current-password"} type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
       </label>
+      {!isCreate ? (
+        <Link className="text-link auth-forgot-link" href="/forgot-password">
+          Forgot password?
+        </Link>
+      ) : null}
       {isCreate ? (
         <label className="field">
           <span>Confirm password</span>

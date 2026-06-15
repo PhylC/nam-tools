@@ -363,6 +363,11 @@ textarea:focus {
   font-weight: 700;
 }
 
+.auth-forgot-link {
+  justify-self: start;
+  margin-top: -0.25rem;
+}
+
 .auth-card,
 .account-card,
 .account-link-grid,
@@ -3534,6 +3539,13 @@ p {
   border-color: #aac6c2;
   background: var(--accent-soft);
   color: var(--accent-dark);
+}
+
+.settings-message-info,
+.settings-message-warning {
+  border-color: #d9c9a3;
+  background: #fff8e8;
+  color: var(--warning);
 }
 
 .settings-message-error {

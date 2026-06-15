@@ -25,6 +25,8 @@ const routes = [
   "/account",
   "/login",
   "/create-account",
+  "/forgot-password",
+  "/update-password",
   "/pricing",
   "/about",
   "/contact",
