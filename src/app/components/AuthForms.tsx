@@ -59,13 +59,28 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     }
 
     setIsSubmitting(true);
-    const result = isCreate ? await signUp(trimmedEmail, password) : await signIn(trimmedEmail, password);
-    setIsSubmitting(false);
-    setTone(result.ok ? "success" : "error");
-    setMessage(result.message);
+    try {
+      const result = isCreate ? await signUp(trimmedEmail, password) : await signIn(trimmedEmail, password);
+      setTone(result.ok ? "success" : "error");
+      setMessage(result.message);
 
-    if (result.ok && !isCreate) {
-      router.push(getReturnTo("/account"));
+      if (result.ok && result.redirectTo) {
+        router.push(result.redirectTo);
+        return;
+      }
+
+      if (result.ok && !isCreate) {
+        router.push(getReturnTo("/account"));
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`${isCreate ? "Create account" : "Login"} form submit failed`, error);
+        if (error instanceof Error && error.stack) console.warn(`${isCreate ? "Create account" : "Login"} form submit stack`, error.stack);
+      }
+      setTone("error");
+      setMessage(isCreate ? "Account creation is temporarily unavailable." : "Auth service unavailable. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 

@@ -23,6 +23,14 @@ function getPasswordResetRedirectUrl() {
 function logPasswordResetError(error: unknown, redirectTo: string) {
   if (process.env.NODE_ENV === "production") return;
   console.warn("Password reset request failed", { error, redirectTo });
+  if (error instanceof Error && error.stack) {
+    console.warn("Password reset request stack", error.stack);
+  }
+}
+
+function logPasswordResetOperation(redirectTo: string) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info("Supabase auth operation: resetPasswordForEmail", { redirectTo });
 }
 
 function passwordResetErrorMessage(error: unknown) {
@@ -53,6 +61,14 @@ function passwordResetErrorMessage(error: unknown) {
   return "Password reset service unavailable. Please try again later.";
 }
 
+function thrownPasswordResetErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (message.includes("fetch") || message.includes("network") || message.includes("failed to fetch")) {
+    return "Auth service unavailable. Check your connection and try again.";
+  }
+  return "Password reset unavailable. Please try again later.";
+}
+
 export function ForgotPasswordClient() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const [email, setEmail] = useState("");
@@ -78,16 +94,25 @@ export function ForgotPasswordClient() {
     }
 
     const redirectTo = getPasswordResetRedirectUrl();
+    logPasswordResetOperation(redirectTo);
     setIsSubmitting(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-      redirectTo,
-    });
-    setIsSubmitting(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+        redirectTo,
+      });
+      setIsSubmitting(false);
 
-    if (error) {
+      if (error) {
+        logPasswordResetError(error, redirectTo);
+        setTone("error");
+        setMessage(passwordResetErrorMessage(error));
+        return;
+      }
+    } catch (error) {
+      setIsSubmitting(false);
       logPasswordResetError(error, redirectTo);
       setTone("error");
-      setMessage(passwordResetErrorMessage(error));
+      setMessage(thrownPasswordResetErrorMessage(error));
       return;
     }
 

@@ -9,6 +9,7 @@ import { getUserPlan, type UserPlan } from "./userPlan";
 type AuthResult = {
   ok: boolean;
   message: string;
+  redirectTo?: string;
 };
 
 function getAuthRedirectUrl(path: string) {
@@ -19,6 +20,19 @@ function getAuthRedirectUrl(path: string) {
 function logAuthError(context: string, error: unknown) {
   if (process.env.NODE_ENV === "production") return;
   console.warn(`Supabase auth error: ${context}`, error);
+  if (error instanceof Error && error.stack) {
+    console.warn(`Supabase auth stack: ${context}`, error.stack);
+  }
+}
+
+function logAuthOperation(operation: string) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info(`Supabase auth operation: ${operation}`);
+}
+
+function logAuthResponse(context: string, data: unknown) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info(`Supabase auth response: ${context}`, data);
 }
 
 function authErrorMessage(error: AuthError, context: "login" | "signup" | "signout") {
@@ -34,7 +48,7 @@ function authErrorMessage(error: AuthError, context: "login" | "signup" | "signo
   }
 
   if (message.includes("user already registered") || message.includes("already registered") || message.includes("already exists")) {
-    return "An account may already exist for this email. Try logging in or use forgot password.";
+    return "An account already exists for this email address. Try logging in or resetting your password.";
   }
 
   if (message.includes("password") && (message.includes("weak") || message.includes("short"))) {
@@ -51,13 +65,30 @@ function authErrorMessage(error: AuthError, context: "login" | "signup" | "signo
 
   if (message.includes("api key") || message.includes("invalid key") || message.includes("project")) {
     return context === "signup"
-      ? "Account creation is not configured correctly. Please contact support."
+      ? "Account creation is temporarily unavailable."
       : "Sign-in is not configured correctly. Please contact support.";
   }
 
-  if (context === "signup") return "We could not create your account. Please try again.";
+  if (context === "signup") return "Account creation is temporarily unavailable.";
   if (context === "signout") return "Could not sign out. Please try again.";
   return "We could not log you in. Check your email and password.";
+}
+
+function unknownAuthErrorMessage(error: unknown, context: "login" | "signup" | "signout") {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("fetch") || message.includes("network") || message.includes("failed to fetch")) {
+    return "Auth service unavailable. Check your connection and try again.";
+  }
+
+  if (context === "signup") return "Account creation is temporarily unavailable.";
+  if (context === "signout") return "Auth service unavailable. We could not sign you out right now.";
+  return "Auth service unavailable. Please try again later.";
+}
+
+function isExistingAccountSignup(data: { user?: User | null } | null) {
+  const identities = data?.user?.identities;
+  return Array.isArray(identities) && identities.length === 0;
 }
 
 export function useAuth() {
@@ -75,6 +106,7 @@ export function useAuth() {
     }
 
     let isMounted = true;
+    logAuthOperation("getUser");
     supabase.auth
       .getUser()
       .then(({ data, error }) => {
@@ -91,6 +123,7 @@ export function useAuth() {
       });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      logAuthOperation(`onAuthStateChange:${_event}`);
       setUser(session?.user ?? null);
       setIsLoadingAuth(false);
     });
@@ -106,12 +139,18 @@ export function useAuth() {
       if (!supabase) {
         return { ok: false, message: "Sign-in is not configured. Please contact support." };
       }
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        logAuthError("login", error);
-        return { ok: false, message: authErrorMessage(error, "login") };
+      logAuthOperation("signInWithPassword");
+      try {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          logAuthError("login", error);
+          return { ok: false, message: authErrorMessage(error, "login") };
+        }
+        return { ok: true, message: "Logged in." };
+      } catch (error) {
+        logAuthError("login thrown", error);
+        return { ok: false, message: unknownAuthErrorMessage(error, "login") };
       }
-      return { ok: true, message: "Logged in." };
     },
     [supabase],
   );
@@ -119,34 +158,57 @@ export function useAuth() {
   const signUp = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
       if (!supabase) {
-        return { ok: false, message: "Account creation is not configured. Please contact support." };
+        return { ok: false, message: "Account creation is temporarily unavailable." };
       }
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: getAuthRedirectUrl("/login?confirmed=true"),
-        },
-      });
-      if (error) {
-        logAuthError("signup", error);
-        return { ok: false, message: authErrorMessage(error, "signup") };
+      logAuthOperation("signUp");
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: getAuthRedirectUrl("/login?confirmed=true"),
+          },
+        });
+        logAuthResponse("signup", {
+          hasUser: Boolean(data.user),
+          hasSession: Boolean(data.session),
+          identityCount: data.user?.identities?.length ?? null,
+        });
+        if (error) {
+          logAuthError("signup", error);
+          return { ok: false, message: authErrorMessage(error, "signup") };
+        }
+        if (isExistingAccountSignup(data)) {
+          return {
+            ok: false,
+            message: "An account already exists for this email address. Try logging in or resetting your password.",
+          };
+        }
+        if (data.session) return { ok: true, message: "Account created. Redirecting to your workspace.", redirectTo: "/workspace" };
+        return { ok: true, message: "Check your email to confirm your account." };
+      } catch (error) {
+        logAuthError("signup thrown", error);
+        return { ok: false, message: unknownAuthErrorMessage(error, "signup") };
       }
-      if (data.session) return { ok: true, message: "Account created. You are now logged in." };
-      return { ok: true, message: "Account created. Check your inbox to confirm your email, then log in." };
     },
     [supabase],
   );
 
   const signOut = useCallback(async (): Promise<AuthResult> => {
     if (!supabase) return { ok: true, message: "Signed out." };
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      logAuthError("signout", error);
-      return { ok: false, message: authErrorMessage(error, "signout") };
+    logAuthOperation("signOut");
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        logAuthError("signout", error);
+        return { ok: false, message: authErrorMessage(error, "signout") };
+      }
+      setUser(null);
+      return { ok: true, message: "Signed out." };
+    } catch (error) {
+      logAuthError("signout thrown", error);
+      return { ok: false, message: unknownAuthErrorMessage(error, "signout") };
     }
-    setUser(null);
-    return { ok: true, message: "Signed out." };
   }, [supabase]);
 
   return useMemo(

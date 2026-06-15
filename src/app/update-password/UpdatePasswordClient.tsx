@@ -18,6 +18,14 @@ function readUrlError(searchParams: URLSearchParams) {
 function logPasswordUpdateError(context: string, error: unknown) {
   if (process.env.NODE_ENV === "production") return;
   console.warn(`Password reset flow failed: ${context}`, error);
+  if (error instanceof Error && error.stack) {
+    console.warn(`Password reset flow stack: ${context}`, error.stack);
+  }
+}
+
+function logPasswordUpdateOperation(operation: string) {
+  if (process.env.NODE_ENV === "production") return;
+  console.info(`Supabase auth operation: ${operation}`);
 }
 
 function passwordUpdateErrorMessage(error: unknown) {
@@ -54,60 +62,76 @@ export function UpdatePasswordClient() {
     let isMounted = true;
 
     async function prepareResetSession() {
-      if (!supabase) {
-        if (!isMounted) return;
-        setTone("error");
-        setMessage("Password reset could not be completed because auth is not configured.");
-        setIsCheckingLink(false);
-        return;
-      }
-
-      if (readUrlError(new URLSearchParams(window.location.search))) {
-        if (!isMounted) return;
-        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-        logPasswordUpdateError("reset link contained an error", {
-          queryError: Boolean(new URLSearchParams(window.location.search).get("error")),
-          queryErrorDescription: Boolean(new URLSearchParams(window.location.search).get("error_description")),
-          hashError: Boolean(hashParams.get("error")),
-          hashErrorDescription: Boolean(hashParams.get("error_description")),
-        });
-        setTone("error");
-        setMessage("This password reset link has expired or could not be used. Request a new password reset link.");
-        setIsCheckingLink(false);
-        return;
-      }
-
-      const code = new URLSearchParams(window.location.search).get("code");
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
+      try {
+        if (!supabase) {
           if (!isMounted) return;
-          logPasswordUpdateError("code exchange", error);
           setTone("error");
-          setMessage(passwordUpdateErrorMessage(error));
+          setMessage("Password reset could not be completed because auth is not configured.");
           setIsCheckingLink(false);
           return;
         }
-        window.history.replaceState(null, "", "/update-password");
-      }
 
-      const { data } = await supabase.auth.getSession();
-      if (!isMounted) return;
+        if (readUrlError(new URLSearchParams(window.location.search))) {
+          if (!isMounted) return;
+          const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+          logPasswordUpdateError("reset link contained an error", {
+            queryError: Boolean(new URLSearchParams(window.location.search).get("error")),
+            queryErrorDescription: Boolean(new URLSearchParams(window.location.search).get("error_description")),
+            hashError: Boolean(hashParams.get("error")),
+            hashErrorDescription: Boolean(hashParams.get("error_description")),
+          });
+          setTone("error");
+          setMessage("This password reset link has expired or could not be used. Request a new password reset link.");
+          setIsCheckingLink(false);
+          return;
+        }
 
-      if (!data.session) {
-        setTone("error");
-        setMessage("Use the password reset link from your email to choose a new password.");
+        const code = new URLSearchParams(window.location.search).get("code");
+        if (code) {
+          logPasswordUpdateOperation("exchangeCodeForSession");
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            if (!isMounted) return;
+            logPasswordUpdateError("code exchange", error);
+            setTone("error");
+            setMessage(passwordUpdateErrorMessage(error));
+            setIsCheckingLink(false);
+            return;
+          }
+          window.history.replaceState(null, "", "/update-password");
+        }
+
+        const { data, error } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        if (error) {
+          logPasswordUpdateError("get session", error);
+          setTone("error");
+          setMessage("Auth service unavailable. Please try again later.");
+          setIsCheckingLink(false);
+          return;
+        }
+
+        if (!data.session) {
+          setTone("error");
+          setMessage("Use the password reset link from your email to choose a new password.");
+          setIsCheckingLink(false);
+          return;
+        }
+
+        if (window.location.hash) {
+          window.history.replaceState(null, "", "/update-password");
+        }
+
+        setHasResetSession(true);
+        setMessage("");
         setIsCheckingLink(false);
-        return;
+      } catch (error) {
+        if (!isMounted) return;
+        logPasswordUpdateError("prepare reset session thrown", error);
+        setTone("error");
+        setMessage("Auth service unavailable. Please try again later.");
+        setIsCheckingLink(false);
       }
-
-      if (window.location.hash) {
-        window.history.replaceState(null, "", "/update-password");
-      }
-
-      setHasResetSession(true);
-      setMessage("");
-      setIsCheckingLink(false);
     }
 
     prepareResetSession();
@@ -146,16 +170,26 @@ export function UpdatePasswordClient() {
     }
 
     setIsSubmitting(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (!error) {
-      await supabase.auth.signOut();
+    logPasswordUpdateOperation("updateUser password");
+    let updateError: unknown = null;
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      updateError = error;
+      if (!error) {
+        logPasswordUpdateOperation("signOut after password update");
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) logPasswordUpdateError("signout after password update", signOutError);
+      }
+    } catch (error) {
+      updateError = error;
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
 
-    if (error) {
-      logPasswordUpdateError("password update", error);
+    if (updateError) {
+      logPasswordUpdateError("password update", updateError);
       setTone("error");
-      setMessage(passwordUpdateErrorMessage(error));
+      setMessage(passwordUpdateErrorMessage(updateError));
       return;
     }
 
