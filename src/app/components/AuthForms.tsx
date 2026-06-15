@@ -86,9 +86,9 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
 
   return (
     <form className="card auth-card" onSubmit={handleSubmit}>
-      {!isConfigured ? (
+      {!isConfigured && !isCreate ? (
         <p className="settings-message settings-message-warning">
-          {isCreate ? "Account creation is not configured. Please contact support." : "Sign-in is not configured. Please contact support."}
+          Sign-in is not configured. Please contact support.
         </p>
       ) : null}
       <AuthDebugStatus />
@@ -112,7 +112,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
         </label>
       ) : null}
       <div className="auth-actions">
-        <button className="button" disabled={isSubmitting || !isConfigured} type="submit">
+        <button className="button" disabled={isSubmitting || (!isCreate && !isConfigured)} type="submit">
           {isSubmitting ? "Working..." : isCreate ? "Create free account" : "Log in"}
         </button>
         {isCreate ? (

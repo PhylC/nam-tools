@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { AuthError, User } from "@supabase/supabase-js";
+import type { AuthError, Session, User } from "@supabase/supabase-js";
 import { useAptMode } from "../app/components/AptMode";
 import { getSupabaseBrowserClient } from "./supabaseClient";
 import { getUserPlan, type UserPlan } from "./userPlan";
@@ -11,11 +11,6 @@ type AuthResult = {
   message: string;
   redirectTo?: string;
 };
-
-function getAuthRedirectUrl(path: string) {
-  if (typeof window === "undefined") return `https://accountplanningtools.com${path}`;
-  return `${window.location.origin}${path}`;
-}
 
 function logAuthError(context: string, error: unknown) {
   if (process.env.NODE_ENV === "production") return;
@@ -86,10 +81,12 @@ function unknownAuthErrorMessage(error: unknown, context: "login" | "signup" | "
   return "Auth service unavailable. Please try again later.";
 }
 
-function isExistingAccountSignup(data: { user?: User | null } | null) {
-  const identities = data?.user?.identities;
-  return Array.isArray(identities) && identities.length === 0;
-}
+type SignupApiResponse = {
+  ok?: boolean;
+  message?: string;
+  redirectTo?: string;
+  session?: Pick<Session, "access_token" | "refresh_token">;
+};
 
 export function useAuth() {
   const supabase = getSupabaseBrowserClient();
@@ -157,37 +154,51 @@ export function useAuth() {
 
   const signUp = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
-      if (!supabase) {
-        return { ok: false, message: "Account creation is temporarily unavailable." };
-      }
-      logAuthOperation("signUp");
+      logAuthOperation("server signup");
       try {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: getAuthRedirectUrl("/login?confirmed=true"),
+        const response = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
           },
+          body: JSON.stringify({ email, password }),
         });
-        logAuthResponse("signup", {
-          hasUser: Boolean(data.user),
-          hasSession: Boolean(data.session),
-          identityCount: data.user?.identities?.length ?? null,
+
+        const result = (await response.json().catch(() => null)) as SignupApiResponse | null;
+        logAuthResponse("server signup", {
+          status: response.status,
+          ok: result?.ok ?? false,
+          hasRedirect: Boolean(result?.redirectTo),
+          hasSession: Boolean(result?.session),
         });
-        if (error) {
-          logAuthError("signup", error);
-          return { ok: false, message: authErrorMessage(error, "signup") };
-        }
-        if (isExistingAccountSignup(data)) {
+
+        if (!response.ok || !result?.ok) {
           return {
             ok: false,
-            message: "An account already exists for this email address. Try logging in or resetting your password.",
+            message: result?.message || "Account creation is temporarily unavailable.",
           };
         }
-        if (data.session) return { ok: true, message: "Account created. Redirecting to your workspace.", redirectTo: "/workspace" };
-        return { ok: true, message: "Check your email to confirm your account." };
+
+        if (result.session) {
+          if (!supabase) {
+            logAuthError("signup session returned without browser Supabase client", new Error("Missing browser Supabase client"));
+            return { ok: true, message: "Account created. Log in to open your workspace.", redirectTo: "/login" };
+          }
+
+          const { error } = await supabase.auth.setSession(result.session);
+          if (error) {
+            logAuthError("set signup session", error);
+            return { ok: true, message: "Account created. Log in to open your workspace.", redirectTo: "/login" };
+          }
+        }
+
+        return {
+          ok: true,
+          message: result.message || "Check your email to confirm your account.",
+          redirectTo: result.redirectTo,
+        };
       } catch (error) {
-        logAuthError("signup thrown", error);
+        logAuthError("server signup thrown", error);
         return { ok: false, message: unknownAuthErrorMessage(error, "signup") };
       }
     },
