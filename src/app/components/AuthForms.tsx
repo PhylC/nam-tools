@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useAuth } from "../../lib/useAuth";
+import { AuthDebugStatus } from "./AuthDebugStatus";
 
 type AuthFormMode = "login" | "create";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function getReturnTo(fallback: string) {
   if (typeof window === "undefined") return fallback;
@@ -29,9 +32,17 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     event.preventDefault();
     setMessage("");
 
-    if (!email.trim() || !password) {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !password) {
       setTone("error");
       setMessage("Enter your email and password.");
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(trimmedEmail)) {
+      setTone("error");
+      setMessage("Please enter a valid email address.");
       return;
     }
 
@@ -48,7 +59,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     }
 
     setIsSubmitting(true);
-    const result = isCreate ? await signUp(email.trim(), password) : await signIn(email.trim(), password);
+    const result = isCreate ? await signUp(trimmedEmail, password) : await signIn(trimmedEmail, password);
     setIsSubmitting(false);
     setTone(result.ok ? "success" : "error");
     setMessage(result.message);
@@ -62,9 +73,10 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     <form className="card auth-card" onSubmit={handleSubmit}>
       {!isConfigured ? (
         <p className="settings-message settings-message-warning">
-          Sign-in is temporarily unavailable. Please try again later.
+          {isCreate ? "Account creation is not configured. Please contact support." : "Sign-in is not configured. Please contact support."}
         </p>
       ) : null}
+      <AuthDebugStatus />
       <label className="field">
         <span>Email</span>
         <input autoComplete="email" inputMode="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} />

@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
+import { AuthDebugStatus } from "../components/AuthDebugStatus";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -12,11 +13,11 @@ function getPasswordResetRedirectUrl() {
     return configuredRedirect;
   }
 
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
     return `${window.location.origin}/update-password`;
   }
 
-  return "https://accountplanningtools.co.uk/update-password";
+  return "https://accountplanningtools.com/update-password";
 }
 
 function logPasswordResetError(error: unknown, redirectTo: string) {
@@ -28,6 +29,10 @@ function passwordResetErrorMessage(error: unknown) {
   const message = error && typeof error === "object" && "message" in error ? String(error.message) : "";
   const status = error && typeof error === "object" && "status" in error ? Number(error.status) : undefined;
   const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes("api key") || lowerMessage.includes("invalid key") || lowerMessage.includes("project")) {
+    return "Password reset could not be sent because auth is not configured.";
+  }
 
   if (lowerMessage.includes("redirect") || lowerMessage.includes("url") || lowerMessage.includes("site url")) {
     return "Password reset is not configured correctly. Please contact support.";
@@ -68,7 +73,7 @@ export function ForgotPasswordClient() {
 
     if (!supabase) {
       setTone("error");
-      setMessage("Password reset is temporarily unavailable. Please try again later.");
+      setMessage("Password reset could not be sent because auth is not configured.");
       return;
     }
 
@@ -95,9 +100,10 @@ export function ForgotPasswordClient() {
     <form className="card auth-card" onSubmit={handleSubmit}>
       {!supabase ? (
         <p className="settings-message settings-message-warning">
-          Password reset is temporarily unavailable. Please try again later.
+          Password reset could not be sent because auth is not configured.
         </p>
       ) : null}
+      <AuthDebugStatus />
       <label className="field">
         <span>Email</span>
         <input

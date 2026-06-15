@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { FormEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
+import { AuthDebugStatus } from "../components/AuthDebugStatus";
 
 function readUrlError(searchParams: URLSearchParams) {
   const queryError = searchParams.get("error") || searchParams.get("error_description");
@@ -56,7 +57,7 @@ export function UpdatePasswordClient() {
       if (!supabase) {
         if (!isMounted) return;
         setTone("error");
-        setMessage("Password reset is temporarily unavailable. Please try again later.");
+        setMessage("Password reset could not be completed because auth is not configured.");
         setIsCheckingLink(false);
         return;
       }
@@ -168,6 +169,7 @@ export function UpdatePasswordClient() {
   return (
     <form className="card auth-card" onSubmit={handleSubmit}>
       {isCheckingLink ? <p className="settings-message settings-message-info">Checking your password reset link...</p> : null}
+      <AuthDebugStatus />
       <label className="field">
         <span>New password</span>
         <input

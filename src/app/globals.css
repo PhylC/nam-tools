@@ -384,6 +384,38 @@ textarea:focus {
   gap: 0.75rem;
 }
 
+.auth-debug-panel {
+  border: 1px dashed #aac6c2;
+  border-radius: 8px;
+  background: #f4fbfa;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-weight: 750;
+  padding: 0.7rem 0.8rem;
+}
+
+.auth-debug-panel summary {
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.auth-debug-panel dl {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0;
+}
+
+.auth-debug-panel div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.auth-debug-panel dt,
+.auth-debug-panel dd {
+  margin: 0;
+}
+
 .account-detail-list {
   margin: 0;
 }
