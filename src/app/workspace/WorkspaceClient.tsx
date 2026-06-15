@@ -222,21 +222,15 @@ export function WorkspaceClient() {
   const [savedAnalyses, setSavedAnalyses] = useState<SavedRecord[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<SavedRecord[]>([]);
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
-  const [isLoadingSavedWork, setIsLoadingSavedWork] = useState(false);
   const [loadMessage, setLoadMessage] = useState("");
   const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
 
   useEffect(() => {
     if (!isAuthenticated || !isPro) {
-      setSavedAnalyses([]);
-      setSavedScenarios([]);
-      setDeckBriefs([]);
-      setLoadMessage("");
       return;
     }
 
     let isMounted = true;
-    setIsLoadingSavedWork(true);
     // TODO: Replace local saved analyses/scenarios with user profile storage when backend tables are ready.
     Promise.all([listSavedAnalyses(), listSavedScenarios(), listDeckBriefs()])
       .then(([analyses, scenarios, decks]) => {
@@ -253,9 +247,6 @@ export function WorkspaceClient() {
         setDeckBriefs([]);
         setLoadMessage("Could not load saved work right now.");
       })
-      .finally(() => {
-        if (isMounted) setIsLoadingSavedWork(false);
-      });
 
     return () => {
       isMounted = false;
@@ -352,7 +343,6 @@ export function WorkspaceClient() {
               Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
               when you export your work.
             </p>
-            {isLoadingSavedWork ? <small className="workspace-kicker">Loading saved work...</small> : null}
             {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
           </div>
           <img

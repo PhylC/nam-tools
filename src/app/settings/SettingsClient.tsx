@@ -120,7 +120,7 @@ export function SettingsClient() {
     }
 
     const nextTemplate: SavedPresentationTemplate = {
-      id: replaceId || (crypto.randomUUID ? crypto.randomUUID() : `template-${Date.now()}`),
+      id: replaceId || crypto.randomUUID(),
       displayName: file.name.replace(/\.(pptx|potx|key)$/i, ""),
       filename: file.name,
       uploadedAt: new Date().toISOString(),
@@ -197,9 +197,9 @@ export function SettingsClient() {
                 <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
                   Create free account
                 </Link>
-                <a className="text-link" href="/calculators">
+                <Link className="text-link" href="/calculators">
                   Use calculators without an account
-                </a>
+                </Link>
               </div>
             </>
           ) : isPro ? (

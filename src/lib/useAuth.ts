@@ -12,17 +12,16 @@ type AuthResult = {
 };
 
 export function useAuth() {
+  const supabase = getSupabaseBrowserClient();
   const { aptMode } = useAptMode();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(() => Boolean(getSupabaseBrowserClient()));
-  const supabase = getSupabaseBrowserClient();
+  const [isLoadingAuth, setIsLoadingAuth] = useState(() => Boolean(supabase));
   const isConfigured = Boolean(supabase);
   const isSignedIn = Boolean(user);
   const plan: UserPlan = getUserPlan(aptMode, null, isSignedIn);
 
   useEffect(() => {
     if (!supabase) {
-      setIsLoadingAuth(false);
       return;
     }
 

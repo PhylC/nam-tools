@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Hero, SectionHeader } from "../components/Shell";
+import { ContactForm } from "./ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -45,27 +46,10 @@ export default function ContactPage() {
         <article className="card">
           <SectionHeader eyebrow="Email" title="Send a note">
             <p>
-              The quickest route is email for now:
-              {" "}
-              <a className="text-link" href="mailto:hello@accountplanningtools.co.uk">
-                hello@accountplanningtools.co.uk
-              </a>
+              Send a message and it will go to the APT team.
             </p>
           </SectionHeader>
-          <div className="form-grid">
-            <label className="field">
-              <span>Name</span>
-              <input placeholder="Your name" />
-            </label>
-            <label className="field">
-              <span>Email</span>
-              <input placeholder="you@company.co.uk" type="email" />
-            </label>
-            <label className="field">
-              <span>Message</span>
-              <textarea placeholder="What would you like to share?" />
-            </label>
-          </div>
+          <ContactForm />
         </article>
       </section>
     </div>

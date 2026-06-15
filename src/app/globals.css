@@ -1523,6 +1523,21 @@ p {
   row-gap: 1rem;
 }
 
+.contact-message-field,
+.contact-form-actions,
+.contact-form-message {
+  grid-column: 1 / -1;
+}
+
+.contact-form-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.contact-form-actions .button {
+  width: auto;
+}
+
 .field,
 .calc-field {
   align-self: stretch;
