@@ -12,6 +12,10 @@
   --danger: #a93434;
   --success: #176b3a;
   --shadow: 0 14px 34px rgba(22, 32, 42, 0.07);
+  --control-height: 48px;
+  --control-radius: 8px;
+  --control-padding-x: 0.85rem;
+  --control-padding-y: 0.72rem;
 }
 
 html {
@@ -65,21 +69,23 @@ textarea {
   min-width: 0;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--control-radius);
   background: #fff;
   color: var(--foreground);
-  min-height: 46px;
-  padding: 0.72rem 0.85rem;
+  min-height: var(--control-height);
+  padding: var(--control-padding-y) var(--control-padding-x);
   font-size: 0.96rem;
-  line-height: 1.3;
+  line-height: 1.35;
   transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 .calc-input,
 .calc-select {
-  min-height: 46px;
-  border-radius: 8px;
-  padding: 0.72rem 0.85rem;
+  min-height: var(--control-height);
+  border-radius: var(--control-radius);
+  padding: var(--control-padding-y) var(--control-padding-x);
+  font-size: 0.96rem;
+  line-height: 1.35;
 }
 
 input::placeholder,
@@ -1494,7 +1500,7 @@ p {
 
 .input-section {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .settings-section,
@@ -1580,14 +1586,21 @@ p {
 }
 
 .input-section-header {
-  display: grid;
-  gap: 0.28rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  min-width: 0;
 }
 
 .input-section-header h3 {
   color: var(--foreground);
   font-size: 1rem;
   margin: 0;
+}
+
+.input-section-header .button {
+  flex: 0 0 auto;
 }
 
 .input-section-header p,
@@ -1651,15 +1664,16 @@ p {
 
 .retail-price-input {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(120px, 150px) minmax(82px, 100px);
-  gap: 0.45rem;
+  grid-template-columns: minmax(150px, 1fr) minmax(118px, 150px) minmax(92px, 108px);
+  gap: 0.5rem;
   align-items: end;
   min-width: 0;
 }
 
 .retail-price-part {
   display: grid;
-  gap: 0.24rem;
+  grid-template-rows: 18px var(--control-height);
+  gap: 0.28rem;
   min-width: 0;
 }
 
@@ -1672,7 +1686,7 @@ p {
 }
 
 .retail-tax-basis-select {
-  min-height: 46px;
+  min-height: var(--control-height);
   padding-right: 2rem;
 }
 
@@ -1694,6 +1708,7 @@ p {
 
 .summary-actions {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.55rem;
@@ -1779,9 +1794,9 @@ p {
 .calc-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  column-gap: 1rem;
-  row-gap: 1rem;
+  align-items: stretch;
+  column-gap: 1.05rem;
+  row-gap: 1.05rem;
 }
 
 .contact-message-field,
@@ -1803,8 +1818,8 @@ p {
 .calc-field {
   align-self: stretch;
   display: grid;
-  grid-template-rows: auto minmax(46px, auto) auto;
-  gap: 0.38rem;
+  grid-template-rows: auto minmax(var(--control-height), auto) auto;
+  gap: 0.4rem;
   color: var(--muted);
   font-size: 0.92rem;
   font-weight: 700;
@@ -1813,7 +1828,7 @@ p {
 
 .calc-section {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .calc-section-title {
@@ -1895,7 +1910,7 @@ p {
   display: grid;
   grid-template-columns: minmax(260px, 1fr) auto;
   gap: 1rem;
-  align-items: end;
+  align-items: start;
 }
 
 .inline-plan-name {
@@ -1915,8 +1930,8 @@ p {
 .roi-control-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
-  gap: 0.9rem;
-  align-items: start;
+  gap: 1.05rem;
+  align-items: stretch;
 }
 
 .upload-control {
@@ -2022,6 +2037,7 @@ p {
 .scenario-card-actions,
 .table-action-group {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.35rem;
 }
@@ -2092,14 +2108,19 @@ p {
 }
 
 .roi-table-input {
-  min-height: 36px;
+  min-height: 38px;
   min-width: 120px;
   border-radius: 6px;
   padding: 0.45rem 0.5rem;
   font-size: 0.84rem;
+  line-height: 1.3;
 }
 
 .table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: white;
@@ -2145,6 +2166,7 @@ p {
 .new-line-button,
 .new-scenario-button {
   display: inline-flex;
+  align-items: center;
   gap: 0.45rem;
   width: fit-content;
 }
@@ -2444,7 +2466,7 @@ p {
 
   .roi-mobile-field {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.4rem;
     min-width: 0;
     color: var(--foreground);
     font-size: 0.86rem;
@@ -2456,17 +2478,18 @@ p {
   .roi-mobile-field textarea {
     width: 100%;
     min-width: 0;
-    min-height: 44px;
+    min-height: var(--control-height);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--control-radius);
     background: #ffffff;
     color: var(--foreground);
     font-size: 16px;
-    padding: 0.68rem 0.75rem;
+    line-height: 1.35;
+    padding: var(--control-padding-y) var(--control-padding-x);
   }
 
   .roi-mobile-field textarea {
-    min-height: 88px;
+    min-height: 110px;
     resize: vertical;
   }
 
@@ -2562,7 +2585,7 @@ p {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.32rem;
+  gap: 0.36rem;
   min-height: 24px;
   line-height: 1.25;
 }
@@ -2580,7 +2603,7 @@ p {
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  min-height: 17px;
+  min-height: 18px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: #f4f5f6;
@@ -2589,7 +2612,7 @@ p {
   font-weight: 800;
   letter-spacing: 0;
   line-height: 1;
-  padding: 0.18rem 0.36rem;
+  padding: 0.18rem 0.38rem;
 }
 
 .field-required,
@@ -2612,8 +2635,8 @@ p {
   position: relative;
   display: inline-grid;
   place-items: center;
-  width: 17px;
-  height: 17px;
+  width: 18px;
+  height: 18px;
   flex: 0 0 auto;
   border: 1px solid #aac6c2;
   border-radius: 999px;
@@ -2662,7 +2685,7 @@ p {
   font-size: 0.8rem;
   font-weight: 600;
   line-height: 1.35;
-  margin-top: 0;
+  margin: 0;
 }
 
 .form-intro,
@@ -2709,11 +2732,11 @@ p {
 
 .result-box {
   display: grid;
-  gap: 1rem;
+  gap: 1.05rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-soft);
-  padding: 1.05rem;
+  padding: 1.1rem;
 }
 
 .result-box h2 {
@@ -2724,16 +2747,17 @@ p {
 .result-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.85rem;
 }
 
 .result-item {
   display: grid;
+  align-content: start;
   gap: 0.35rem;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: white;
-  padding: 0.85rem;
+  padding: 0.9rem;
   min-width: 0;
 }
 
@@ -2797,9 +2821,13 @@ p {
 
 .output-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.output-header .button {
+  flex: 0 0 auto;
 }
 
 .output-header h2 {
@@ -4735,7 +4763,7 @@ p {
 
   .roi-mobile-field {
     display: grid;
-    gap: 0.35rem;
+    gap: 0.4rem;
     min-width: 0;
     color: var(--foreground);
     font-size: 0.86rem;
@@ -4747,17 +4775,18 @@ p {
   .roi-mobile-field textarea {
     width: 100%;
     min-width: 0;
-    min-height: 44px;
+    min-height: var(--control-height);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: var(--control-radius);
     background: #ffffff;
     color: var(--foreground);
     font-size: 16px;
-    padding: 0.68rem 0.75rem;
+    line-height: 1.35;
+    padding: var(--control-padding-y) var(--control-padding-x);
   }
 
   .roi-mobile-field textarea {
-    min-height: 88px;
+    min-height: 110px;
     resize: vertical;
   }
 
@@ -5035,7 +5064,7 @@ p {
 
   .retail-price-input {
     grid-template-columns: minmax(0, 1fr) minmax(92px, 110px);
-    gap: 0.4rem;
+    gap: 0.5rem;
   }
 
   .retail-price-amount {
@@ -5043,7 +5072,7 @@ p {
   }
 
   .retail-tax-basis-select {
-    min-height: 44px;
+    min-height: var(--control-height);
   }
 
   .scenario-tabs {
