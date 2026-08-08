@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "../../lib/useAuth";
+import { formatUserPlan } from "../../lib/userPlan";
 
 export function AccountClient() {
-  const { user, isSignedIn, isLoadingAuth, signOut, plan } = useAuth();
+  const { user, isSignedIn, isLoadingAuth, signOut, actualPlan } = useAuth();
   const router = useRouter();
   const [message, setMessage] = useState("");
 
@@ -56,11 +57,12 @@ export function AccountClient() {
             </div>
             <div>
               <dt>Current plan</dt>
-              <dd>{plan === "pro" ? "APT Pro" : plan === "team" ? "Team" : "Free"}</dd>
+              <dd>{formatUserPlan(actualPlan)}</dd>
             </div>
           </dl>
         </div>
         <div className="account-link-grid">
+          {actualPlan === "free" ? <Link className="button" href="/pricing">Upgrade</Link> : null}
           <Link className="button" href="/settings">Settings</Link>
           <Link className="button button-secondary" href="/workspace">My workspace</Link>
           <button className="button button-secondary" onClick={handleSignOut} type="button">Sign out</button>

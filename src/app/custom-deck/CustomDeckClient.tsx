@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useMemo, useState } from "react";
-import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
-import { getUserPlan } from "../../lib/userPlan";
 import { readPresentationTemplates } from "../../lib/proSettings";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -170,8 +168,7 @@ function DeckFileDropzone({
 }
 
 export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
-  const { aptMode, canUseTestMode } = useAptMode();
-  const { isAuthenticated } = useSupabaseAuth();
+  const { plan } = useSupabaseAuth();
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
@@ -193,7 +190,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
   const [requestMessage, setRequestMessage] = useState("");
-  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
+  const isPro = plan === "pro" || plan === "team";
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],

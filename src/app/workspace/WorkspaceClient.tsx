@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAptMode } from "../components/AptMode";
 import {
   duplicateSavedAnalysis,
   duplicateSavedScenario,
@@ -11,7 +10,6 @@ import {
   listSavedScenarios,
 } from "../../lib/saveStore";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
-import { getUserPlan } from "../../lib/userPlan";
 
 type SavedRecord = Record<string, unknown>;
 
@@ -214,13 +212,12 @@ function WorkspaceSection({
 }
 
 export function WorkspaceClient() {
-  const { aptMode, canUseTestMode } = useAptMode();
-  const { isAuthenticated, isLoading } = useSupabaseAuth();
+  const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
   const [savedAnalyses, setSavedAnalyses] = useState<SavedRecord[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<SavedRecord[]>([]);
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
   const [loadMessage, setLoadMessage] = useState("");
-  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
+  const isPro = plan === "pro" || plan === "team";
 
   useEffect(() => {
     if (!isAuthenticated || !isPro) {

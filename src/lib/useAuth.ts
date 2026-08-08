@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AuthError, Session, User } from "@supabase/supabase-js";
 import { useAptMode } from "../app/components/AptMode";
 import { getSupabaseBrowserClient } from "./supabaseClient";
-import { getUserPlan, type UserPlan } from "./userPlan";
+import { getActualUserPlan, getUserPlan, normaliseUserPlan, type UserPlan } from "./userPlan";
 
 type AuthResult = {
   ok: boolean;
@@ -95,7 +95,9 @@ export function useAuth() {
   const [isLoadingAuth, setIsLoadingAuth] = useState(() => Boolean(supabase));
   const isConfigured = Boolean(supabase);
   const isSignedIn = Boolean(user);
-  const plan: UserPlan = getUserPlan(aptMode, null, isSignedIn, canUseTestMode);
+  const accountPlan = normaliseUserPlan(user?.app_metadata?.plan) ?? normaliseUserPlan(user?.user_metadata?.plan);
+  const actualPlan: UserPlan = getActualUserPlan(accountPlan);
+  const plan: UserPlan = getUserPlan(aptMode, accountPlan, isSignedIn, canUseTestMode);
 
   useEffect(() => {
     if (!supabase) {
@@ -233,8 +235,9 @@ export function useAuth() {
       signIn,
       signUp,
       signOut,
+      actualPlan,
       plan,
     }),
-    [user, isSignedIn, isLoadingAuth, isConfigured, signIn, signUp, signOut, plan],
+    [user, isSignedIn, isLoadingAuth, isConfigured, signIn, signUp, signOut, actualPlan, plan],
   );
 }

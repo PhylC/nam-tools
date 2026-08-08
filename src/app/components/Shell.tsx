@@ -314,15 +314,15 @@ const resultHelpByLabel: Record<string, string> = {
   "Support % of invoice":
     "Supplier support expressed as a percentage of the selected invoice value.",
   "Retailer estimated profit":
-    "Estimated retailer/customer cash profit from the deal using the entered invoice price, retail price and support.",
+    "Estimated retailer cash profit from the deal using the entered invoice price, retail price and support.",
   "Retailer estimated profit after support":
-    "Estimated retailer/customer cash profit from the deal using the entered invoice price, retail price and support.",
+    "Estimated retailer cash profit from the deal using the entered invoice price, retail price and support.",
   "Retailer margin after support":
-    "Estimated retailer/customer margin after supplier support is included. Pricing is at the sole discretion of the retailer.",
+    "Estimated retailer margin after supplier support is included.",
   "Retailer margin %":
-    "Estimated retailer/customer margin based on the entered invoice price, retail price and support.",
+    "Estimated retailer margin based on the entered invoice price, retail price and support.",
   "Retailer cash profit per unit":
-    "Estimated cash profit per unit for the retailer/customer.",
+    "Estimated cash profit per unit for the retailer.",
   "Supplier support received":
     "Estimated value of supplier support received by the retailer/customer.",
   "SOA / supplier support received":

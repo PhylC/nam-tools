@@ -34,3 +34,18 @@ export function getUserPlan(
   if (isSignedIn && canUseTemporaryPlanOverride && temporaryPlanOverride === "pro") return "pro";
   return "free";
 }
+
+export function getActualUserPlan(accountPlan?: UserPlan | null): UserPlan {
+  // TODO: Replace with Stripe/Supabase plan lookup when billing-backed plans are live.
+  return accountPlan ?? "free";
+}
+
+export function normaliseUserPlan(value: unknown): UserPlan | null {
+  return value === "free" || value === "pro" || value === "team" ? value : null;
+}
+
+export function formatUserPlan(plan: UserPlan) {
+  if (plan === "pro") return "Pro";
+  if (plan === "team") return "Team";
+  return "Free";
+}

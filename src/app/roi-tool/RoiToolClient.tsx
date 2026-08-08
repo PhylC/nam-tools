@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
-import { getUserPlan } from "../../lib/userPlan";
+import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
+import { CalculatorCaveat } from "../components/CalculatorCaveat";
 import {
   deleteRoiPlan,
   duplicateRoiPlan,
@@ -57,8 +57,6 @@ type SavedRoiGroup = RoiGroup & {
   updated_at?: string;
 };
 
-type RoiPlannerMode = "free" | "pro";
-
 type RoiFieldKey =
   | "sku"
   | "product"
@@ -99,7 +97,7 @@ const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info
   soa: {
     label: "SOA/support",
     required: false,
-    info: "Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding.",
+    info: "Supplier-funded support per unit, such as off-invoice support, allowance or trade funding.",
   },
   baselineUnits: {
     label: "Baseline units",
@@ -586,6 +584,7 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
       });
     });
 
+    rows.push(["disclaimer", EXPORT_PLANNING_CAVEAT]);
     downloadCsv("apt-roi-results.csv", rows);
   }
 
@@ -1168,9 +1167,9 @@ function FreeProPrompt() {
   );
 }
 
-export function RoiPlanner({ canUseTestMode, mode }: { canUseTestMode: boolean; mode: RoiPlannerMode }) {
-  const { isAuthenticated, isLoading } = useSupabaseAuth();
-  const isPro = getUserPlan(mode, null, isAuthenticated, canUseTestMode) === "pro";
+export function RoiPlanner() {
+  const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
+  const isPro = plan === "pro" || plan === "team";
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
@@ -1655,6 +1654,8 @@ export function RoiPlanner({ canUseTestMode, mode }: { canUseTestMode: boolean; 
           })}
         </div>
 
+        <CalculatorCaveat />
+
         <button
           className={isPro ? "button new-scenario-button" : "button button-secondary button-small new-scenario-button pro-only-button"}
           onClick={addScenario}
@@ -1671,18 +1672,15 @@ export function RoiPlanner({ canUseTestMode, mode }: { canUseTestMode: boolean; 
         </button>
 
         {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt />}
-        {isPro ? <p className="planning-disclaimer">Save your work and return to it later.</p> : null}
       </article>
     </section>
   );
 }
 
 export function RoiToolProduct() {
-  const { aptMode, canUseTestMode } = useAptMode();
-
   return (
     <>
-      <RoiPlanner canUseTestMode={canUseTestMode} mode={aptMode} />
+      <RoiPlanner />
     </>
   );
 }

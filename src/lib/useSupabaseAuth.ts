@@ -8,5 +8,7 @@ export function useSupabaseAuth() {
     user: auth.user,
     isAuthenticated: auth.isSignedIn,
     isLoading: auth.isLoadingAuth,
+    actualPlan: auth.actualPlan,
+    plan: auth.plan,
   };
 }

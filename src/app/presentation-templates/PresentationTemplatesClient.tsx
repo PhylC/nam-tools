@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useAptMode } from "../components/AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
-import { getUserPlan } from "../../lib/userPlan";
 
 type FreeTemplate = {
   title: string;
@@ -124,9 +122,8 @@ function customDeckHref(template: FreeTemplate) {
 }
 
 export function PresentationTemplatesFree() {
-  const { aptMode, canUseTestMode } = useAptMode();
-  const { isAuthenticated } = useSupabaseAuth();
-  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
+  const { plan } = useSupabaseAuth();
+  const isPro = plan === "pro" || plan === "team";
   const [outlineStatus, setOutlineStatus] = useState<{ slug: string; message: string } | null>(null);
   const [manualOutline, setManualOutline] = useState<{ slug: string; text: string } | null>(null);
 

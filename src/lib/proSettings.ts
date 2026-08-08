@@ -1,5 +1,7 @@
 "use client";
 
+import { EXPORT_PLANNING_CAVEAT } from "./commercialCaveats";
+
 export const CALCULATOR_DEFAULTS_KEY = "aptCalculatorDefaults";
 export const EXPORT_DEFAULTS_KEY = "aptExportDefaults";
 export const PRESENTATION_TEMPLATE_META_KEY = "aptPresentationTemplateMeta";
@@ -67,8 +69,7 @@ export const defaultExportDefaults: ExportDefaults = {
   companyLogoFilename: "",
   companyLogoStoragePath: null,
   defaultExportFormat: "pptx",
-  disclaimer:
-    "Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the inputs provided and should be checked against your own internal process.",
+  disclaimer: EXPORT_PLANNING_CAVEAT,
 };
 
 function readLocalObject<T>(key: string, fallback: T): T {
