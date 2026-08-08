@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useMemo, useState } from "react";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { readPresentationTemplates } from "../../lib/proSettings";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
@@ -169,6 +170,7 @@ function DeckFileDropzone({
 
 export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
   const { plan } = useSupabaseAuth();
+  const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
@@ -232,7 +234,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   }
 
   function saveDeckRequest() {
-    if (!isPro) return;
+    if (!requirePro(() => undefined, { feature: "custom-deck", location: "custom_deck_save_request" })) return;
     setRequestMessage("");
     setGoogleSlidesError("");
     if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
@@ -287,7 +289,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                 </span>
               </div>
               <div className="summary-actions">
-                <Link className="button button-secondary button-small" href="/pricing">
+                <Link className="button button-secondary button-small" href={buildUpgradeHref({ from: "custom-deck", feature: "custom-deck" })}>
                   Switch to Pro
                 </Link>
                 <Link className="button button-secondary button-small" href="/presentation-templates">
@@ -526,7 +528,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className="button" disabled={!isPro} type="submit">
+            <button className={isPro ? "button" : "button pro-only-button"} type="submit">
               Save deck request
             </button>
             <p>

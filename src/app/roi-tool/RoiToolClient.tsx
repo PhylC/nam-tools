@@ -6,6 +6,7 @@ import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } 
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
+import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import {
   deleteRoiPlan,
   duplicateRoiPlan,
@@ -487,8 +488,9 @@ function isLineCalculationComplete(line: RoiLine) {
   return has(line.baselineUnits) && has(line.promoUnits) && has(line.currentInvoice);
 }
 
-function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
+function CsvExportButton({ groups, onBeforeExport }: { groups: RoiGroup[]; onBeforeExport?: () => boolean }) {
   function exportCsv() {
+    if (onBeforeExport && !onBeforeExport()) return;
     const rows: Array<Array<string | number | null>> = [
       [
         "group_name",
@@ -1167,7 +1169,7 @@ function FreeProPrompt() {
           save plans and export the results.
         </p>
       </div>
-      <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("roi_tool_prompt")}>
+      <Link className="button" href={buildUpgradeHref({ from: "roi-tool", feature: "pro-actions" })} onClick={() => trackUpgradeClicked("roi_tool_prompt")}>
         Switch to Pro
       </Link>
     </article>
@@ -1176,6 +1178,7 @@ function FreeProPrompt() {
 
 export function RoiPlanner() {
   const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
+  const { requirePro } = useProAction({ from: "roi-tool", feature: "pro-action" });
   const isPro = plan === "pro" || plan === "team";
   const hasTrackedCompletion = useRef(false);
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
@@ -1225,8 +1228,11 @@ export function RoiPlanner() {
     };
   }, [isPro]);
 
-  function showProMessage(message = "Available with APT Pro.") {
-    setProMessage(message);
+  function ensureRoiPro(feature: string) {
+    return requirePro(() => undefined, {
+      feature,
+      location: `roi_tool_${feature.replaceAll("-", "_")}`,
+    });
   }
 
   async function refreshSavedGroups() {
@@ -1244,10 +1250,7 @@ export function RoiPlanner() {
   }
 
   async function saveCurrentGroup() {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("save-plan")) return;
     if (!activeGroup) return;
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
     const now = new Date().toISOString();
@@ -1267,10 +1270,7 @@ export function RoiPlanner() {
   }
 
   function openSaveScenario(scenario: RoiScenario) {
-    if (!isPro) {
-      showProMessage("Saving scenarios is included with APT Pro.");
-      return;
-    }
+    if (!ensureRoiPro("save-scenario")) return;
     setSavingScenarioId(scenario.id);
     setScenarioSaveName(scenario.name || "ROI scenario");
     setScenarioSaveMessage("");
@@ -1279,10 +1279,7 @@ export function RoiPlanner() {
   }
 
   async function saveCurrentScenario(scenario: RoiScenario) {
-    if (!isPro) {
-      showProMessage("Saving scenarios is included with APT Pro.");
-      return;
-    }
+    if (!ensureRoiPro("save-scenario")) return;
     const title = scenarioSaveName.trim() || scenario.name || "ROI scenario";
     const total = aggregate(scenario.lines);
     const result = await saveScenario({
@@ -1311,10 +1308,7 @@ export function RoiPlanner() {
   }
 
   async function loadSavedGroup(groupId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("save-plan")) return;
     const result = await loadRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     const saved = result.data as SavedRoiGroup | null;
@@ -1330,10 +1324,7 @@ export function RoiPlanner() {
   }
 
   async function renameSavedGroup(groupId: string, name: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("save-plan")) return;
     const saved = savedGroups.find((group) => group.id === groupId);
     if (!saved) return;
     const now = new Date().toISOString();
@@ -1347,10 +1338,7 @@ export function RoiPlanner() {
   }
 
   async function duplicateSavedGroup(groupId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("save-plan")) return;
     const result = await duplicateRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     const copy = result.data as SavedRoiGroup | null;
@@ -1364,10 +1352,7 @@ export function RoiPlanner() {
   }
 
   async function deleteSavedGroup(groupId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("save-plan")) return;
     const result = await deleteRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
@@ -1411,19 +1396,13 @@ export function RoiPlanner() {
   }
 
   function addLineToScenario(scenarioId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("add-line")) return;
     const scenario = activeScenarios.find((item) => item.id === scenarioId);
     setScenarioLines(scenarioId, [...(scenario?.lines ?? []), blankLine()]);
   }
 
   function addScenario() {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("add-scenario")) return;
     if (!activeGroup) return;
     const nextScenario = blankScenario(`Scenario ${activeGroup.scenarios.length + 1}`);
     setPlannerState((current) => ({
@@ -1436,10 +1415,7 @@ export function RoiPlanner() {
   }
 
   function duplicateScenario(scenarioId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("add-scenario")) return;
     if (!activeGroup) return;
     const scenario = activeGroup.scenarios.find((item) => item.id === scenarioId);
     if (!scenario) return;
@@ -1460,10 +1436,7 @@ export function RoiPlanner() {
   }
 
   function deleteScenario(scenarioId: string) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("add-scenario")) return;
     if (!activeGroup) return;
     const nextScenarios =
       activeGroup.scenarios.length > 1
@@ -1495,10 +1468,7 @@ export function RoiPlanner() {
   }
 
   function uploadCsv(file: File | undefined) {
-    if (!isPro) {
-      showProMessage();
-      return;
-    }
+    if (!ensureRoiPro("upload-spreadsheet")) return;
     if (!file || !activeGroup) return;
     file.text().then((text) => {
       const rows = parseCsv(text);
@@ -1561,20 +1531,28 @@ export function RoiPlanner() {
           <div className="roi-action-bar roi-action-bar-simple">
             {isPro ? (
               <>
-                <button className="button button-secondary button-small roi-locked-action" onClick={downloadInputTemplate} type="button">Download template</button>
+                <button
+                  className="button button-secondary button-small roi-locked-action"
+                  onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}
+                  type="button"
+                >
+                  Download template
+                </button>
                 <label className="button button-secondary button-small roi-locked-action">
                   Upload spreadsheet
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
-                <CsvExportButton groups={activeGroup ? [activeGroup] : groups} />
+                <CsvExportButton groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
                 <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save plan</button>
               </>
             ) : (
               <>
-                <ProOnlyAction onClick={showProMessage}>Upload spreadsheet</ProOnlyAction>
-                <ProOnlyAction onClick={showProMessage}>Download template</ProOnlyAction>
-                <ProOnlyAction onClick={showProMessage}>Save plan</ProOnlyAction>
-                <ProOnlyAction onClick={showProMessage}>Export results</ProOnlyAction>
+                <ProOnlyAction onClick={() => ensureRoiPro("upload-spreadsheet")}>Upload spreadsheet</ProOnlyAction>
+                <ProOnlyAction onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}>
+                  Download template
+                </ProOnlyAction>
+                <ProOnlyAction onClick={() => ensureRoiPro("save-plan")}>Save plan</ProOnlyAction>
+                <ProOnlyAction onClick={() => ensureRoiPro("export-results")}>Export results</ProOnlyAction>
               </>
             )}
           </div>

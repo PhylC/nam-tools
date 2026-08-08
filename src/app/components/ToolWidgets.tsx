@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
+import { buildUpgradeHref, useProAction } from "./ProActionGuard";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import type { QuickCalculatorId } from "../data/quickCalculators";
@@ -494,6 +495,7 @@ function SaveAnalysisAction({
   sourcePath: string;
 }) {
   const { plan } = useSupabaseAuth();
+  const { requirePro } = useProAction({ from: "calculator", feature: "save-analysis" });
   const isPro = plan === "pro" || plan === "team";
   const [isOpen, setIsOpen] = useState(false);
   const [analysisName, setAnalysisName] = useState(defaultTitle);
@@ -502,7 +504,10 @@ function SaveAnalysisAction({
 
   function openPanel() {
     if (!isPro) {
-      setMessage("Saving analyses is included with APT Pro.");
+      requirePro(() => setIsOpen(true), {
+        feature: "save-analysis",
+        location: "calculator_save_analysis",
+      });
       return;
     }
     setAnalysisName(defaultTitle);
@@ -542,7 +547,7 @@ function SaveAnalysisAction({
               <button className="text-button" onClick={() => setMessage("")} type="button">Keep working</button>
             </>
           ) : (
-            <a className="text-link" href="/pricing" onClick={() => trackUpgradeClicked("calculator_save_prompt")}>
+            <a className="text-link" href={buildUpgradeHref({ from: "calculator", feature: "save-analysis" })} onClick={() => trackUpgradeClicked("calculator_save_prompt")}>
               See APT Pro
             </a>
           )}
@@ -566,20 +571,23 @@ function SaveAnalysisAction({
 
 function LockedProActions() {
   const { plan } = useSupabaseAuth();
+  const { requirePro } = useProAction({ from: "calculator", feature: "pro-actions" });
   const isPro = plan === "pro" || plan === "team";
-  const [message, setMessage] = useState("");
   const actions = [
-    "Save scenario",
-    "Compare scenarios",
-    "Add another product",
-    "Add another scenario",
-    "Export to PowerPoint",
-    "Export Excel workbook",
-    "Use company template",
+    { label: "Save scenario", feature: "save-scenario" },
+    { label: "Compare scenarios", feature: "compare-scenarios" },
+    { label: "Add another product", feature: "add-product" },
+    { label: "Add another scenario", feature: "add-scenario" },
+    { label: "Export to PowerPoint", feature: "export-powerpoint" },
+    { label: "Export Excel workbook", feature: "export-excel" },
+    { label: "Use company template", feature: "company-template" },
   ];
 
-  function handleClick() {
-    setMessage("APT Pro lets you save, compare and export commercial scenarios without rebuilding the numbers each time.");
+  function handleClick(feature: string) {
+    requirePro(() => undefined, {
+      feature,
+      location: "calculator_locked_actions",
+    });
   }
 
   return (
@@ -589,18 +597,15 @@ function LockedProActions() {
       </div>
       <div className="locked-action-row">
         {actions.map((action) => (
-          <button className="button button-secondary button-small" disabled={isPro} key={action} onClick={handleClick} type="button">
-            {action}
+          <button className="button button-secondary button-small" disabled={isPro} key={action.feature} onClick={() => handleClick(action.feature)} type="button">
+            {action.label}
           </button>
         ))}
       </div>
-      {message && !isPro ? (
-        <div className="locked-card">
-          <strong>{message}</strong>
-          <a className="text-link" href="/pricing" onClick={() => trackUpgradeClicked("calculator_locked_actions")}>
-            View APT Pro
-          </a>
-        </div>
+      {!isPro ? (
+        <a className="text-link" href={buildUpgradeHref({ from: "calculator", feature: "pro-actions" })} onClick={() => trackUpgradeClicked("calculator_locked_actions")}>
+          View APT Pro
+        </a>
       ) : null}
     </section>
   );

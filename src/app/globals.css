@@ -733,6 +733,20 @@ p {
   font-weight: 900;
 }
 
+.pricing-context-note {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 1rem;
+  border: 1px solid rgba(180, 83, 9, 0.22);
+  border-radius: 8px;
+  background: #fff7ed;
+  padding: 0.55rem 0.75rem;
+  color: #7c2d12;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
 .trust-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -94,7 +94,38 @@ const mobileComparisonRows = [
   ["Best for", "Quick checks", "Repeat planning"],
 ];
 
-export default function PricingPage() {
+const upgradeMessages: Record<string, string> = {
+  "add-line": "Upgrade to Pro to add multiple ROI lines.",
+  "add-product": "Upgrade to Pro to add multiple products.",
+  "add-scenario": "Upgrade to Pro to add and compare scenarios.",
+  "compare-scenarios": "Upgrade to Pro to compare saved scenarios.",
+  "company-template": "Upgrade to Pro to use company templates.",
+  "custom-deck": "Upgrade to Pro to build custom decks from your data.",
+  "download-template": "Upgrade to Pro to download ROI spreadsheet templates.",
+  "export-excel": "Upgrade to Pro to export Excel workbooks.",
+  "export-powerpoint": "Upgrade to Pro to export PowerPoint outputs.",
+  "export-results": "Upgrade to Pro to export ROI results.",
+  "pro-actions": "Upgrade to Pro to save, compare and export commercial scenarios.",
+  "save-analysis": "Upgrade to Pro to save calculator analyses.",
+  "save-plan": "Upgrade to Pro to save ROI plans.",
+  "save-scenario": "Upgrade to Pro to save and compare scenarios.",
+  "upload-spreadsheet": "Upgrade to Pro to upload spreadsheets.",
+};
+
+function getUpgradeMessage(feature?: string | string[]) {
+  const key = Array.isArray(feature) ? feature[0] : feature;
+  if (!key) return "";
+  return upgradeMessages[key] ?? "Upgrade to Pro to use this feature.";
+}
+
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ from?: string | string[]; feature?: string | string[] }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const upgradeMessage = getUpgradeMessage(params.feature);
+
   return (
     <div className="page-stack">
       <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
@@ -102,6 +133,7 @@ export default function PricingPage() {
           Start free for quick one-off checks. Upgrade to APT Pro when you need
           to save, compare and export commercial scenarios regularly.
         </p>
+        {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
       </Hero>
       <section className="shell section">
         <SectionHeader eyebrow="Plans" title="Useful for quick checks. Stronger for repeat work.">
