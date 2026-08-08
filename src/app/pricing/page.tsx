@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { TrackedUpgradeLink } from "../components/TrackedLinks";
+import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
@@ -43,8 +44,8 @@ const plans = [
       "Save your company logo, disclaimer and export preferences",
       "Cleaner exports for meetings and reviews",
     ],
-    href: "/create-account",
-    cta: "Create account",
+    href: "/pricing",
+    cta: "Upgrade to Pro",
   },
   {
     name: "Team",
@@ -121,7 +122,9 @@ export default function PricingPage() {
                   <li key={feature}>{feature}</li>
                 ))}
               </ul>
-              {plan.name === "Free" ? (
+              {plan.name === "APT Pro" ? (
+                <PricingUpgradeActions location="pricing_plan_apt_pro" />
+              ) : plan.name === "Free" ? (
                 <Link className="text-link" href={plan.href}>
                   {plan.cta}
                 </Link>
@@ -196,16 +199,9 @@ export default function PricingPage() {
         <article className="card comparison-cta comparison-cta-desktop">
           <div>
             <h3>Use Free for quick checks.</h3>
-            <p>APT Pro checkout is being prepared. Create an account now, or contact us if you want Pro access.</p>
+            <p>APT Pro checkout is being prepared. The upgrade action will start here when payments are enabled.</p>
           </div>
-          <div className="cta-row">
-            <TrackedUpgradeLink className="button" href="/create-account" location="pricing_comparison">
-              Create account
-            </TrackedUpgradeLink>
-            <TrackedUpgradeLink className="button button-secondary" href="/contact" location="pricing_contact">
-              Request Pro access
-            </TrackedUpgradeLink>
-          </div>
+          <PricingUpgradeActions location="pricing_comparison" variant="panel" />
         </article>
       </section>
       <section className="shell section">

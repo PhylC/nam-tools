@@ -1,6 +1,8 @@
 import { AuthForm } from "../components/AuthForms";
+import { AuthPageGuard } from "../components/AuthPageGuard";
 import { Hero } from "../components/Shell";
 import { privateMetadata } from "../seo";
+import { Suspense } from "react";
 
 export const metadata = privateMetadata(
   "Log in",
@@ -34,7 +36,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Confirmation link expired or could not be used. Try logging in, or create your account again.
           </div>
         ) : null}
-        <AuthForm mode="login" />
+        <Suspense fallback={null}>
+          <AuthPageGuard mode="login">
+            <AuthForm mode="login" />
+          </AuthPageGuard>
+        </Suspense>
       </section>
     </div>
   );

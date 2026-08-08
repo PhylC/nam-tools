@@ -85,7 +85,8 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
 
       if (result.ok && result.redirectTo) {
         if (isCreate) trackEvent("signup_completed");
-        router.push(result.redirectTo);
+        const destination = isCreate ? withAuthStatus(getReturnTo(result.redirectTo), "logged-in") : result.redirectTo;
+        router.push(destination);
         return;
       }
 
