@@ -1168,9 +1168,9 @@ function FreeProPrompt() {
   );
 }
 
-export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
+export function RoiPlanner({ canUseTestMode, mode }: { canUseTestMode: boolean; mode: RoiPlannerMode }) {
   const { isAuthenticated, isLoading } = useSupabaseAuth();
-  const isPro = getUserPlan(mode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(mode, null, isAuthenticated, canUseTestMode) === "pro";
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
@@ -1678,11 +1678,11 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
 }
 
 export function RoiToolProduct() {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
 
   return (
     <>
-      <RoiPlanner mode={aptMode} />
+      <RoiPlanner canUseTestMode={canUseTestMode} mode={aptMode} />
     </>
   );
 }

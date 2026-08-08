@@ -214,13 +214,13 @@ function WorkspaceSection({
 }
 
 export function WorkspaceClient() {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { isAuthenticated, isLoading } = useSupabaseAuth();
   const [savedAnalyses, setSavedAnalyses] = useState<SavedRecord[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<SavedRecord[]>([]);
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
   const [loadMessage, setLoadMessage] = useState("");
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
 
   useEffect(() => {
     if (!isAuthenticated || !isPro) {

@@ -27,9 +27,10 @@ export function getUserPlan(
   temporaryPlanOverride: TemporaryPlanMode,
   accountPlan?: UserPlan | null,
   isSignedIn = false,
+  canUseTemporaryPlanOverride = false,
 ): UserPlan {
   // TODO: Replace logged-in test plan toggle with Stripe/Supabase plan lookup.
   if (accountPlan) return accountPlan;
-  if (isSignedIn && isDevPlanToggleEnabled() && temporaryPlanOverride === "pro") return "pro";
+  if (isSignedIn && canUseTemporaryPlanOverride && temporaryPlanOverride === "pro") return "pro";
   return "free";
 }

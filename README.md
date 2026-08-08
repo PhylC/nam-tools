@@ -20,9 +20,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 The Promo ROI / ROI Tool planner uses a spreadsheet-style table on desktop and a stacked card layout on mobile. Both layouts read and write the same scenario and line-item data in `RoiToolClient`, so any future ROI fields should be added to both the desktop table and the mobile card editor to keep the experiences in sync.
 
+## Internal Test Mode
+
+The temporary Free / Pro test-mode switch is only for the authorised internal test account while billing-backed plan detection is being prepared.
+
+Set `NEXT_PUBLIC_SHOW_PLAN_TOGGLE=true` and `APT_TEST_USER_EMAIL=<internal test email>` in the deployment environment to enable it for that account. If `APT_TEST_USER_EMAIL` is unset, the switch is hidden and the temporary Pro override is ignored for everyone.
+
 ## Mobile Navigation Note
 
-Mobile navigation intentionally uses one compact Menu control instead of duplicating site navigation below the header. This avoids horizontal overflow on small screens while keeping the temporary Free / Pro plan toggle available for development when enabled.
+Mobile navigation intentionally uses one compact Menu control instead of duplicating site navigation below the header. This avoids horizontal overflow on small screens while keeping the authorised internal test-mode switch available only when configured.
 
 ## Primary Navigation Note
 

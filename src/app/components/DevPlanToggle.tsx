@@ -1,11 +1,12 @@
 "use client";
 
 import { useAuth } from "../../lib/useAuth";
-import { TemporaryPlanToggle } from "./AptMode";
+import { TemporaryPlanToggle, useAptMode } from "./AptMode";
 
 export function DevPlanToggle({ className }: { className?: string }) {
+  const { canUseTestMode, isLoadingTestMode } = useAptMode();
   const { isSignedIn, isLoadingAuth } = useAuth();
-  if (isLoadingAuth || !isSignedIn) return null;
+  if (isLoadingAuth || isLoadingTestMode || !isSignedIn || !canUseTestMode) return null;
   if (className) {
     return (
       <div className={className}>

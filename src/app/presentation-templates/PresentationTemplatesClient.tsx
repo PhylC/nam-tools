@@ -124,9 +124,9 @@ function customDeckHref(template: FreeTemplate) {
 }
 
 export function PresentationTemplatesFree() {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { isAuthenticated } = useSupabaseAuth();
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
   const [outlineStatus, setOutlineStatus] = useState<{ slug: string; message: string } | null>(null);
   const [manualOutline, setManualOutline] = useState<{ slug: string; text: string } | null>(null);
 

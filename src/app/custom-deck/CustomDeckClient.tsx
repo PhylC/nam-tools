@@ -170,7 +170,7 @@ function DeckFileDropzone({
 }
 
 export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { isAuthenticated } = useSupabaseAuth();
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const [deckType, setDeckType] = useState(
@@ -193,7 +193,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
   const [requestMessage, setRequestMessage] = useState("");
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],

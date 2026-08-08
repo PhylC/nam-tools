@@ -44,13 +44,13 @@ const templateLibraryExtensions = [".pptx", ".potx", ".key"];
 type Message = { tone: "success" | "error" | "info"; text: string } | null;
 
 export function SettingsClient() {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { user, isAuthenticated } = useSupabaseAuth();
   const [calculatorDefaults, setCalculatorDefaults] = useState<CalculatorDefaults>(() => readCalculatorDefaults());
   const [exportDefaults, setExportDefaults] = useState<ExportDefaults>(() => readExportDefaults());
   const [presentationTemplates, setPresentationTemplates] = useState<SavedPresentationTemplate[]>(() => readPresentationTemplates());
   const [message, setMessage] = useState<Message>(null);
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
 
   function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
     const trimmedTaxLabel = next.customTaxLabel.trim();

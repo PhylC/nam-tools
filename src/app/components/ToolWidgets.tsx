@@ -491,9 +491,9 @@ function SaveAnalysisAction({
   summaryText: string;
   sourcePath: string;
 }) {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { isAuthenticated } = useSupabaseAuth();
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
   const [isOpen, setIsOpen] = useState(false);
   const [analysisName, setAnalysisName] = useState(defaultTitle);
   const [message, setMessage] = useState("");
@@ -562,9 +562,9 @@ function SaveAnalysisAction({
 }
 
 function LockedProActions() {
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const { isAuthenticated } = useSupabaseAuth();
-  const isPro = getUserPlan(aptMode, null, isAuthenticated) === "pro";
+  const isPro = getUserPlan(aptMode, null, isAuthenticated, canUseTestMode) === "pro";
   const [message, setMessage] = useState("");
   const actions = [
     "Save scenario",

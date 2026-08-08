@@ -90,12 +90,12 @@ type SignupApiResponse = {
 
 export function useAuth() {
   const supabase = getSupabaseBrowserClient();
-  const { aptMode } = useAptMode();
+  const { aptMode, canUseTestMode } = useAptMode();
   const [user, setUser] = useState<User | null>(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(() => Boolean(supabase));
   const isConfigured = Boolean(supabase);
   const isSignedIn = Boolean(user);
-  const plan: UserPlan = getUserPlan(aptMode, null, isSignedIn);
+  const plan: UserPlan = getUserPlan(aptMode, null, isSignedIn, canUseTestMode);
 
   useEffect(() => {
     if (!supabase) {
