@@ -1,6 +1,7 @@
 "use client";
 
 export const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "";
+const ANALYTICS_CONSENT_KEY = "apt-analytics-consent";
 
 type AnalyticsEventName =
   | "calculator_opened"
@@ -12,17 +13,52 @@ type AnalyticsEventName =
   | "upgrade_clicked";
 
 type AnalyticsEventProperties = Record<string, string | number | boolean | null | undefined>;
+export type AnalyticsConsent = "accepted" | "rejected" | null;
 
 declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
     aptAnalyticsSuppressed?: boolean;
+    aptAnalyticsConsent?: AnalyticsConsent;
   }
 }
 
+export function getStoredAnalyticsConsent(): AnalyticsConsent {
+  if (typeof window === "undefined") return null;
+  const stored = window.localStorage.getItem(ANALYTICS_CONSENT_KEY);
+  if (stored === "accepted" || stored === "rejected") {
+    window.aptAnalyticsConsent = stored;
+    return stored;
+  }
+  window.aptAnalyticsConsent = null;
+  return null;
+}
+
+export function setStoredAnalyticsConsent(consent: Exclude<AnalyticsConsent, null>) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(ANALYTICS_CONSENT_KEY, consent);
+  window.aptAnalyticsConsent = consent;
+  window.dispatchEvent(new CustomEvent("apt-analytics-consent-change", { detail: consent }));
+}
+
+export function subscribeToAnalyticsConsent(listener: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("apt-analytics-consent-change", listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    window.removeEventListener("apt-analytics-consent-change", listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
 export function isAnalyticsEnabled() {
-  return Boolean(GA_MEASUREMENT_ID) && typeof window !== "undefined" && window.aptAnalyticsSuppressed === false;
+  return (
+    Boolean(GA_MEASUREMENT_ID) &&
+    typeof window !== "undefined" &&
+    window.aptAnalyticsSuppressed === false &&
+    window.aptAnalyticsConsent === "accepted"
+  );
 }
 
 export function setAnalyticsSuppressed(isSuppressed: boolean) {

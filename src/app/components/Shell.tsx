@@ -5,6 +5,7 @@ import { Analytics } from "./Analytics";
 import { AptModeProvider } from "./AptMode";
 import { HeaderAuthNav } from "./AuthNav";
 import { AuthStatusToast } from "./AuthStatusToast";
+import { CookieConsent, CookieSettingsButton } from "./CookieConsent";
 import { DevPlanToggle } from "./DevPlanToggle";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
@@ -20,12 +21,11 @@ const footerResourceLinks = [
 ];
 
 const footerSiteLinks = [
-  { href: "/pricing", label: "Pricing" },
-  { href: "/workspace", label: "My workspace" },
-  { href: "/settings", label: "Settings" },
-  { href: "/tools", label: "All resources" },
+  { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy Policy" },
   { href: "/terms", label: "Terms of Use" },
+  { href: "/disclaimer", label: "Disclaimer" },
+  { href: "/copyright", label: "Copyright" },
 ];
 
 export function SiteShell({ children }: { children: React.ReactNode }) {
@@ -62,6 +62,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <Suspense fallback={null}>
         <AuthStatusToast />
       </Suspense>
+      <CookieConsent />
       <main>{children}</main>
       <footer className="site-footer">
         <div className="shell footer-grid">
@@ -90,12 +91,13 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             ))}
           </nav>
           <nav aria-label="Site links">
-            <h2>Site</h2>
+            <h2>Legal & contact</h2>
             {footerSiteLinks.map((link) => (
               <Link key={link.href} href={link.href}>
                 {link.label}
               </Link>
             ))}
+            <CookieSettingsButton />
           </nav>
         </div>
         <div className="shell footer-bottom">

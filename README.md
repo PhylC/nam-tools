@@ -28,11 +28,11 @@ Set `NEXT_PUBLIC_SHOW_PLAN_TOGGLE=true` and `APT_TEST_USER_EMAIL=<internal test 
 
 ## Analytics
 
-Optional GA4 tracking is controlled by `NEXT_PUBLIC_GA_MEASUREMENT_ID`. Leave it unset to disable analytics locally or in any environment where tracking should not run.
+Optional GA4 tracking is controlled by `NEXT_PUBLIC_GA_MEASUREMENT_ID`. Leave it unset to disable analytics locally or in any environment where tracking should not run. When it is set, GA4 still loads only after the visitor accepts analytics through the cookie consent control.
 
 Tracked events are limited to public page views and core product events: calculator opened/completed, signup started/completed, login completed, logout completed and upgrade clicks. Events must not include email addresses, user IDs, SKU names, prices, margins, COGS, support values, scenario names or other commercial inputs/results.
 
-Analytics is suppressed for the authorised internal test-mode account through the same `APT_TEST_USER_EMAIL` gate used by the Free / Pro QA toggle. UK/EU production use should connect analytics to the site's consent approach before enabling GA4 where non-essential analytics cookies require consent.
+Analytics is suppressed for the authorised internal test-mode account through the same `APT_TEST_USER_EMAIL` gate used by the Free / Pro QA toggle. Consent choices are stored in local browser storage under `apt-analytics-consent`.
 
 ## Mobile Navigation Note
 

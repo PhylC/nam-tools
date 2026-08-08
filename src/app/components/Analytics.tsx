@@ -2,8 +2,14 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { GA_MEASUREMENT_ID, setAnalyticsSuppressed, trackPageView } from "../../lib/analytics";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import {
+  GA_MEASUREMENT_ID,
+  getStoredAnalyticsConsent,
+  setAnalyticsSuppressed,
+  subscribeToAnalyticsConsent,
+  trackPageView,
+} from "../../lib/analytics";
 import { useAptMode } from "./AptMode";
 
 const privatePagePrefixes = [
@@ -25,17 +31,27 @@ export function Analytics() {
   const pathname = usePathname();
   const { canUseTestMode, isLoadingTestMode } = useAptMode();
   const [isReady, setIsReady] = useState(false);
+  const consent = useSyncExternalStore(subscribeToAnalyticsConsent, getStoredAnalyticsConsent, () => null);
 
   useEffect(() => {
     setAnalyticsSuppressed(isLoadingTestMode || canUseTestMode);
   }, [isLoadingTestMode, canUseTestMode]);
 
   useEffect(() => {
-    if (!GA_MEASUREMENT_ID || !isReady || isLoadingTestMode || canUseTestMode || !isPublicPageViewPath(pathname)) return;
+    if (
+      !GA_MEASUREMENT_ID ||
+      consent !== "accepted" ||
+      !isReady ||
+      isLoadingTestMode ||
+      canUseTestMode ||
+      !isPublicPageViewPath(pathname)
+    ) {
+      return;
+    }
     trackPageView(window.location.href);
-  }, [pathname, isReady, isLoadingTestMode, canUseTestMode]);
+  }, [pathname, consent, isReady, isLoadingTestMode, canUseTestMode]);
 
-  if (!GA_MEASUREMENT_ID) return null;
+  if (!GA_MEASUREMENT_ID || consent !== "accepted" || isLoadingTestMode || canUseTestMode) return null;
 
   return (
     <>

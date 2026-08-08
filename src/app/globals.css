@@ -421,6 +421,52 @@ textarea:focus {
   outline: none;
 }
 
+.cookie-consent {
+  position: fixed;
+  right: max(16px, calc((100vw - 1120px) / 2));
+  bottom: 16px;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  width: min(760px, calc(100vw - 32px));
+  border: 1px solid rgba(22, 32, 42, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 42px rgba(22, 32, 42, 0.14);
+  color: var(--foreground);
+  padding: 1rem;
+}
+
+.cookie-consent strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.98rem;
+}
+
+.cookie-consent p,
+.cookie-consent small {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.cookie-consent-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.cookie-consent-actions .button {
+  min-height: 40px;
+  padding: 0.62rem 0.85rem;
+  white-space: nowrap;
+}
+
 @keyframes auth-toast-in {
   from {
     opacity: 0;
@@ -444,6 +490,17 @@ textarea:focus {
     left: 16px;
     right: 16px;
     width: auto;
+  }
+
+  .cookie-consent {
+    left: 16px;
+    right: 16px;
+    grid-template-columns: 1fr;
+    width: auto;
+  }
+
+  .cookie-consent-actions {
+    justify-content: flex-start;
   }
 }
 
@@ -1784,8 +1841,26 @@ p {
   color: #edf4f3;
 }
 
-.site-footer a:hover {
+.site-footer a:hover,
+.footer-link-button:hover,
+.footer-link-button:focus-visible {
   color: #9ed9d0;
+}
+
+.footer-link-button {
+  display: block;
+  border: 0;
+  background: transparent;
+  color: #edf4f3;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  padding: 0;
+  text-align: left;
+}
+
+.footer-link-button:focus-visible {
+  outline: 2px solid rgba(237, 244, 243, 0.72);
+  outline-offset: 3px;
 }
 
 .site-footer .brand-mark {
@@ -4816,6 +4891,52 @@ p {
 
 .legal-copy ul {
   padding-left: 1.2rem;
+}
+
+.legal-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.legal-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.legal-table th,
+.legal-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal-table th {
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.legal-table td {
+  color: var(--muted);
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.operator-details {
+  margin-top: 1.25rem;
+}
+
+.operator-details h3 {
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.operator-details p {
+  color: var(--muted);
+  font-size: 0.94rem;
+  line-height: 1.6;
 }
 
 @media (max-width: 900px) {

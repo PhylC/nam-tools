@@ -16,6 +16,7 @@ export default function Page() {
       body={[
         "Account Planning Tools is for general commercial planning only. Calculator results, generated text and template-style outputs are estimates based on the figures and assumptions you enter.",
         "You must validate all figures, formulas, assumptions, costs, margins, trade spend, forecasts and customer context before using outputs with customers, employers, retailers or colleagues.",
+        "Retail prices, tax treatment, retailer margin treatment, promotional mechanics and customer accounting practices may vary by market, retailer, agreement and internal policy.",
         "Account Planning Tools does not provide financial, legal, tax, accounting, investment, procurement, negotiation or other professional advice.",
         "No guarantee is given that using Account Planning Tools will improve commercial performance, secure a buyer agreement, deliver sales uplift, increase margin or produce any specific business outcome.",
         "You remain responsible for your own decisions, recommendations, approvals and customer commitments.",

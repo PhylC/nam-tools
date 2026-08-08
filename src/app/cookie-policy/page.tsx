@@ -14,11 +14,12 @@ export default function Page() {
       title="Cookie policy"
       intro="This cookie policy explains how Account Planning Tools uses cookies and similar technologies."
       body={[
-        "Account Planning Tools uses only the cookies and similar technologies needed to provide, protect and improve the service.",
-        "Basic hosting, security or performance technologies may be used by the platform that serves the site. These may involve technical logs or similar browser-level data.",
-        "Core calculators do not need cookies to calculate results or generate copy-ready planning outputs.",
-        "If GA4 analytics is enabled, it may use analytics cookies or similar technologies to understand page and feature usage. Calculator inputs and commercial values are not intentionally sent in analytics events.",
-        "Saved scenarios, email signup and checkout services may use cookies or similar technologies where needed to provide those features.",
+        "APT uses essential cookies, local storage or similar technologies to provide sign-in, session handling, security, cookie choices, calculator defaults and saved local work. These are separate from optional analytics.",
+        "Supabase authentication/session functionality may use essential storage so accounts and protected pages continue to work whether analytics is accepted or rejected.",
+        "Core calculators can calculate results in the browser without analytics cookies. Some settings, recently used calculator values and local saved work may be stored on your device so the tools remain useful between visits.",
+        "Optional GA4 analytics is used only if analytics is enabled in the deployment environment and you accept analytics through the site's consent control. Analytics events are designed not to include calculator inputs, commercial values, scenario names, email addresses or user IDs.",
+        "Resend may process contact form details when you send a message. Render may process technical logs needed to deliver and protect the service.",
+        "You can change your analytics choice at any time using Cookie settings in the footer. Rejecting analytics does not affect essential sign-in/session functionality.",
       ]}
     />
   );
