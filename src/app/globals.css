@@ -300,6 +300,90 @@ textarea:focus {
   font-weight: 900;
 }
 
+.auth-status-toast {
+  position: fixed;
+  top: 88px;
+  right: max(16px, calc((100vw - 1120px) / 2));
+  z-index: 30;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: min(360px, calc(100vw - 32px));
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 36px rgba(22, 32, 42, 0.12);
+  color: var(--foreground);
+  padding: 0.8rem 0.85rem 0.8rem 1rem;
+  animation: auth-toast-in 180ms ease-out;
+}
+
+.auth-status-toast div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.auth-status-toast strong {
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.auth-status-toast span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.auth-status-toast button {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.auth-status-toast button:hover,
+.auth-status-toast button:focus-visible {
+  background: var(--surface-soft);
+  color: var(--foreground);
+  outline: none;
+}
+
+@keyframes auth-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-status-toast {
+    animation: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .auth-status-toast {
+    left: 16px;
+    right: 16px;
+    width: auto;
+  }
+}
+
 .mobile-menu-toggle,
 .mobile-nav-panel,
 .mobile-menu-test-toggle {

@@ -10,11 +10,28 @@ import { AuthDebugStatus } from "./AuthDebugStatus";
 type AuthFormMode = "login" | "create";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const DEFAULT_POST_AUTH_PATH = "/calculators";
+
+function isSafeReturnPath(path: string) {
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  try {
+    const parsed = new URL(path, window.location.origin);
+    return parsed.origin === window.location.origin && !["/login", "/create-account"].includes(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
+
+function withAuthStatus(path: string, status: "logged-in") {
+  const url = new URL(path, window.location.origin);
+  url.searchParams.set("auth", status);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
 
 function getReturnTo(fallback: string) {
   if (typeof window === "undefined") return fallback;
   const returnTo = new URLSearchParams(window.location.search).get("returnTo");
-  return returnTo?.startsWith("/") ? returnTo : fallback;
+  return returnTo && isSafeReturnPath(returnTo) ? returnTo : fallback;
 }
 
 export function AuthForm({ mode }: { mode: AuthFormMode }) {
@@ -70,7 +87,7 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
       }
 
       if (result.ok && !isCreate) {
-        router.push(getReturnTo("/account"));
+        router.push(withAuthStatus(getReturnTo(DEFAULT_POST_AUTH_PATH), "logged-in"));
       }
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {

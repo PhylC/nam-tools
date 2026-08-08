@@ -1,7 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { AptModeProvider } from "./AptMode";
 import { HeaderAuthNav } from "./AuthNav";
+import { AuthStatusToast } from "./AuthStatusToast";
 import { DevPlanToggle } from "./DevPlanToggle";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
@@ -55,6 +57,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <MobileNav />
         </div>
       </header>
+      <Suspense fallback={null}>
+        <AuthStatusToast />
+      </Suspense>
       <main>{children}</main>
       <footer className="site-footer">
         <div className="shell footer-grid">

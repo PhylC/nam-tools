@@ -7,14 +7,11 @@ export function AuthDebugStatus() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const envStatus = getSupabaseEnvStatus();
   const debugInfo = getSupabaseDebugInfo();
-  const [sessionStatus, setSessionStatus] = useState("checking");
+  const [sessionStatus, setSessionStatus] = useState(() => (supabase ? "checking" : "unavailable"));
 
   useEffect(() => {
     if (process.env.NODE_ENV === "production") return;
-    if (!supabase) {
-      setSessionStatus("unavailable");
-      return;
-    }
+    if (!supabase) return;
 
     let isMounted = true;
     supabase.auth

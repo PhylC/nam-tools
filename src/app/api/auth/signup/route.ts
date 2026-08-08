@@ -189,11 +189,11 @@ export async function POST(request: Request) {
     }
 
     if (data.session) {
-      logSignupEvent("signup completed with session", { requestId, emailDomain, redirectTo: "/workspace" });
+      logSignupEvent("signup completed with session", { requestId, emailDomain, redirectTo: "/calculators?auth=logged-in" });
       return jsonResponse({
         ok: true,
-        message: "Account created. Redirecting to your workspace.",
-        redirectTo: "/workspace",
+        message: "Account created. Redirecting to APT tools.",
+        redirectTo: "/calculators?auth=logged-in",
         session: {
           access_token: data.session.access_token,
           refresh_token: data.session.refresh_token,

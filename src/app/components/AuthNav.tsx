@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "../../lib/useAuth";
 
@@ -10,11 +11,16 @@ function initialsFromEmail(email: string) {
 
 export function HeaderAuthNav() {
   const { user, isSignedIn, isLoadingAuth, signOut, plan } = useAuth();
+  const router = useRouter();
   const [message, setMessage] = useState("");
   const email = user?.email ?? "";
 
   async function handleSignOut() {
     const result = await signOut();
+    if (result.ok) {
+      router.push("/calculators?auth=signed-out");
+      return;
+    }
     setMessage(result.message);
   }
 
@@ -51,11 +57,13 @@ export function HeaderAuthNav() {
 
 export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
   const { user, isSignedIn, isLoadingAuth, signOut, plan } = useAuth();
+  const router = useRouter();
   const email = user?.email ?? "";
 
   async function handleSignOut() {
-    await signOut();
+    const result = await signOut();
     onNavigate();
+    if (result.ok) router.push("/calculators?auth=signed-out");
   }
 
   if (isLoadingAuth) {

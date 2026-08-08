@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "../../lib/useAuth";
 
 export function AccountClient() {
   const { user, isSignedIn, isLoadingAuth, signOut, plan } = useAuth();
+  const router = useRouter();
   const [message, setMessage] = useState("");
 
   async function handleSignOut() {
     const result = await signOut();
+    if (result.ok) {
+      router.push("/calculators?auth=signed-out");
+      return;
+    }
     setMessage(result.message);
   }
 
