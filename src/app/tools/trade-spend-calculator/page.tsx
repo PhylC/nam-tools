@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Trade Spend Calculator",
-  description: "Turn fixed funding, SOA and trade spend into a clearer view of total deal support.",
-};
+  description: "Turn SOA, discounts, rebates, fixed funding and marketing support into a clearer total trade spend view.",
+  path: "/tools/trade-spend-calculator",
+});
 
 export default function Page() {
   return (

@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
+import { privateMetadata } from "../../seo";
 
-export const metadata: Metadata = {
-  title: "ROI Tool",
-  description:
-    "Model promo ROI, gross margin, trade spend, investment asks and retailer/customer economics from one shared set of commercial assumptions.",
-};
+export const metadata = privateMetadata(
+  "ROI Tool Redirect",
+  "Redirects to the canonical Promotion ROI Planner page.",
+);
 
 export default function Page() {
   return (

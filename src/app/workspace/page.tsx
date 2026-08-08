@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
 import { Hero } from "../components/Shell";
+import { privateMetadata } from "../seo";
 import { WorkspaceClient } from "./WorkspaceClient";
 
-export const metadata: Metadata = {
-  title: "My workspace",
-  description:
-    "Find saved Account Planning Tools analyses, scenarios, decks and exports in one workspace.",
-};
+export const metadata = privateMetadata(
+  "My workspace",
+  "Find saved Account Planning Tools analyses, scenarios, decks and exports in one workspace.",
+);
 
 export default function WorkspacePage() {
   return (

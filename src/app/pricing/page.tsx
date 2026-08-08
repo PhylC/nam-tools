@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
-  title: "Pricing | Free vs APT Pro",
-    description:
+export const metadata = seoMetadata({
+  title: "Pricing - Free vs APT Pro",
+  description:
     "Compare Free and APT Pro. Use free calculators for quick checks, or upgrade to save, compare and export commercial scenarios.",
-};
+  path: "/pricing",
+});
 
 const plans = [
   {

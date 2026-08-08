@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { BuyerMeetingPrepTool } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Buyer Meeting Planner",
-  description: "Generate a structured buyer meeting plan with talking points, objections and responses.",
-};
+  description: "Create a structured buyer meeting plan with the commercial ask, talking points, likely objections and follow-up actions.",
+  path: "/tools/buyer-meeting-prep",
+});
 
 export default function Page() {
   return (

@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import { Hero } from "../components/Shell";
+import { seoMetadata } from "../seo";
 import { RoiToolProduct } from "./RoiToolClient";
 
-export const metadata: Metadata = {
-  title: "ROI Tool",
+export const metadata = seoMetadata({
+  title: "Promotion ROI Planner",
   description:
-    "Use the ROI tool for quick promo checks, multi-SKU planning, scenario comparison and clearer commercial recommendations.",
-};
+    "Model promotion ROI, support investment, incremental revenue and profit for one SKU or a multi-line retail scenario.",
+  path: "/roi-tool",
+});
 
 export default function RoiToolPage() {
   return (

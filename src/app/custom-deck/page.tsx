@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
 import { Hero } from "../components/Shell";
+import { privateMetadata } from "../seo";
 import { CustomDeckClient } from "./CustomDeckClient";
 
-export const metadata: Metadata = {
-  title: "Build a custom deck",
-  description:
-    "Build a custom Account Planning Tools deck from a selected PowerPoint template, supporting data and commercial brief.",
-};
+export const metadata = privateMetadata(
+  "Build a custom deck",
+  "Build a custom Account Planning Tools deck from a selected PowerPoint template, supporting data and commercial brief.",
+);
 
 export default async function CustomDeckPage({
   searchParams,

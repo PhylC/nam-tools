@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Hero, SectionHeader } from "../components/Shell";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
-  title: "About Account Planning Tools | APT",
+export const metadata = seoMetadata({
+  title: "About APT",
   description:
     "Learn why Account Planning Tools was built for account managers, sales leads and commercial teams who need clearer promo, margin and support calculations.",
-};
+  path: "/about",
+});
 
 export default function AboutPage() {
   return (

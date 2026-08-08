@@ -1,14 +1,26 @@
 import type { MetadataRoute } from "next";
-
-const baseUrl = "https://accountplanningtools.co.uk";
+import { SITE_URL } from "./seo";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-    },
-    sitemap: `${baseUrl}/sitemap.xml`,
-    host: baseUrl,
+    rules: [
+      {
+        userAgent: "*",
+        allow: "/",
+        disallow: [
+          "/api/",
+          "/account",
+          "/workspace",
+          "/settings",
+          "/login",
+          "/create-account",
+          "/forgot-password",
+          "/update-password",
+          "/custom-deck",
+        ],
+      },
+    ],
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

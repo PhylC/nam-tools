@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Promotion ROI Calculator",
-  description: "Check whether extra promotion volume is enough to offset reduced price and support investment.",
-};
+  description: "Check whether extra promotion volume offsets supplier support, reduced invoice price and fixed investment.",
+  path: "/tools/promotion-roi-calculator",
+});
 
 export default function Page() {
   return (

@@ -1,12 +1,14 @@
 import Link from "next/link";
-import type { Metadata } from "next";
 import { Hero, SectionHeader } from "./components/Shell";
+import { seoMetadata } from "./seo";
 
-export const metadata: Metadata = {
-  title: "Account Planning Tools | Promo ROI, Margin and Support Calculators",
+export const metadata = seoMetadata({
+  title: "Commercial Planning Calculators for Sales & Account Teams",
+  absoluteTitle: "Account Planning Tools | Commercial Planning Calculators for Sales & Account Teams",
   description:
-    "Commercial planning tools for account managers. Run promo ROI, margin and support checks, then create cleaner summaries for meetings and account planning.",
-};
+    "Run promo ROI, retailer margin, invoice price and SOA support checks, then create clearer account plans and buyer-ready commercial summaries.",
+  path: "/",
+});
 
 const quickCheckCards = [
   {

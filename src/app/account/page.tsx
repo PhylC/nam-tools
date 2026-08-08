@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { AccountClient } from "./AccountClient";
 import { Hero } from "../components/Shell";
+import { privateMetadata } from "../seo";
 
-export const metadata: Metadata = {
-  title: "Account | Account Planning Tools",
-  description: "Manage your APT account, settings and workspace links.",
-};
+export const metadata = privateMetadata(
+  "Account",
+  "Manage your APT account, settings and workspace links.",
+);
 
 export default function AccountPage() {
   return (

@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { AccountPlanGenerator } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Account Plan Generator",
-  description: "Generate a practical account summary with opportunities, risks and 30/60/90 day actions.",
-};
+  description: "Turn account notes into a practical plan with priorities, opportunities, risks and 30/60/90 day actions.",
+  path: "/tools/account-plan-generator",
+});
 
 export default function Page() {
   return (

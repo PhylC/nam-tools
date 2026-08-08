@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Gross Margin Calculator",
-  description: "Check how invoice price, retail price, VAT or tax and COGS affect margin before you commit to a deal.",
-};
+  description: "Check supplier gross margin, retailer margin and promo price impact before agreeing support or funding.",
+  path: "/tools/gross-margin-calculator",
+});
 
 export default function Page() {
   return (

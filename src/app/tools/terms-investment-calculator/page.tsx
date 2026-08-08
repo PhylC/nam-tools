@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Terms / Investment Ask Calculator",
-  description: "Sense-check customer investment requests against uplift, revenue and gross margin.",
-};
+  description: "Sense-check customer investment requests against expected uplift, supplier revenue, gross margin and payback.",
+  path: "/tools/terms-investment-calculator",
+});
 
 export default function Page() {
   return (

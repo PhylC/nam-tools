@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { Hero } from "../components/Shell";
+import { privateMetadata } from "../seo";
 import { UpdatePasswordClient } from "./UpdatePasswordClient";
 
-export const metadata: Metadata = {
-  title: "Choose a new password | Account Planning Tools",
-  description: "Set a new password for your APT account.",
-};
+export const metadata = privateMetadata(
+  "Choose a new password",
+  "Set a new password for your APT account.",
+);
 
 export default function UpdatePasswordPage() {
   return (

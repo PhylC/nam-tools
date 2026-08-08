@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { LegalPage } from "../legal";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Disclaimer",
   description:
     "Disclaimer for Account Planning Tools calculators, templates and commercial planning outputs.",
-};
+  path: "/disclaimer",
+});
 
 export default function Page() {
   return (

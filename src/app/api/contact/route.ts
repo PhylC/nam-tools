@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const apiKey = process.env.RESEND_API_KEY;
   const toEmail = process.env.CONTACT_TO_EMAIL;
-  const fromEmail = process.env.CONTACT_FROM_EMAIL || toEmail || "hello@accountplanningtools.co.uk";
+  const fromEmail = process.env.CONTACT_FROM_EMAIL || toEmail || "hello@accountplanningtools.com";
   const text = [
     "APT contact form message",
     "",

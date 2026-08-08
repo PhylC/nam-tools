@@ -3,20 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Hero } from "../../components/Shell";
 import { QuickCommercialCalculators } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 import {
   getQuickCalculatorById,
   getQuickCalculatorBySlug,
   quickCalculators,
 } from "../../data/quickCalculators";
 
-const metadataBySlug: Record<string, Metadata> = {
+const metadataBySlug: Record<string, { title: string; description: string }> = {
   "required-soa-calculator": {
     title: "Required SOA / Support Calculator",
     description:
       "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
   },
   "retail-selling-price-calculator": {
-    title: "Retail Selling Price Calculator",
+    title: "Retail Selling Price from Invoice + Margin Calculator",
     description:
       "Check how invoice price, retail price and VAT or tax affect margin before you commit to a deal.",
   },
@@ -26,7 +27,7 @@ const metadataBySlug: Record<string, Metadata> = {
       "Check how invoice price, promo support, retail price and VAT or tax affect retailer margin.",
   },
   "invoice-price-calculator": {
-    title: "Invoice Price Calculator from Retail Price and Margin",
+    title: "Invoice Price from Retail Price + Margin Calculator",
     description:
       "Back-solve the invoice price implied by a retail price and target margin.",
   },
@@ -63,10 +64,15 @@ export async function generateMetadata({
     return {};
   }
 
-  return metadataBySlug[slug] ?? {
+  const pageMetadata = metadataBySlug[slug] ?? {
     title: calculator.title,
     description: calculator.description,
   };
+
+  return seoMetadata({
+    ...pageMetadata,
+    path: `/calculators/${calculator.slug}`,
+  });
 }
 
 export default async function CalculatorPage({

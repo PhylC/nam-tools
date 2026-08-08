@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { JbpBuilder } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Joint Business Plan Builder",
-  description: "Create a concise JBP outline with objective, initiative, investment ask and success measures.",
-};
+  description: "Create a concise joint business plan outline with objectives, growth initiatives, investment asks and success measures.",
+  path: "/tools/joint-business-plan-builder",
+});
 
 export default function Page() {
   return (

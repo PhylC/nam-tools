@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { LegalPage } from "../legal";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Cookie Policy",
   description:
     "Cookie policy for Account Planning Tools, a commercial planning toolkit.",
-};
+  path: "/cookie-policy",
+});
 
 export default function Page() {
   return (

@@ -21,7 +21,7 @@ export function LegalPage({
         <h2>Contact</h2>
         <p>
           Questions can be sent to{" "}
-          <a className="text-link" href="mailto:hello@accountplanningtools.co.uk">hello@accountplanningtools.co.uk</a>.
+          <a className="text-link" href="mailto:hello@accountplanningtools.com">hello@accountplanningtools.com</a>.
         </p>
       </section>
     </div>

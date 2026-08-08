@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Hero, SectionHeader } from "../../components/Shell";
 import { quickCalculatorGroups, quickCalculators } from "../../data/quickCalculators";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Commercial Calculators for Account Managers",
   description:
     "Quick SOA, retailer margin, invoice price, promo invoice, sales tax, VAT, IVA, markup and margin calculators for account managers.",
-};
+  path: "/calculators/quick-calculators",
+});
 
 const choices = [
   "Estimate retail price from invoice and target margin",

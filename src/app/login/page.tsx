@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { AuthForm } from "../components/AuthForms";
 import { Hero } from "../components/Shell";
+import { privateMetadata } from "../seo";
 
-export const metadata: Metadata = {
-  title: "Log in | Account Planning Tools",
-  description: "Log in to save calculator defaults and return to your APT workspace.",
-};
+export const metadata = privateMetadata(
+  "Log in",
+  "Log in to save calculator defaults and return to your APT workspace.",
+);
 
 type LoginPageProps = {
   searchParams: Promise<{ confirmed?: string; confirmation?: string; error?: string | string[] }>;

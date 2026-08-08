@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
 import { LegalPage } from "../legal";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Copyright Notice",
   description: "Copyright notice for Account Planning Tools content, pages, tools and outputs.",
-};
+  path: "/copyright",
+});
 
 export default function Page() {
   return (

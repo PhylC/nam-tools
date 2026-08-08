@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import { Hero, SectionHeader } from "../components/Shell";
+import { seoMetadata } from "../seo";
 import { ContactForm } from "./ContactForm";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Contact",
   description:
     "Contact Account Planning Tools with calculator feedback, calculation issues and practical suggestions for future commercial planning tools.",
-};
+  path: "/contact",
+});
 
 const reasons = [
   "A calculation issue or unclear result",
@@ -28,7 +29,7 @@ export default function ContactPage() {
           practical feedback is genuinely useful.
         </p>
         <p>
-          <a className="text-link" href="mailto:hello@accountplanningtools.co.uk">
+          <a className="text-link" href="mailto:hello@accountplanningtools.com">
             Email us
           </a>
         </p>

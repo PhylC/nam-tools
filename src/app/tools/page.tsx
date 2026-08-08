@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Hero, SectionHeader, ToolCard } from "../components/Shell";
 import { getTool, tools } from "../data/tools";
+import { seoMetadata } from "../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Commercial Planning Resources for Account Managers and KAMs",
   description:
     "A resource hub for promo ROI planning, calculators and presentation outputs for retail supplier teams.",
-};
+  path: "/tools",
+});
 
 const groups = [
   {

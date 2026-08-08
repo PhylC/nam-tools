@@ -1,11 +1,12 @@
-import type { Metadata } from "next";
 import { ToolPage } from "../../components/Shell";
 import { CustomerReviewTemplate } from "../../components/ToolWidgets";
+import { seoMetadata } from "../../seo";
 
-export const metadata: Metadata = {
+export const metadata = seoMetadata({
   title: "Customer Review Template",
-  description: "Generate a customer review summary covering performance, wins, misses and next actions.",
-};
+  description: "Generate a customer review summary covering performance, wins, misses, commercial asks and next actions.",
+  path: "/tools/customer-review-template",
+});
 
 export default function Page() {
   return (

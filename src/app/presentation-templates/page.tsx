@@ -1,12 +1,13 @@
-import type { Metadata } from "next";
 import { Hero } from "../components/Shell";
+import { seoMetadata } from "../seo";
 import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 
-export const metadata: Metadata = {
-  title: "Presentations",
+export const metadata = seoMetadata({
+  title: "Presentation Templates for Account Planning",
   description:
     "Buyer-ready and internal presentation templates for turning account plans, promo proposals and customer reviews into clearer meeting outputs.",
-};
+  path: "/presentation-templates",
+});
 
 export default function PresentationTemplatesPage() {
   return (

@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Hero } from "../components/Shell";
+import { seoMetadata } from "../seo";
 import { CalculatorsHubClient } from "./CalculatorsHubClient";
 
-export const metadata: Metadata = {
-  title: "Commercial Calculator Hub | Account Planning Tools",
+export const metadata = seoMetadata({
+  title: "Commercial Calculator Hub",
   description:
-    "Choose the right Account Planning Tools calculator for promo ROI, retailer margin, SOA, invoice price and commercial planning questions.",
-};
+    "Choose calculators for promo ROI, retailer margin, SOA support, invoice price and commercial planning questions.",
+  path: "/calculators",
+});
 
 export default function CalculatorsPage() {
   return (

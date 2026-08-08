@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { ToolPage } from "../../components/Shell";
+import { privateMetadata } from "../../seo";
 
-export const metadata: Metadata = {
-  title: "Commercial Calculators for Account Managers | Account Planning Tools",
-  description:
-    "Fast SOA, invoice price, retail margin, sales tax / VAT / IVA and promotion calculators for national account managers and commercial teams.",
-};
+export const metadata = privateMetadata(
+  "Commercial Calculators Redirect",
+  "Redirects to the canonical commercial calculators index.",
+);
 
 export default function Page() {
   return (
