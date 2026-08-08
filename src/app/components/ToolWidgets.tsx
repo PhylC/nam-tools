@@ -1461,7 +1461,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
           : hasInvoiceInputs;
   const activePrompt =
     activeTab === "investment"
-      ? "Add supplier COGS to calculate profit impact and ROI."
+      ? "Add supplier COGS to calculate incremental profit and ROI."
       : activeTab === "margin"
         ? "Add retail selling prices to estimate the retailer/customer view."
         : "Enter the required fields to see your result.";
@@ -1501,7 +1501,7 @@ Pricing is at the sole discretion of the retailer. Outputs are estimates for pla
 Verdict: ${result.promoVerdict}
 Gross profit before: ${currency.format(result.baselineGrossProfit)}
 Gross profit during promotion: ${currency.format(result.promoGpAfterSoaFixed)}
-Net profit impact: ${currency.format(result.netProfitImpact)}
+Incremental profit: ${currency.format(result.netProfitImpact)}
 ROI: ${safePercent(result.roi)}
 SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
 Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
@@ -1543,14 +1543,14 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     spend: `Total trade spend is ${currency.format(result.totalTradeSpend)}, equal to ${safePercent(result.tradeSpendGrossRate)} of gross sales. High spend should buy a clear customer commitment.`,
     investment:
       result.netProfitImpact >= 0
-        ? `This deal is estimated to create ${currency.format(result.netProfitImpact)} after fixed support. Check whether the assumptions are realistic before committing.`
-        : `This deal is estimated to lose ${currency.format(Math.abs(result.netProfitImpact))} after fixed support. It needs a strategic reason or a better mechanic.`,
+        ? `This deal is estimated to create ${currency.format(result.netProfitImpact)} of incremental profit after fixed support. Check whether the assumptions are realistic before committing.`
+        : `This deal is estimated to lose ${currency.format(Math.abs(result.netProfitImpact))} of incremental profit after fixed support. It needs a strategic reason or a better mechanic.`,
   };
   const tabExplanations: Record<DealTab, string> = {
     promo: "This shows whether the additional volume and revenue are enough to offset the reduced price and support investment.",
     margin: "This shows the estimated margin based on the inputs provided. If retail prices include tax, the excluding-tax price is used for margin estimates.",
     spend: "This helps estimate how much funding is being added to the deal and whether that support is fixed, per unit or both.",
-    investment: "This adds COGS and fixed support to show whether the promotion creates enough supplier return after investment.",
+    investment: "This adds COGS and fixed support to show incremental profit: promo profit minus baseline profit.",
   };
   const dealInputsForCsv: CsvRow[] = [
     { label: "Currency", value: currencyCode },
@@ -1589,7 +1589,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     investment: [
       { label: "Gross profit before", value: currency.format(result.baselineGrossProfit) },
       { label: "Gross profit during promotion", value: currency.format(result.promoGpAfterSoaFixed) },
-      { label: "Net profit impact", value: currency.format(result.netProfitImpact) },
+      { label: "Incremental profit", value: currency.format(result.netProfitImpact) },
       { label: "ROI", value: safePercent(result.roi) },
     ],
   };
@@ -1662,9 +1662,9 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
               },
               {
                 id: "profit" as DealMode,
-                title: "Profit / COGS deal check",
+                title: "Incremental profit / COGS deal check",
                 description:
-                  "I also know COGS and want to estimate profit impact and ROI.",
+                  "I also know COGS and want to estimate incremental profit and ROI.",
               },
               {
                 id: "retailer" as DealMode,
@@ -1939,7 +1939,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                 items={[
                   { label: "Gross profit before", value: currency.format(result.baselineGrossProfit) },
                   { label: "Gross profit during promotion", value: currency.format(result.promoGpAfterSoaFixed) },
-                  { label: "Net profit impact", value: currency.format(result.netProfitImpact), tone: result.netProfitImpact >= 0 ? "good" : "bad" },
+                  { label: "Incremental profit", value: currency.format(result.netProfitImpact), tone: result.netProfitImpact >= 0 ? "good" : "bad" },
                   { label: "ROI", value: safePercent(result.roi), tone: result.roi >= 0 ? "good" : "bad" },
                   { label: "Break-even units", value: number.format(result.breakEvenIncrementalUnits) },
                   { label: "Verdict", value: result.promoVerdict, tone: result.netProfitImpact >= 0 ? "good" : "bad" },

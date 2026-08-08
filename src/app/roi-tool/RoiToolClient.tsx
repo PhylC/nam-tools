@@ -510,7 +510,7 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
         "support_cost",
         "baseline_gross_profit",
         "promo_gross_profit",
-        "profit_impact",
+        "incremental_profit",
         "revenue_roi",
         "profit_roi",
       ],
@@ -685,6 +685,57 @@ function MobileField({
   );
 }
 
+function derivedCurrentInvoice(promoInvoice: string, soa: string) {
+  if (!has(promoInvoice)) return "";
+  return String(n(promoInvoice) + (has(soa) ? n(soa) : 0));
+}
+
+function RoiFreeLineForm({
+  lines,
+  onChangeLines,
+}: {
+  lines: RoiLine[];
+  onChangeLines: (lines: RoiLine[]) => void;
+}) {
+  const line = lines[0];
+
+  if (!line) return null;
+
+  function changeLine(patch: Partial<RoiLine>) {
+    const nextPromoInvoice = patch.promoInvoice ?? line.promoInvoice;
+    const nextSoa = patch.soa ?? line.soa;
+    const shouldDeriveInvoice = "promoInvoice" in patch || "soa" in patch;
+    const nextPatch: Partial<RoiLine> = {
+      ...patch,
+      ...(shouldDeriveInvoice
+        ? {
+            currentInvoice: derivedCurrentInvoice(nextPromoInvoice, nextSoa),
+            supportMode: has(nextSoa) ? "soa" : "promoInvoice",
+          }
+        : null),
+    };
+
+    onChangeLines(updateLine(lines, line.id, nextPatch));
+  }
+
+  return (
+    <div className="roi-free-line-form">
+      <div className="roi-free-form-heading">
+        <h4>Calculator inputs</h4>
+        <p>Enter the one product line you want to model.</p>
+      </div>
+      <div className="roi-free-input-grid">
+        <MobileField field="sku" value={line.sku} onChange={(value) => changeLine({ sku: value })} />
+        <MobileField field="promoInvoice" type="number" value={line.promoInvoice} onChange={(value) => changeLine({ promoInvoice: value })} />
+        <MobileField field="soa" type="number" value={line.soa} onChange={(value) => changeLine({ soa: value })} />
+        <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine({ baselineUnits: value })} />
+        <MobileField field="promoUnits" type="number" value={line.promoUnits} onChange={(value) => changeLine({ promoUnits: value })} />
+        <MobileField field="cogs" type="number" value={line.cogs} onChange={(value) => changeLine({ cogs: value })} />
+      </div>
+    </div>
+  );
+}
+
 function RoiMobileLineBuilder({
   lines,
   onChangeLines,
@@ -770,7 +821,7 @@ function RoiMobileLineBuilder({
             <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
               <div><span>Inc revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
               <div><span>Support</span><strong>{money(calc.supportCost)}</strong></div>
-              <div><span>Profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add COGS"}</strong></div>
+              <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add COGS"}</strong></div>
               <div><span>ROI</span><strong>{pct(calc.profitRoi ?? calc.revenueRoi)}</strong></div>
             </div>
           </article>
@@ -803,6 +854,29 @@ function RoiEditableTable({
     onChangeLines([...lines.slice(0, index + 1), copyLine(lines[index]), ...lines.slice(index + 1)]);
   }
 
+  if (!lineActions) {
+    return (
+      <>
+        <RoiFreeLineForm lines={lines} onChangeLines={onChangeLines} />
+        <button
+          className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
+          onClick={onAddLine}
+          type="button"
+        >
+          {newLineProOnly ? (
+            <>
+              Add another line
+              <ProBadge />
+            </>
+          ) : (
+            "+ New line"
+          )}
+        </button>
+        {newLineProOnly ? <p className="pro-action-note">Available with APT Pro.</p> : null}
+      </>
+    );
+  }
+
   return (
     <>
       <div className="roi-table-scroll roi-desktop-table">
@@ -820,7 +894,7 @@ function RoiEditableTable({
               <th><RoiFieldLabel compact field="fixedSupport" /></th>
               <th>Incremental revenue</th>
               <th>Support cost</th>
-              <th>Profit impact</th>
+              <th>Incremental profit</th>
               <th>Revenue ROI</th>
               <th>Profit ROI</th>
               {lineActions ? <th>Actions</th> : null}
@@ -888,7 +962,7 @@ function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
     ["Promo rev", money(summary.promoRevenue)],
     ["Inc rev", money(summary.revenueImpact)],
     ["Support", money(summary.supportCost)],
-    ["Profit", summary.profitRows ? money(summary.profitImpact) : "n/a"],
+    ["Incremental profit", summary.profitRows ? money(summary.profitImpact) : "n/a"],
     ["Rev ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
     ["Profit ROI", pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)],
     ["Lines", scenario.lines.length.toLocaleString("en-GB")],
@@ -973,7 +1047,7 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
         {scenarios.length > 1 ? (
           <div className="comparison-chip-row">
             <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Best profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best incremental profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
@@ -996,7 +1070,7 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
               {metrics.map((item) => {
                 const badges = [
                   bestRevenue?.scenario.id === item.scenario.id ? "Best revenue" : "",
-                  bestProfit?.scenario.id === item.scenario.id ? "Best profit" : "",
+                  bestProfit?.scenario.id === item.scenario.id ? "Best incremental profit" : "",
                   bestRoi?.scenario.id === item.scenario.id ? "Best ROI" : "",
                   recommended?.scenario.id === item.scenario.id ? "Recommended" : "",
                 ].filter(Boolean);
@@ -1010,7 +1084,7 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
                     <dl>
                       <div><dt>Inc revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
                       <div><dt>ROI</dt><dd>{pct(item.profitRoi ?? item.revenueRoi)}</dd></div>
-                      <div><dt>Profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add COGS"}</dd></div>
+                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add COGS"}</dd></div>
                     </dl>
                   </article>
                 );
@@ -1213,7 +1287,7 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
         promoRevenue: money(total.promoRevenue),
         incrementalRevenue: money(total.revenueImpact),
         support: money(total.supportCost),
-        profit: total.profitRows ? money(total.profitImpact) : "n/a",
+        incrementalProfit: total.profitRows ? money(total.profitImpact) : "n/a",
         revenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
         profitRoi: total.profitRows && total.supportCost > 0 ? pct(total.profitImpact / total.supportCost) : "n/a",
         lines: scenario.lines.length,

@@ -288,10 +288,12 @@ export function Field({
 }
 
 const resultHelpByLabel: Record<string, string> = {
-  "Net profit impact":
-    "Estimated supplier profit change after supplier support, SOA and fixed costs.",
+  "Incremental profit":
+    "The additional profit generated versus the baseline. Promo profit minus baseline profit.",
   ROI:
-    "Net profit impact divided by total supplier support. A positive ROI means the deal pays back on the entered assumptions.",
+    "Incremental profit divided by total supplier support. A positive ROI means the deal pays back on the entered assumptions.",
+  "Profit ROI":
+    "Incremental profit divided by total supplier support. Promo profit minus baseline profit is the numerator.",
   "Total supplier support":
     "Total estimated supplier investment, including per-unit SOA/support and any fixed support.",
   "Total SOA / supplier support":

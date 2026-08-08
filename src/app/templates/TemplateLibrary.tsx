@@ -226,7 +226,7 @@ Slide 4: Investment
 
 Slide 5: ROI and payback
 - Incremental gross profit:
-- Net profit impact:
+- Incremental profit:
 - ROI:
 - Break-even units:
 
@@ -305,7 +305,7 @@ Tab: Inputs
 Columns: Customer | Event | Baseline units | Promo units | Normal price | Promo price | Cost price | Supplier support/unit | Fixed support
 
 Tab: Promo result
-Columns: Incremental units | Net incremental units | Gross profit before support | Total support | Net profit impact | ROI | Break-even units
+Columns: Incremental units | Net incremental units | Gross profit before support | Total support | Incremental profit | ROI | Break-even units
 
 Tab: Retailer view
 Columns: Retailer buy price | Retailer sell-out price | Retailer gross sales | Supplier support received | Indicative margin after support
