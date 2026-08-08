@@ -1346,7 +1346,7 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       tradeSpendGrossRate > 0.25 ? "heavy" : tradeSpendGrossRate > 0.12 ? "normal" : "light";
     const invoiceVerdict =
       invoiceRevenueImpact >= totalInvestment
-        ? "Revenue impact covers support"
+        ? "Supplier revenue impact covers support"
         : invoiceRevenueImpact >= 0
           ? "Positive revenue, check payback"
           : "Revenue falls, needs a strategic reason";
@@ -1474,11 +1474,11 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
   const simpleSummaries: Record<DealTab, string> = {
     promo: `Quick invoice deal summary
 Verdict: ${result.invoiceVerdict}
-Baseline invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
-Promo invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
-Revenue impact: ${currency.format(result.invoiceRevenueImpact)}
+Baseline supplier invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
+Promo supplier invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
+Incremental supplier invoice revenue: ${currency.format(result.invoiceRevenueImpact)}
 SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
-Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
+Promotional retailer invoice/buy price: ${money2.format(result.effectivePromoInvoice)}
 Total supplier support: ${currency.format(result.totalInvestment)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
     margin: `Retailer view summary
@@ -1492,19 +1492,19 @@ Pricing is at the sole discretion of the retailer. Outputs are estimates for pla
     spend: `Trade spend summary
 Spend level: ${result.spendIntensity}
 Total trade spend: ${currency.format(result.totalTradeSpend)}
-Net sales after trade spend: ${currency.format(result.netSalesAfterTradeSpend)}
-Trade spend % of gross sales: ${safePercent(result.tradeSpendGrossRate)}
+Supplier net sales after trade spend: ${currency.format(result.netSalesAfterTradeSpend)}
+Trade spend % of supplier gross sales: ${safePercent(result.tradeSpendGrossRate)}
 SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
-Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
+Promotional retailer invoice/buy price: ${money2.format(result.effectivePromoInvoice)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
     investment: `Supplier profit summary
 Verdict: ${result.promoVerdict}
-Gross profit before: ${currency.format(result.baselineGrossProfit)}
-Gross profit during promotion: ${currency.format(result.promoGpAfterSoaFixed)}
+Baseline supplier gross profit: ${currency.format(result.baselineGrossProfit)}
+Promo supplier gross profit: ${currency.format(result.promoGpAfterSoaFixed)}
 Incremental profit: ${currency.format(result.netProfitImpact)}
 ROI: ${safePercent(result.roi)}
 SOA / supplier support per unit: ${money2.format(result.soaPerUnit)}
-Promotional invoice price: ${money2.format(result.effectivePromoInvoice)}
+Promotional retailer invoice/buy price: ${money2.format(result.effectivePromoInvoice)}
 Pricing is at the sole discretion of the retailer. Outputs are estimates for planning only.`,
   };
 
@@ -1513,7 +1513,7 @@ Pricing is at the sole discretion of the retailer. Outputs are estimates for pla
 Net incremental units: ${number.format(result.netIncrementalUnits)}
 SOA / supplier support value: ${currency.format(result.soaValue)}
 Fixed supplier support: ${currency.format(result.fixed)}
-Effective promo invoice price: ${money2.format(result.effectivePromoInvoice)}`,
+Effective promo retailer invoice/buy price: ${money2.format(result.effectivePromoInvoice)}`,
     margin: `${simpleSummaries.margin}
 Retailer gross sales excluding tax: ${currency.format(result.retailerGrossSales)}
 Retailer invoice/buy value: ${currency.format(result.retailerCostOfGoods)}
@@ -1521,15 +1521,15 @@ Retailer profit before support: ${currency.format(result.retailerGpBeforeFunding
 Retailer margin before support: ${safePercent(result.retailerMarginBeforeFunding)}
 Retailer margin gap vs target: ${safePercent(result.retailerMarginGapVsRequirement)}`,
     spend: `${simpleSummaries.spend}
-Gross sales value: ${currency.format(result.grossSales)}
+Supplier gross sales value: ${currency.format(result.grossSales)}
 Variable discount value: ${currency.format(result.variableDiscountValue)}
 Rebate/overrider value: ${currency.format(result.rebateValue)}
 Marketing contribution: ${currency.format(result.marketingContributionValue)}
 Other deductions: ${currency.format(result.otherDeductionValue)}
-Trade spend % of invoice sales: ${safePercent(result.tradeSpendInvoiceRate)}`,
+Trade spend % of supplier invoice sales: ${safePercent(result.tradeSpendInvoiceRate)}`,
     investment: `${simpleSummaries.investment}
-Baseline invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
-Promo invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
+Baseline supplier invoice revenue: ${currency.format(result.baselineInvoiceRevenue)}
+Promo supplier invoice revenue: ${currency.format(result.promoInvoiceRevenue)}
 Break-even incremental units: ${number.format(result.breakEvenIncrementalUnits)}
 Fixed supplier support: ${currency.format(result.fixed)}`,
   };
@@ -1556,13 +1556,13 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     { label: "Currency", value: currencyCode },
     { label: "Baseline units", value: baselineUnits },
     { label: "Promo units", value: promoUnits },
-    { label: "Current invoice price", value: retailerBuyPrice },
-    { label: "Promo invoice price", value: promoInvoicePrice },
+    { label: "Current retailer invoice/buy price", value: retailerBuyPrice },
+    { label: "Promo retailer invoice/buy price", value: promoInvoicePrice },
     { label: "Support per unit / SOA", value: soa },
     { label: "Current SRP", value: srp },
     { label: "Promo SRP", value: promoSrp },
-    { label: "COGS", value: cogs },
-    { label: "Fixed support", value: fixedCost || "0" },
+    { label: "Supplier COGS", value: cogs },
+    { label: "Fixed supplier support", value: fixedCost || "0" },
     { label: "Current retail tax basis", value: retailerVatBasisLabel },
     { label: `Current retail ${taxLabelDisplay} rate`, value: vatRate },
     { label: "Promo retail tax basis", value: promoRetailVatBasisLabel },
@@ -1570,11 +1570,11 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
   ];
   const dealOutputsForCsv: Record<DealTab, CsvRow[]> = {
     promo: [
-      { label: "Baseline invoice revenue", value: currency.format(result.baselineInvoiceRevenue) },
-      { label: "Promo invoice revenue", value: currency.format(result.promoInvoiceRevenue) },
-      { label: "Revenue impact", value: currency.format(result.invoiceRevenueImpact) },
-      { label: "Total support", value: currency.format(result.totalInvestment) },
-      { label: "Effective promo invoice price", value: money2.format(result.effectivePromoInvoice) },
+      { label: "Baseline supplier invoice revenue", value: currency.format(result.baselineInvoiceRevenue) },
+      { label: "Promo supplier invoice revenue", value: currency.format(result.promoInvoiceRevenue) },
+      { label: "Incremental supplier invoice revenue", value: currency.format(result.invoiceRevenueImpact) },
+      { label: "Total supplier support", value: currency.format(result.totalInvestment) },
+      { label: "Effective promo retailer invoice/buy price", value: money2.format(result.effectivePromoInvoice) },
     ],
     margin: [
       { label: "Retailer estimated profit", value: currency.format(result.retailerEstimatedProfitAfterFunding) },
@@ -1583,12 +1583,12 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
     ],
     spend: [
       { label: "Total trade spend", value: currency.format(result.totalTradeSpend) },
-      { label: "Trade spend % of gross sales", value: safePercent(result.tradeSpendGrossRate) },
-      { label: "Net sales after support", value: currency.format(result.netSalesAfterTradeSpend) },
+      { label: "Trade spend % of supplier gross sales", value: safePercent(result.tradeSpendGrossRate) },
+      { label: "Supplier net sales after support", value: currency.format(result.netSalesAfterTradeSpend) },
     ],
     investment: [
-      { label: "Gross profit before", value: currency.format(result.baselineGrossProfit) },
-      { label: "Gross profit during promotion", value: currency.format(result.promoGpAfterSoaFixed) },
+      { label: "Baseline supplier gross profit", value: currency.format(result.baselineGrossProfit) },
+      { label: "Promo supplier gross profit", value: currency.format(result.promoGpAfterSoaFixed) },
       { label: "Incremental profit", value: currency.format(result.netProfitImpact) },
       { label: "ROI", value: safePercent(result.roi) },
     ],
@@ -1708,7 +1708,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
               role="radio"
               type="button"
             >
-              Promo invoice price
+              Promo retailer invoice/buy price
             </button>
           </div>
         </section>
@@ -1852,11 +1852,11 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <>
               <ResultGrid
                 items={[
-                  { label: "Baseline invoice revenue", value: currency.format(result.baselineInvoiceRevenue) },
-                  { label: "Promo invoice revenue", value: currency.format(result.promoInvoiceRevenue) },
-                  { label: "Revenue impact", value: currency.format(result.invoiceRevenueImpact), tone: result.invoiceRevenueImpact >= 0 ? "good" : "bad" },
+                  { label: "Baseline supplier invoice revenue", value: currency.format(result.baselineInvoiceRevenue) },
+                  { label: "Promo supplier invoice revenue", value: currency.format(result.promoInvoiceRevenue) },
+                  { label: "Incremental supplier invoice revenue", value: currency.format(result.invoiceRevenueImpact), tone: result.invoiceRevenueImpact >= 0 ? "good" : "bad" },
                   { label: "Total SOA / supplier support", value: currency.format(result.totalInvestment) },
-                  { label: "Effective promo invoice price", value: money2.format(result.effectivePromoInvoice) },
+                  { label: "Effective promo retailer invoice/buy price", value: money2.format(result.effectivePromoInvoice) },
                   { label: "Verdict", value: result.invoiceVerdict, tone: result.invoiceRevenueImpact >= 0 ? "good" : "bad" },
                 ]}
               />
@@ -1867,7 +1867,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                     { label: "SOA / supplier support per unit", value: money2.format(result.soaPerUnit) },
                     { label: "SOA / supplier support value", value: currency.format(result.soaValue) },
                     { label: "Fixed supplier support", value: currency.format(result.fixed) },
-                    { label: "Promotional invoice price", value: money2.format(result.effectivePromoInvoice) },
+                    { label: "Promotional retailer invoice/buy price", value: money2.format(result.effectivePromoInvoice) },
                   ]}
                 />
               </CalculationDetail>
@@ -1912,8 +1912,8 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
               <ResultGrid
                 items={[
                   { label: "Total trade spend", value: currency.format(result.totalTradeSpend), tone: result.spendIntensity === "heavy" ? "bad" : "neutral" },
-                  { label: "Trade spend % of gross sales", value: safePercent(result.tradeSpendGrossRate), tone: result.spendIntensity === "heavy" ? "bad" : "good" },
-                  { label: "Net sales after SOA / supplier support", value: currency.format(result.netSalesAfterTradeSpend), tone: result.netSalesAfterTradeSpend >= 0 ? "good" : "bad" },
+                  { label: "Trade spend % of supplier gross sales", value: safePercent(result.tradeSpendGrossRate), tone: result.spendIntensity === "heavy" ? "bad" : "good" },
+                  { label: "Supplier net sales after SOA / support", value: currency.format(result.netSalesAfterTradeSpend), tone: result.netSalesAfterTradeSpend >= 0 ? "good" : "bad" },
                   { label: "Variable SOA / supplier support", value: currency.format(result.variableDiscountValue + result.rebateValue + result.otherDeductionValue) },
                   { label: "Fixed supplier support", value: currency.format(result.fixed + result.marketingContributionValue) },
                 ]}
@@ -1921,12 +1921,12 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
               <CalculationDetail summary={detailedSummaries.spend}>
                 <ResultGrid
                   items={[
-                    { label: "Gross sales value", value: currency.format(result.grossSales) },
+                    { label: "Supplier gross sales value", value: currency.format(result.grossSales) },
                     { label: "Variable discount value", value: currency.format(result.variableDiscountValue) },
                     { label: "Rebate/overrider value", value: currency.format(result.rebateValue) },
                     { label: "Marketing contribution", value: currency.format(result.marketingContributionValue) },
                     { label: "Other deductions", value: currency.format(result.otherDeductionValue) },
-                    { label: "Trade spend % of invoice sales", value: safePercent(result.tradeSpendInvoiceRate) },
+                    { label: "Trade spend % of supplier invoice sales", value: safePercent(result.tradeSpendInvoiceRate) },
                   ]}
                 />
               </CalculationDetail>
@@ -1937,8 +1937,8 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <>
               <ResultGrid
                 items={[
-                  { label: "Gross profit before", value: currency.format(result.baselineGrossProfit) },
-                  { label: "Gross profit during promotion", value: currency.format(result.promoGpAfterSoaFixed) },
+                  { label: "Baseline supplier gross profit", value: currency.format(result.baselineGrossProfit) },
+                  { label: "Promo supplier gross profit", value: currency.format(result.promoGpAfterSoaFixed) },
                   { label: "Incremental profit", value: currency.format(result.netProfitImpact), tone: result.netProfitImpact >= 0 ? "good" : "bad" },
                   { label: "ROI", value: safePercent(result.roi), tone: result.roi >= 0 ? "good" : "bad" },
                   { label: "Break-even units", value: number.format(result.breakEvenIncrementalUnits) },
@@ -2115,25 +2115,32 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   const [customTaxLabel, setCustomTaxLabel] = useState(lastUsed.customTaxLabel ?? toolDefaults.customTaxLabel ?? savedDefaults.customTaxLabel ?? "");
   const [quickRetailTaxBasis, setQuickRetailTaxBasis] = useState<VatBasis>((lastUsed.retailTaxBasis as VatBasis) ?? toolDefaults.retailTaxBasis ?? "excludes");
   const [quickTaxRate, setQuickTaxRate] = useState(lastUsed.taxRate ?? toolDefaults.taxRate ?? String(savedDefaults.taxRate || ""));
-  const [soaInvoice, setSoaInvoice] = useState(lastUsed.soaInvoice ?? "");
-  const [soaRetail, setSoaRetail] = useState(lastUsed.soaRetail ?? "");
-  const [soaMargin, setSoaMargin] = useState(lastUsed.soaMargin ?? "");
-  const [soaFixed, setSoaFixed] = useState(lastUsed.soaFixed ?? "");
+  const [soaStandardRetail, setSoaStandardRetail] = useState(lastUsed.soaStandardRetail ?? lastUsed.soaRetail ?? "");
+  const [soaStandardMargin, setSoaStandardMargin] = useState(lastUsed.soaStandardMargin ?? "");
+  const [soaProposedRetail, setSoaProposedRetail] = useState(lastUsed.soaProposedRetail ?? "");
+  const [soaRequiredMargin, setSoaRequiredMargin] = useState(lastUsed.soaRequiredMargin ?? lastUsed.soaMargin ?? "");
+  const [soaUnits, setSoaUnits] = useState(lastUsed.soaUnits ?? lastUsed.soaFixed ?? "");
 
   const requiredSoa = useMemo(() => {
-    const retail = vatAdjustedPrice(num(soaRetail), quickRetailTaxBasis, rate(quickTaxRate));
-    const requiredCost = retail.exVat * (1 - rate(soaMargin));
-    const support = num(soaInvoice) - requiredCost;
-    const promoInvoice = num(soaInvoice) - support;
+    const standardRetail = vatAdjustedPrice(num(soaStandardRetail), quickRetailTaxBasis, rate(quickTaxRate));
+    const proposedRetail = vatAdjustedPrice(num(soaProposedRetail), quickRetailTaxBasis, rate(quickTaxRate));
+    const normalInvoice = standardRetail.exVat * (1 - rate(soaStandardMargin));
+    const requiredInvoice = proposedRetail.exVat * (1 - rate(soaRequiredMargin));
+    const rawSupport = normalInvoice - requiredInvoice;
+    const support = Math.max(0, rawSupport);
+    const units = num(soaUnits);
     return {
-      retail,
-      requiredCost,
+      standardRetail,
+      proposedRetail,
+      normalInvoice,
+      requiredInvoice,
+      rawSupport,
       support,
-      promoInvoice,
-      supportInvoiceRate: num(soaInvoice) > 0 ? support / num(soaInvoice) : 0,
-      supportRetailRate: retail.exVat > 0 ? support / retail.exVat : 0,
+      units,
+      totalSupport: units > 0 ? support * units : 0,
+      supportInvoiceRate: normalInvoice > 0 ? support / normalInvoice : 0,
     };
-  }, [soaInvoice, soaRetail, quickRetailTaxBasis, quickTaxRate, soaMargin]);
+  }, [soaStandardRetail, soaProposedRetail, quickRetailTaxBasis, quickTaxRate, soaStandardMargin, soaRequiredMargin, soaUnits]);
 
   const [rspInvoice, setRspInvoice] = useState(lastUsed.rspInvoice ?? "");
   const [rspMargin, setRspMargin] = useState(lastUsed.rspMargin ?? "");
@@ -2229,10 +2236,11 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       customTaxLabel,
       retailTaxBasis: quickRetailTaxBasis,
       taxRate: quickTaxRate,
-      soaInvoice,
-      soaRetail,
-      soaMargin,
-      soaFixed,
+      soaStandardRetail,
+      soaStandardMargin,
+      soaProposedRetail,
+      soaRequiredMargin,
+      soaUnits,
       rspInvoice,
       rspMargin,
       actualInvoice,
@@ -2262,10 +2270,11 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     customTaxLabel,
     quickRetailTaxBasis,
     quickTaxRate,
-    soaInvoice,
-    soaRetail,
-    soaMargin,
-    soaFixed,
+    soaStandardRetail,
+    soaStandardMargin,
+    soaProposedRetail,
+    soaRequiredMargin,
+    soaUnits,
     rspInvoice,
     rspMargin,
     actualInvoice,
@@ -2301,10 +2310,15 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       setTaxLabel("VAT");
     }
     if (id === "required-soa-calculator") {
-      setSoaInvoice("10.00");
-      setSoaRetail("14.99");
-      setSoaMargin("30");
-      setSoaFixed("2000");
+      setCurrencyCode("GBP");
+      setQuickRetailTaxBasis("excludes");
+      setQuickTaxRate("20");
+      setTaxLabel("VAT");
+      setSoaStandardRetail("199");
+      setSoaStandardMargin("30");
+      setSoaProposedRetail("169");
+      setSoaRequiredMargin("30");
+      setSoaUnits("1000");
     }
     if (id === "retail-selling-price-calculator") {
       setRspInvoice("10.00");
@@ -2361,7 +2375,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   const calculatorRequirements = getCalculatorRequirements(only);
   const hasQuickTax = hasValues([quickTaxRate]);
   const ready = {
-    requiredSoa: hasValues([soaInvoice, soaRetail, soaMargin]) && hasQuickTax,
+    requiredSoa: hasValues([soaStandardRetail, soaStandardMargin, soaProposedRetail, soaRequiredMargin]) && hasQuickTax,
     retailFromInvoice: hasValues([rspInvoice, rspMargin]) && hasQuickTax,
     actualMargin:
       hasValues([
@@ -2396,45 +2410,72 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       <QuickCalculatorCard
         id="required-soa-calculator"
         isReady={ready.requiredSoa}
-        title="Required SOA Calculator"
-        question="I have current invoice price, promotional retail selling price and target retailer margin. What SOA or promo invoice is needed?"
+        title="Required SOA / Support Calculator"
+        question="How much support do I need to give?"
         onLoadExample={() => loadExample("required-soa-calculator")}
         exampleMessage={exampleMessage.id === "required-soa-calculator" ? exampleMessage.text : ""}
         inputs={[
           { label: "Currency", value: currencyCode },
-          { label: "Current retailer invoice/buy price", value: soaInvoice },
-          { label: "Promotional retail selling price", value: soaRetail },
-          { label: "Target retailer margin %", value: soaMargin },
-          { label: "Optional fixed supplier support", value: soaFixed || "0" },
+          { label: "Standard retailer selling price", value: soaStandardRetail },
+          { label: "Standard retailer margin %", value: soaStandardMargin },
+          { label: "Proposed retailer selling price", value: soaProposedRetail },
+          { label: "Required retailer margin %", value: soaRequiredMargin },
+          { label: "Expected units", value: soaUnits || "0" },
           { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
-        summary={`Required SOA: ${money2.format(requiredSoa.support)} per unit. Promo invoice: ${money2.format(requiredSoa.promoInvoice)}. Entered promotional retail selling price: ${money2.format(requiredSoa.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(requiredSoa.retail.exVat)}. Pricing is at the sole discretion of the retailer. Currency is for formatting only; this tool does not convert exchange rates.`}
+        summary={
+          requiredSoa.rawSupport > 0
+            ? `Required SOA / support per unit: ${money2.format(requiredSoa.support)}. To sell at ${money2.format(requiredSoa.proposedRetail.exVat)} excluding ${quickTaxLabel} while giving the retailer a ${safePercent(rate(soaRequiredMargin))} margin, their effective invoice price needs to be ${money2.format(requiredSoa.requiredInvoice)}. Compared with the normal invoice of ${money2.format(requiredSoa.normalInvoice)}, this requires ${money2.format(requiredSoa.support)} of supplier support per unit.${requiredSoa.units > 0 ? ` Total required support: ${currency.format(requiredSoa.totalSupport)}.` : ""} ${quickTaxSummary} Currency is for formatting only; this tool does not convert exchange rates.`
+            : `No SOA required. The proposed retailer selling price and required retailer margin support an invoice price at or above the normal retailer invoice/buy price. Normal retailer invoice/buy price: ${money2.format(requiredSoa.normalInvoice)}. Required retailer invoice/buy price: ${money2.format(requiredSoa.requiredInvoice)}. ${quickTaxSummary} Currency is for formatting only; this tool does not convert exchange rates.`
+        }
         results={[
-          { label: "Entered retail price", value: money2.format(requiredSoa.retail.entered) },
+          { label: "Required SOA / support per unit", value: requiredSoa.rawSupport > 0 ? `${money2.format(requiredSoa.support)} per unit` : "No SOA required", tone: requiredSoa.rawSupport > 0 ? "neutral" : "good" },
+          { label: "Normal retailer invoice/buy price", value: money2.format(requiredSoa.normalInvoice) },
+          { label: "Required retailer invoice/buy price", value: money2.format(requiredSoa.requiredInvoice) },
+          { label: "Standard retailer margin %", value: safePercent(rate(soaStandardMargin)) },
+          { label: "Required retailer margin %", value: safePercent(rate(soaRequiredMargin)) },
+          { label: "Required support as % of normal invoice", value: requiredSoa.rawSupport > 0 ? safePercent(requiredSoa.supportInvoiceRate) : "No SOA required" },
+          ...(requiredSoa.units > 0 ? [{ label: "Total required support", value: currency.format(requiredSoa.totalSupport) }] : []),
+          { label: "Standard retailer selling price excluding tax", value: money2.format(requiredSoa.standardRetail.exVat) },
+          { label: "Proposed retailer selling price excluding tax", value: money2.format(requiredSoa.proposedRetail.exVat) },
           { label: "Retail tax basis", value: quickTaxBasisLabel },
-          { label: "Retail price excluding tax", value: money2.format(requiredSoa.retail.exVat) },
-          { label: "Required retailer cost price", value: money2.format(requiredSoa.requiredCost) },
-          { label: "Required SOA per unit", value: money2.format(requiredSoa.support), tone: requiredSoa.support >= 0 ? "neutral" : "bad" },
-          { label: "New effective promo invoice price", value: money2.format(requiredSoa.promoInvoice) },
-          { label: "SOA % of current invoice", value: safePercent(requiredSoa.supportInvoiceRate) },
-          { label: "SOA % of promo retail price", value: safePercent(requiredSoa.supportRetailRate) },
         ]}
+        explanation={
+          <p className="tab-summary">
+            {requiredSoa.rawSupport > 0
+              ? `To sell at ${money2.format(requiredSoa.proposedRetail.exVat)} excluding ${quickTaxLabel} while giving the retailer a ${safePercent(rate(soaRequiredMargin))} margin, their effective invoice price needs to be ${money2.format(requiredSoa.requiredInvoice)}. Compared with the normal invoice of ${money2.format(requiredSoa.normalInvoice)}, this requires ${money2.format(requiredSoa.support)} of supplier support per unit.`
+              : `No supplier support is required based on these inputs because the proposed retailer selling price and required margin support an invoice price at or above the normal retailer invoice/buy price.`}
+          </p>
+        }
       >
-        <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={soaInvoice} onChange={setSoaInvoice} />
         <RetailPriceInput
-          label="Promotional retail selling price"
-          value={soaRetail}
-          onValueChange={setSoaRetail}
+          label="Standard retailer selling price"
+          helpText="The standard retailer selling price. Margin calculations use the excluding-tax value."
+          value={soaStandardRetail}
+          onValueChange={setSoaStandardRetail}
           taxBasis={quickRetailTaxBasis}
           onTaxBasisChange={setQuickRetailTaxBasis}
           taxRate={quickTaxRate}
           onTaxRateChange={setQuickTaxRate}
           taxLabel={activeTaxLabel}
-          placeholder="e.g. 2.00"
+          placeholder="e.g. 199"
         />
-        <NumericInput label="Target retailer margin %" help="Retailer/customer target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={soaMargin} onChange={setSoaMargin} />
-        <NumericInput label="Optional fixed supplier support" help="Fixed support to remember separately. Not included in per-unit SOA." placeholder="e.g. 0" required={false} value={soaFixed} onChange={setSoaFixed} />
+        <NumericInput label="Standard retailer margin %" help="The retailer margin at the standard selling price." placeholder="e.g. 30" value={soaStandardMargin} onChange={setSoaStandardMargin} />
+        <RetailPriceInput
+          label="Proposed retailer selling price"
+          helpText="The proposed retailer selling price. It may be a promotion, price change or negotiated price. Margin calculations use the excluding-tax value."
+          value={soaProposedRetail}
+          onValueChange={setSoaProposedRetail}
+          taxBasis={quickRetailTaxBasis}
+          onTaxBasisChange={setQuickRetailTaxBasis}
+          taxRate={quickTaxRate}
+          onTaxRateChange={setQuickTaxRate}
+          taxLabel={activeTaxLabel}
+          placeholder="e.g. 169"
+        />
+        <NumericInput label="Required retailer margin %" help="The retailer margin required at the proposed retailer selling price." placeholder="e.g. 30" value={soaRequiredMargin} onChange={setSoaRequiredMargin} />
+        <NumericInput label="Expected units" help="Optional unit forecast used to calculate total required support." placeholder="e.g. 1000" required={false} value={soaUnits} onChange={setSoaUnits} step="1" />
       </QuickCalculatorCard>
       ) : null}
 
@@ -2452,13 +2493,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Target retailer margin %", value: rspMargin },
           { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
-        summary={`Estimated retail/sale price excluding ${quickTaxLabel}: ${money2.format(retailFromInvoice.exVat)}. Estimated retail/sale price including ${quickTaxLabel}: ${money2.format(retailFromInvoice.incVat)}. Margin: ${safePercent(retailFromInvoice.margin)}. Pricing is at the sole discretion of the retailer.`}
+        summary={`Estimated retail/sale price excluding ${quickTaxLabel}: ${money2.format(retailFromInvoice.exVat)}. Estimated retail/sale price including ${quickTaxLabel}: ${money2.format(retailFromInvoice.incVat)}. Retailer margin: ${safePercent(retailFromInvoice.margin)}. Retailer cash margin per unit: ${money2.format(retailFromInvoice.cashMargin)}. Pricing is at the sole discretion of the retailer.`}
         results={[
           { label: `Estimated retail/sale price excluding ${quickTaxLabel}`, value: money2.format(retailFromInvoice.exVat) },
           { label: `Estimated retail/sale price including ${quickTaxLabel}`, value: money2.format(retailFromInvoice.incVat) },
           { label: `${quickTaxLabel} rate`, value: safePercent(rate(quickTaxRate)) },
-          { label: "Cash margin per unit", value: money2.format(retailFromInvoice.cashMargin) },
-          { label: "Margin %", value: safePercent(retailFromInvoice.margin) },
+          { label: "Retailer cash margin per unit", value: money2.format(retailFromInvoice.cashMargin) },
+          { label: "Retailer margin %", value: safePercent(retailFromInvoice.margin) },
         ]}
       >
         <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={rspInvoice} onChange={setRspInvoice} />
@@ -2471,7 +2512,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         id="actual-retailer-margin-calculator"
         isReady={ready.actualMargin}
         title="Actual Retailer Margin Calculator"
-        question="I know the invoice price, SOA/promo invoice and promo retail price. What margin is the retailer actually making?"
+        question="I know the invoice price, support or promo invoice, and retailer selling price. What margin is the retailer actually making?"
         onLoadExample={() => loadExample("actual-retailer-margin-calculator")}
         exampleMessage={exampleMessage.id === "actual-retailer-margin-calculator" ? exampleMessage.text : ""}
         inputs={[
@@ -2479,16 +2520,16 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "Normal retailer invoice/buy price", value: actualInvoice },
           { label: "Support input mode", value: actualMode },
           { label: "SOA / supplier support per unit", value: actualSupport },
-          { label: "Promo invoice price", value: actualPromoInvoice },
-          { label: "Promotional retail selling price", value: actualRetail },
+          { label: "Promo retailer invoice/buy price", value: actualPromoInvoice },
+          { label: "Retailer selling price", value: actualRetail },
           { label: "Fixed support", value: actualFixed || "0" },
           { label: "Units", value: actualUnits || "0" },
           { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: `${quickTaxLabel} rate`, value: quickTaxRate },
         ]}
-        summary={`Retailer margin: ${safePercent(actualMargin.margin)}. Effective retailer cost: ${money2.format(actualMargin.effectiveCost)}. Retailer cash margin/unit: ${money2.format(actualMargin.cashMargin)}. Entered promotional retail selling price: ${money2.format(actualMargin.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(actualMargin.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
+        summary={`Retailer margin: ${safePercent(actualMargin.margin)}. Effective retailer cost: ${money2.format(actualMargin.effectiveCost)}. Retailer cash margin/unit: ${money2.format(actualMargin.cashMargin)}. Entered retailer selling price: ${money2.format(actualMargin.retail.entered)}. ${quickTaxSummary} Retail price excluding tax used: ${money2.format(actualMargin.retail.exVat)}. Pricing is at the sole discretion of the retailer.`}
         results={[
-          { label: "Entered retail price", value: money2.format(actualMargin.retail.entered) },
+          { label: "Retailer selling price entered", value: money2.format(actualMargin.retail.entered) },
           { label: "Retail tax basis", value: quickTaxBasisLabel },
           { label: "Retail price excluding tax", value: money2.format(actualMargin.retail.exVat) },
           { label: "Effective retailer cost price", value: money2.format(actualMargin.effectiveCost) },
@@ -2499,11 +2540,12 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         ]}
       >
         <NumericInput label="Normal retailer invoice/buy price" help="Normal price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={actualInvoice} onChange={setActualInvoice} />
-        <SelectInput label="Support input mode" help="Use SOA per unit or enter the final promo invoice price." value={actualMode} onChange={setActualMode} options={[{ label: "SOA / supplier support", value: "soa" }, { label: "Promo invoice price", value: "promoInvoice" }]} />
+        <SelectInput label="Support input mode" help="Use SOA per unit or enter the final promo retailer invoice/buy price." value={actualMode} onChange={setActualMode} options={[{ label: "SOA / supplier support", value: "soa" }, { label: "Promo retailer invoice/buy price", value: "promoInvoice" }]} />
         <NumericInput label="SOA / supplier support per unit" help="Supplier-funded support per unit, such as saving on allowance, off-invoice support, trade spend or promotional funding." placeholder="e.g. 0.35" required={actualMode === "soa"} value={actualSupport} onChange={setActualSupport} />
-        <NumericInput label="Promo invoice price" help="Effective invoice/buy price during the promotion." placeholder="e.g. 1.40" required={actualMode === "promoInvoice"} value={actualPromoInvoice} onChange={setActualPromoInvoice} />
+        <NumericInput label="Promo retailer invoice/buy price" help="Effective retailer invoice/buy price during the promotion." placeholder="e.g. 1.40" required={actualMode === "promoInvoice"} value={actualPromoInvoice} onChange={setActualPromoInvoice} />
         <RetailPriceInput
-          label="Promotional retail selling price"
+          label="Retailer selling price"
+          helpText="The retailer selling price to test. Margin estimates use the excluding-tax value."
           value={actualRetail}
           onValueChange={setActualRetail}
           taxBasis={quickRetailTaxBasis}
@@ -2613,11 +2655,11 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
           { label: "SOA / supplier support per unit", value: promoInvoiceSupport },
           { label: "Units", value: promoInvoiceUnits || "0" },
         ]}
-        summary={`Effective promo invoice price: ${money2.format(promoInvoice.effective)}. Support % of invoice: ${safePercent(promoInvoice.supportRate)}.`}
+        summary={`Effective promo retailer invoice/buy price: ${money2.format(promoInvoice.effective)}. Support % of current retailer invoice/buy price: ${safePercent(promoInvoice.supportRate)}.`}
         results={[
-          { label: "Effective promo invoice price", value: money2.format(promoInvoice.effective), tone: promoInvoice.effective >= 0 ? "good" : "bad" },
+          { label: "Effective promo retailer invoice/buy price", value: money2.format(promoInvoice.effective), tone: promoInvoice.effective >= 0 ? "good" : "bad" },
           { label: "Total supplier support", value: num(promoInvoiceUnits) > 0 ? currency.format(promoInvoice.totalSupport) : "Enter units" },
-          { label: "Support % of invoice", value: safePercent(promoInvoice.supportRate) },
+          { label: "Support % of current retailer invoice/buy price", value: safePercent(promoInvoice.supportRate) },
         ]}
       >
         <NumericInput label="Current retailer invoice/buy price" help="Current price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={promoInvoiceCurrent} onChange={setPromoInvoiceCurrent} />

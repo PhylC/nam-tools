@@ -25,10 +25,10 @@ const quickCheckCards = [
   },
   {
     title: "Support / SOA",
-    description: "Turn fixed support, SOA or trade spend into a clearer deal view.",
-    href: "/calculators/soa-support-percent-calculator",
+    description: "Work out required supplier support from standard and proposed retailer prices.",
+    href: "/calculators/required-soa-calculator",
     cta: "Open Support Calculator",
-    preview: "Invoice £5.00 - SOA £0.50 = Net £4.50",
+    preview: "£199 → £169 needs £21 SOA/unit",
   },
 ];
 

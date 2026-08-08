@@ -41,9 +41,9 @@ const taskCards: TaskCard[] = [
   },
   {
     title: "Work out support / SOA",
-    text: "Turn fixed support, SOA or trade spend into a clearer deal view.",
+    text: "Calculate the supplier support needed for a proposed retailer selling price and required margin.",
     cta: "Calculate support",
-    href: "/calculators/soa-support-percent-calculator",
+    href: "/calculators/required-soa-calculator",
   },
   {
     title: "Back-solve a price",
@@ -99,12 +99,20 @@ const toolGroups: ToolGroup[] = [
         keywords: ["roi", "promotion", "promo", "support", "scenario", "volume", "profit"],
       },
       {
+        title: "Required SOA / Support Calculator",
+        description: "Calculate required supplier support from standard and proposed retailer selling prices.",
+        href: "/calculators/required-soa-calculator",
+        cta: "Calculate required support",
+        preview: "£199 -> £169 needs £21 SOA/unit",
+        keywords: ["support", "soa", "required support", "retailer margin", "selling price", "funding"],
+      },
+      {
         title: "SOA / Support % Calculator",
-        description: "Turn SOA, fixed funding or trade spend into a clearer support view.",
+        description: "Convert known SOA/support into percentage views for invoice and retail price checks.",
         href: "/calculators/soa-support-percent-calculator",
-        cta: "Calculate support",
+        cta: "Calculate support %",
         preview: "SOA £0.50 / invoice £5.00 = 10%",
-        keywords: ["support", "soa", "trade spend", "funding", "allowance"],
+        keywords: ["support percent", "soa percent", "trade spend", "funding", "allowance"],
       },
       {
         title: "Promo Invoice Calculator",

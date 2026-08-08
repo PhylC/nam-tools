@@ -87,14 +87,14 @@ const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info
     info: "Add the product name if you want a clearer summary or export.",
   },
   currentInvoice: {
-    label: "Current invoice",
+    label: "Current retailer invoice/buy price",
     required: true,
-    info: "The current invoice or buy price charged to the retailer per unit.",
+    info: "The current invoice or buy price charged to the retailer/customer per unit.",
   },
   promoInvoice: {
-    label: "Promo invoice",
+    label: "Promo retailer invoice/buy price",
     required: false,
-    info: "The promotional invoice price during the deal. Leave blank if you are modelling support separately.",
+    info: "The promotional retailer/customer invoice price during the deal. Leave blank if you are modelling support separately.",
   },
   soa: {
     label: "SOA/support",
@@ -112,9 +112,9 @@ const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info
     info: "Expected units sold during the promotion or deal period.",
   },
   cogs: {
-    label: "COGS",
+    label: "Supplier COGS",
     required: false,
-    info: "Your estimated cost of goods per unit. Leave blank if you only want a revenue-based view.",
+    info: "The supplier/user cost of goods per unit. Leave blank if you only want a revenue-based view.",
   },
   fixedSupport: {
     label: "Fixed support",
@@ -411,14 +411,14 @@ const inputTemplateHeaders = [
   "scenario_name OPTIONAL",
   "sku_model_item_number OPTIONAL",
   "product_name OPTIONAL",
-  "current_invoice_price REQUIRED",
-  "promo_invoice_price OPTIONAL",
+  "current_retailer_invoice_buy_price REQUIRED",
+  "promo_retailer_invoice_buy_price OPTIONAL",
   "support_per_unit_soa OPTIONAL",
   "current_srp OPTIONAL",
   "promo_srp OPTIONAL",
   "baseline_units REQUIRED",
   "promo_units REQUIRED",
-  "cogs_per_unit OPTIONAL",
+  "supplier_cogs_per_unit OPTIONAL",
   "fixed_support OPTIONAL",
   "vat_rate OPTIONAL",
   "currency OPTIONAL",
@@ -449,21 +449,21 @@ function downloadInputTemplate() {
 }
 
 function lineFromUploadRow(row: Record<string, string>): RoiLine {
-  const promoInvoice = row.promo_invoice_price ?? "";
+  const promoInvoice = row.promo_retailer_invoice_buy_price ?? row.promo_invoice_price ?? "";
   const soa = row.support_per_unit_soa ?? "";
   return {
     ...blankLine(),
     sku: row.sku_model_item_number ?? "",
     product: row.product_name ?? "",
     notes: row.notes ?? "",
-    currentInvoice: row.current_invoice_price ?? "",
+    currentInvoice: row.current_retailer_invoice_buy_price ?? row.current_invoice_price ?? "",
     promoInvoice,
     soa,
     currentSrp: row.current_srp ?? "",
     promoSrp: row.promo_srp ?? "",
     baselineUnits: row.baseline_units ?? "",
     promoUnits: row.promo_units ?? "",
-    cogs: row.cogs_per_unit ?? "",
+    cogs: row.supplier_cogs_per_unit ?? row.cogs_per_unit ?? "",
     fixedSupport: row.fixed_support ?? "",
     vatRate: row.vat_rate ?? "",
     currency: row.currency ?? "",
@@ -475,7 +475,9 @@ function validateUploadRows(rows: Record<string, string>[]) {
   const errors: string[] = [];
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    if (!has(row.current_invoice_price ?? "")) errors.push(`Row ${rowNumber}: current_invoice_price is required.`);
+    if (!has(row.current_retailer_invoice_buy_price ?? row.current_invoice_price ?? "")) {
+      errors.push(`Row ${rowNumber}: current_retailer_invoice_buy_price is required.`);
+    }
     if (!has(row.baseline_units ?? "")) errors.push(`Row ${rowNumber}: baseline_units is required.`);
     if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
   });
@@ -492,26 +494,26 @@ function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
         "sku_model_item_number",
         "product_name",
         "notes",
-        "current_invoice_price",
-        "promo_invoice_price",
+        "current_retailer_invoice_buy_price",
+        "promo_retailer_invoice_buy_price",
         "support_per_unit_soa",
         "current_srp",
         "promo_srp",
         "baseline_units",
         "promo_units",
-        "cogs_per_unit",
+        "supplier_cogs_per_unit",
         "fixed_support",
         "vat_rate",
         "currency",
         "incremental_units",
-        "baseline_revenue",
-        "promo_revenue",
-        "incremental_revenue",
-        "support_cost",
-        "baseline_gross_profit",
-        "promo_gross_profit",
+        "baseline_supplier_invoice_revenue",
+        "promo_supplier_invoice_revenue",
+        "incremental_supplier_invoice_revenue",
+        "total_supplier_support",
+        "baseline_supplier_gross_profit",
+        "promo_supplier_gross_profit",
         "incremental_profit",
-        "revenue_roi",
+        "supplier_revenue_roi",
         "profit_roi",
       ],
     ];
@@ -794,7 +796,7 @@ function RoiMobileLineBuilder({
               <label className="roi-mobile-field">
                 <span>Promo input</span>
                 <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
-                  <option value="promoInvoice">Promo invoice price</option>
+                  <option value="promoInvoice">Promo retailer invoice/buy price</option>
                   <option value="soa">SOA/support per unit</option>
                 </select>
               </label>
@@ -819,9 +821,9 @@ function RoiMobileLineBuilder({
             </details>
 
             <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
-              <div><span>Inc revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
+              <div><span>Inc supplier invoice revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
               <div><span>Support</span><strong>{money(calc.supportCost)}</strong></div>
-              <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add COGS"}</strong></div>
+              <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add supplier COGS"}</strong></div>
               <div><span>ROI</span><strong>{pct(calc.profitRoi ?? calc.revenueRoi)}</strong></div>
             </div>
           </article>
@@ -892,10 +894,10 @@ function RoiEditableTable({
               <th><RoiFieldLabel compact field="promoUnits" /></th>
               <th><RoiFieldLabel compact field="cogs" /></th>
               <th><RoiFieldLabel compact field="fixedSupport" /></th>
-              <th>Incremental revenue</th>
+              <th>Incremental supplier invoice revenue</th>
               <th>Support cost</th>
               <th>Incremental profit</th>
-              <th>Revenue ROI</th>
+              <th>Supplier revenue ROI</th>
               <th>Profit ROI</th>
               {lineActions ? <th>Actions</th> : null}
             </tr>
@@ -909,13 +911,13 @@ function RoiEditableTable({
                     <TableInput ariaLabel="SKU / Item" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
                   </td>
                   <td><TableInput ariaLabel="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} /></td>
-                  <td><TableInput ariaLabel="Current invoice" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
-                  <td><TableInput ariaLabel="Promo invoice" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
+                  <td><TableInput ariaLabel="Current retailer invoice/buy price" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
+                  <td><TableInput ariaLabel="Promo retailer invoice/buy price" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
                   <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
                   <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
                   <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
-                  <td><TableInput ariaLabel="COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
-                  <td><TableInput ariaLabel="Fixed support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
+                  <td><TableInput ariaLabel="Supplier COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
+                  <td><TableInput ariaLabel="Fixed supplier support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
                   <td>{money(calc.incrementalRevenue)}</td>
                   <td>{money(calc.supportCost)}</td>
                   <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
@@ -958,12 +960,12 @@ function RoiEditableTable({
 function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
   const summary = aggregate(scenario.lines);
   const items = [
-    ["Base rev", money(summary.baselineRevenue)],
-    ["Promo rev", money(summary.promoRevenue)],
-    ["Inc rev", money(summary.revenueImpact)],
+    ["Baseline supplier invoice revenue", money(summary.baselineRevenue)],
+    ["Promo supplier invoice revenue", money(summary.promoRevenue)],
+    ["Incremental supplier invoice revenue", money(summary.revenueImpact)],
     ["Support", money(summary.supportCost)],
     ["Incremental profit", summary.profitRows ? money(summary.profitImpact) : "n/a"],
-    ["Rev ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
+    ["Supplier revenue ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
     ["Profit ROI", pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)],
     ["Lines", scenario.lines.length.toLocaleString("en-GB")],
   ];
@@ -980,11 +982,11 @@ function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
         ))}
       </div>
       <div className="roi-mobile-summary" aria-label={`${scenario.name} mobile summary`}>
-        <div><span>Incremental revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
-        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact) : "Add COGS to see profit ROI"}</strong></div>
+        <div><span>Incremental supplier invoice revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
+        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact) : "Add supplier COGS to see profit ROI"}</strong></div>
         <div><span>ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
-        <div><span>Base revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
-        <div><span>Promo revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
+        <div><span>Baseline supplier invoice revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
+        <div><span>Promo supplier invoice revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
       </div>
     </div>
   );
@@ -1082,9 +1084,9 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
                       {badges.length ? <span>{badges.join(" · ")}</span> : null}
                     </div>
                     <dl>
-                      <div><dt>Inc revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
+                      <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
                       <div><dt>ROI</dt><dd>{pct(item.profitRoi ?? item.revenueRoi)}</dd></div>
-                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add COGS"}</dd></div>
+                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add supplier COGS"}</dd></div>
                     </dl>
                   </article>
                 );
@@ -1283,12 +1285,12 @@ export function RoiPlanner({ mode }: { mode: RoiPlannerMode }) {
       scenarioData: { ...scenario, name: title },
       inputs: { lines: scenario.lines },
       outputs: {
-        baselineRevenue: money(total.baselineRevenue),
-        promoRevenue: money(total.promoRevenue),
-        incrementalRevenue: money(total.revenueImpact),
-        support: money(total.supportCost),
+        baselineSupplierInvoiceRevenue: money(total.baselineRevenue),
+        promoSupplierInvoiceRevenue: money(total.promoRevenue),
+        incrementalSupplierInvoiceRevenue: money(total.revenueImpact),
+        totalSupplierSupport: money(total.supportCost),
         incrementalProfit: total.profitRows ? money(total.profitImpact) : "n/a",
-        revenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
+        supplierRevenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
         profitRoi: total.profitRows && total.supportCost > 0 ? pct(total.profitImpact / total.supportCost) : "n/a",
         lines: scenario.lines.length,
       },

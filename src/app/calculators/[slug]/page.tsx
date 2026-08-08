@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Hero, SectionHeader } from "../../components/Shell";
+import { Hero } from "../../components/Shell";
 import { QuickCommercialCalculators } from "../../components/ToolWidgets";
 import {
   getQuickCalculatorById,
@@ -11,9 +11,9 @@ import {
 
 const metadataBySlug: Record<string, Metadata> = {
   "required-soa-calculator": {
-    title: "Required SOA Calculator",
+    title: "Required SOA / Support Calculator",
     description:
-      "Use this when a retailer asks for support and you need to estimate the SOA needed to reach a target margin.",
+      "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
   },
   "retail-selling-price-calculator": {
     title: "Retail Selling Price Calculator",
@@ -94,14 +94,6 @@ export default async function CalculatorPage({
       <section className="shell tool-layout">
         <div className="tool-main">
           <QuickCommercialCalculators only={calculator.id} />
-          <article className="card judgement-card">
-            <h2>Pricing caveat</h2>
-            <p>
-              Retail selling prices are at the sole discretion of the retailer.
-              Calculations are estimates based on the inputs provided and should
-              be checked against your own internal process.
-            </p>
-          </article>
         </div>
         <div className="tool-side">
           <article className="card related-card">

@@ -102,20 +102,21 @@ export const quickCalculators: QuickCalculator[] = [
   {
     id: "required-soa-calculator",
     slug: "required-soa-calculator",
-    title: "Required SOA Calculator",
-    h1: "Required SOA Calculator",
+    title: "Required SOA / Support Calculator",
+    h1: "Required SOA / Support Calculator",
     description:
-      "Use this when a retailer asks for support and you need to estimate the SOA needed to reach a target margin.",
+      "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
     group: "SOA and supplier support",
-    choice: "What SOA do I need to hit a margin?",
+    choice: "How much support do I need to give?",
     whenToUse: [
-      "A buyer has a margin requirement and you need to estimate the per-unit SOA/support needed.",
-      "You want to compare a current invoice price with an effective promo invoice price.",
+      "You know the standard retailer selling price and margin, and need the support required for a proposed retailer selling price.",
+      "You want to calculate required SOA/support per unit first, with support percentage as a secondary check.",
     ],
     formula: [
-      "Promo retail price excluding tax is calculated from the entered tax basis.",
-      "Required cost price = promo retail price excluding tax x (1 - target retailer margin %).",
-      "Required SOA = current invoice price - required cost price.",
+      "Normal retailer invoice = standard retail price excluding tax x (1 - standard retailer margin).",
+      "Required retailer invoice = proposed retail price excluding tax x (1 - required retailer margin).",
+      "Required SOA = normal retailer invoice - required retailer invoice.",
+      "Total support = required SOA per unit x expected units.",
     ],
     related: ["promo-invoice-calculator", "soa-support-percent-calculator", "actual-retailer-margin-calculator"],
   },
@@ -144,7 +145,7 @@ export const quickCalculators: QuickCalculator[] = [
     title: "SOA / Support % Calculator",
     h1: "SOA / Support % Calculator",
     description:
-      "Use this to turn SOA, fixed funding or trade spend into a clearer view of total deal support.",
+      "Use this to express known SOA or supplier support per unit as a percentage of invoice or retail selling price.",
     group: "SOA and supplier support",
     choice: "What percentage support am I giving?",
     whenToUse: [

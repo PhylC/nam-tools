@@ -81,11 +81,20 @@ textarea {
 
 .calc-input,
 .calc-select {
+  width: 100%;
+  min-width: 0;
   min-height: var(--control-height);
   border-radius: var(--control-radius);
   padding: var(--control-padding-y) var(--control-padding-x);
   font-size: 0.96rem;
   line-height: 1.35;
+}
+
+.calc-input:not(textarea),
+.calc-select,
+input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+select {
+  height: var(--control-height);
 }
 
 input::placeholder,
@@ -2043,9 +2052,10 @@ p {
 
 .retail-price-input {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) minmax(118px, 150px) minmax(92px, 108px);
+  grid-template-columns: minmax(160px, 1fr) minmax(112px, 0.48fr) minmax(92px, 0.34fr);
   gap: 0.5rem;
   align-items: end;
+  width: 100%;
   min-width: 0;
 }
 
@@ -2053,6 +2063,12 @@ p {
   display: grid;
   grid-template-rows: 18px var(--control-height);
   gap: 0.28rem;
+  min-width: 0;
+}
+
+.retail-price-part input,
+.retail-price-part select {
+  width: 100%;
   min-width: 0;
 }
 
@@ -2176,6 +2192,7 @@ p {
   align-items: stretch;
   column-gap: 1.05rem;
   row-gap: 1.05rem;
+  min-width: 0;
 }
 
 .contact-message-field,
@@ -2203,6 +2220,27 @@ p {
   font-size: 0.92rem;
   font-weight: 700;
   min-width: 0;
+}
+
+.calc-field > .retail-price-input {
+  grid-column: 1 / -1;
+}
+
+.form-grid > .calc-field:has(.retail-price-input),
+.calc-grid > .calc-field:has(.retail-price-input) {
+  grid-column: 1 / -1;
+}
+
+#invoice-price-calculator > .form-grid {
+  grid-template-columns: minmax(170px, 1.35fr) minmax(112px, 0.58fr) minmax(92px, 0.45fr) minmax(180px, 1fr);
+}
+
+#invoice-price-calculator > .form-grid > .calc-field:has(.retail-price-input) {
+  grid-column: span 3;
+}
+
+#invoice-price-calculator .retail-price-input {
+  grid-template-columns: minmax(170px, 1.35fr) minmax(112px, 0.58fr) minmax(92px, 0.45fr);
 }
 
 .calc-section {
@@ -4819,6 +4857,18 @@ p {
   .tool-side {
     grid-row: auto;
   }
+
+  #invoice-price-calculator > .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #invoice-price-calculator > .form-grid > .calc-field:has(.retail-price-input) {
+    grid-column: 1 / -1;
+  }
+
+  #invoice-price-calculator .retail-price-input {
+    grid-template-columns: minmax(160px, 1fr) minmax(112px, 0.48fr) minmax(92px, 0.34fr);
+  }
 }
 
 @media (max-width: 760px) {
@@ -5702,6 +5752,10 @@ p {
   .retail-price-input {
     grid-template-columns: minmax(0, 1fr) minmax(92px, 110px);
     gap: 0.5rem;
+  }
+
+  #invoice-price-calculator .retail-price-input {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 110px);
   }
 
   .retail-price-amount {

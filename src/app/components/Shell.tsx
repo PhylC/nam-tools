@@ -229,14 +229,6 @@ export function ToolPage({
       </Hero>
       <section className="shell tool-layout">
         <div className="tool-main">
-          <aside className="card judgement-card">
-            <h2>Commercial judgement matters</h2>
-            <p>
-              Retail selling prices are at the sole discretion of the retailer.
-              Calculations are estimates based on the inputs provided and should
-              be checked against your own internal process.
-            </p>
-          </aside>
           {children}
           <article className="card interpretation-card">
             <h2>Commercial interpretation</h2>
@@ -309,6 +301,8 @@ const resultHelpByLabel: Record<string, string> = {
   "SOA value": "Total per-unit supplier support across the forecast units.",
   "SOA % of current invoice":
     "Supplier support expressed as a percentage of the selected invoice value.",
+  "SOA % of current retailer invoice/buy price":
+    "Supplier support expressed as a percentage of the current retailer/customer invoice or buy price.",
   "SOA % of promo retail price":
     "Supplier support expressed as a percentage of the selected retail price.",
   "SOA as % of invoice price":
@@ -339,6 +333,8 @@ const resultHelpByLabel: Record<string, string> = {
     "Retail selling price excluding sales tax / VAT / IVA, usually used for margin estimates.",
   "Entered retail price":
     "The shopper/end-customer retail price entered before tax-basis conversion.",
+  "Retailer selling price entered":
+    "The retailer selling price entered before any tax-basis conversion is applied.",
   "Promo retail price excluding tax":
     "Retail selling price converted to exclude sales tax / VAT / IVA where needed.",
   "Promotional retail price excluding tax":
@@ -363,15 +359,15 @@ const resultHelpByLabel: Record<string, string> = {
     "A quick planning read based on the retailer/customer margin target entered.",
   "Total trade spend":
     "Total estimated commercial investment including variable support, rebates, marketing contribution and fixed support.",
-  "Trade spend % of gross sales":
-    "Trade spend as a percentage of gross sales value before deductions.",
-  "Net sales after SOA / supplier support":
-    "Estimated sales value after trade spend and deductions.",
+  "Trade spend % of supplier gross sales":
+    "Trade spend as a percentage of supplier gross sales before deductions.",
+  "Supplier net sales after SOA / support":
+    "Estimated supplier sales value after trade spend and deductions.",
   "Variable SOA / supplier support":
     "Estimated variable support, rebates and deductions linked to sales value.",
   "Fixed supplier support":
     "Fixed investment such as media, feature fee, activation support, listing support or lump-sum customer funding.",
-  "Gross sales value": "Estimated sales value before trade spend and deductions.",
+  "Supplier gross sales value": "Estimated supplier sales value before trade spend and deductions.",
   "Variable discount value":
     "Estimated value of invoice discounts or variable price support.",
   "Rebate/overrider value":
@@ -379,12 +375,12 @@ const resultHelpByLabel: Record<string, string> = {
   "Marketing contribution":
     "Estimated retail media, shopper or activation contribution.",
   "Other deductions": "Extra deductions included in the trade spend view.",
-  "Trade spend % of invoice sales":
-    "Trade spend as a percentage of estimated invoice sales where invoice sales are available.",
+  "Trade spend % of supplier invoice sales":
+    "Trade spend as a percentage of estimated supplier invoice sales where invoice sales are available.",
   "Investment value":
     "Estimated value of the requested investment based on the entered percentage or support assumptions.",
   "Expected uplift value": "Estimated additional revenue from the expected uplift.",
-  "Expected gross profit": "Estimated gross profit from the expected uplift.",
+  "Expected supplier gross profit": "Estimated supplier gross profit from the expected uplift.",
   "Net impact": "Estimated commercial impact after investment and assumptions entered.",
   "Probability-adjusted net impact":
     "Expected commercial impact adjusted for the entered probability of success.",
@@ -403,20 +399,39 @@ const resultHelpByLabel: Record<string, string> = {
     "Retail selling price including sales tax / VAT / IVA.",
   "Estimated retail/sale price excluding sales tax / VAT / IVA":
     "Retail selling price excluding sales tax / VAT / IVA, usually used for margin estimates.",
-  "Cash margin per unit": "Estimated cash profit per unit.",
+  "Retailer cash margin per unit":
+    "The retailer's cash margin on each unit: selling price excluding VAT minus retailer invoice/buy price.",
   "Cash profit": "Estimated cash profit from the entered cost and selling price.",
   "Margin %": "Profit as a percentage of selling price.",
   "Markup %": "Profit as a percentage of cost.",
   "Required retailer cost price":
     "Estimated retailer/customer buy price needed to achieve the target margin.",
+  "Required SOA / support per unit":
+    "Supplier-funded support required per unit to move from the normal retailer invoice/buy price to the invoice/buy price needed at the proposed selling price.",
+  "Normal retailer invoice/buy price":
+    "Estimated normal retailer/customer invoice or buy price from the standard selling price and standard retailer margin.",
+  "Required retailer invoice/buy price":
+    "Estimated retailer/customer invoice or buy price needed to achieve the required margin at the proposed selling price.",
+  "Required support as % of normal invoice":
+    "Required supplier support per unit expressed as a percentage of the normal retailer invoice/buy price.",
+  "Total required support":
+    "Required SOA / support per unit multiplied by expected units.",
+  "Standard retailer selling price excluding tax":
+    "Standard retailer selling price converted to exclude sales tax / VAT / IVA where needed.",
+  "Proposed retailer selling price excluding tax":
+    "Proposed retailer selling price converted to exclude sales tax / VAT / IVA where needed.",
   "Required SOA per unit":
     "Estimated per-unit supplier support needed to reach the target retailer/customer margin.",
   "New effective promo invoice price":
     "Estimated invoice/buy price after per-unit supplier support is applied.",
+  "New effective promo retailer invoice/buy price":
+    "Estimated retailer/customer invoice or buy price after per-unit supplier support is applied.",
   "Effective retailer cost price":
     "Estimated retailer/customer cost after SOA or promo invoice support is applied.",
-  "Effective promo invoice price":
-    "Estimated invoice/buy price after SOA / supplier support is deducted.",
+  "Effective promo retailer invoice/buy price":
+    "Estimated retailer invoice/buy price after SOA / supplier support is deducted.",
+  "Support % of current retailer invoice/buy price":
+    "Supplier support expressed as a percentage of the current retailer/customer invoice or buy price.",
   "Total retailer cash profit":
     "Estimated retailer/customer cash profit across the entered units.",
   "Implied retailer invoice/buy price":

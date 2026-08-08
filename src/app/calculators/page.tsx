@@ -32,16 +32,6 @@ export default function CalculatorsPage() {
       </Hero>
 
       <CalculatorsHubClient />
-
-      <section className="shell section">
-        <article className="card judgement-card">
-          <h2>Free to use.</h2>
-          <p>
-            Retail selling prices are at the sole discretion of the retailer. Calculations are estimates based on the
-            inputs provided and should be checked against your own internal process.
-          </p>
-        </article>
-      </section>
     </div>
   );
 }
