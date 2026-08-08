@@ -17,7 +17,8 @@ export default function Page() {
         "Account Planning Tools uses only the cookies and similar technologies needed to provide, protect and improve the service.",
         "Basic hosting, security or performance technologies may be used by the platform that serves the site. These may involve technical logs or similar browser-level data.",
         "Core calculators do not need cookies to calculate results or generate copy-ready planning outputs.",
-        "Saved scenarios, email signup, analytics and checkout services may use cookies or similar technologies where needed to provide those features.",
+        "If GA4 analytics is enabled, it may use analytics cookies or similar technologies to understand page and feature usage. Calculator inputs and commercial values are not intentionally sent in analytics events.",
+        "Saved scenarios, email signup and checkout services may use cookies or similar technologies where needed to provide those features.",
       ]}
     />
   );

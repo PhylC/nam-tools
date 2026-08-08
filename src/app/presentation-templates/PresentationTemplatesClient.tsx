@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 
 type FreeTemplate = {
@@ -249,7 +250,7 @@ export function PresentationTemplatesFree() {
               <li>Save deck briefs and return to them later</li>
             </ul>
           </div>
-          <Link className="button" href="/pricing">
+          <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("presentation_templates_prompt")}>
             Switch to Pro
           </Link>
         </article>

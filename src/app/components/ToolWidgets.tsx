@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import type { QuickCalculatorId } from "../data/quickCalculators";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "./CalculatorCaveat";
@@ -541,7 +542,9 @@ function SaveAnalysisAction({
               <button className="text-button" onClick={() => setMessage("")} type="button">Keep working</button>
             </>
           ) : (
-            <a className="text-link" href="/pricing">See APT Pro</a>
+            <a className="text-link" href="/pricing" onClick={() => trackUpgradeClicked("calculator_save_prompt")}>
+              See APT Pro
+            </a>
           )}
         </div>
       ) : null}
@@ -594,7 +597,9 @@ function LockedProActions() {
       {message && !isPro ? (
         <div className="locked-card">
           <strong>{message}</strong>
-          <a className="text-link" href="/pricing">View APT Pro</a>
+          <a className="text-link" href="/pricing" onClick={() => trackUpgradeClicked("calculator_locked_actions")}>
+            View APT Pro
+          </a>
         </div>
       ) : null}
     </section>
@@ -1465,6 +1470,11 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
       : activeTab === "margin"
         ? "Add retail selling prices to estimate the retailer/customer view."
         : "Enter the required fields to see your result.";
+  useCalculatorAnalytics({
+    calculatorSlug: `commercial-deal-${activeTab}`,
+    calculatorName: dealTabTitle(activeTab),
+    isComplete: activeTabReady,
+  });
 
   const retailerVerdict =
     result.retailerMarginAfterFunding >= rate(retailerMarginRequirement)
@@ -2000,6 +2010,35 @@ function getCalculatorCaveatType(id?: string): CalculatorCaveatType {
   return id && id in CALCULATOR_CAVEATS ? CALCULATOR_CAVEATS[id as QuickCalculatorId] : "none";
 }
 
+function useCalculatorAnalytics({
+  calculatorSlug,
+  calculatorName,
+  isComplete,
+  trackOpened = true,
+}: {
+  calculatorSlug: string;
+  calculatorName: string;
+  isComplete: boolean;
+  trackOpened?: boolean;
+}) {
+  const trackedCompletionSlug = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!trackOpened) return;
+    trackCalculatorOpened(calculatorSlug, calculatorName);
+  }, [calculatorSlug, calculatorName, trackOpened]);
+
+  useEffect(() => {
+    if (!isComplete) {
+      trackedCompletionSlug.current = null;
+      return;
+    }
+    if (trackedCompletionSlug.current === calculatorSlug) return;
+    trackedCompletionSlug.current = calculatorSlug;
+    trackCalculatorCompleted(calculatorSlug, calculatorName);
+  }, [calculatorSlug, calculatorName, isComplete]);
+}
+
 function QuickCalculatorCard({
   id,
   title,
@@ -2012,6 +2051,7 @@ function QuickCalculatorCard({
   isReady,
   onLoadExample,
   exampleMessage,
+  trackOpened = true,
 }: {
   id?: string;
   title: string;
@@ -2024,8 +2064,16 @@ function QuickCalculatorCard({
   isReady: boolean;
   onLoadExample?: () => void;
   exampleMessage?: string;
+  trackOpened?: boolean;
 }) {
   const caveatType = getCalculatorCaveatType(id);
+  const calculatorSlug = id ?? slugifyFilename(title);
+  useCalculatorAnalytics({
+    calculatorSlug,
+    calculatorName: title,
+    isComplete: isReady,
+    trackOpened,
+  });
   const exportSummary = caveatType === "pricing" ? `${summary}\n${EXPORT_PLANNING_CAVEAT}` : summary;
   const csvRows = [
     { label: "Calculator name", value: title },
@@ -2079,7 +2127,7 @@ function QuickCalculatorCard({
                 <CopyButton text={exportSummary} label="Copy summary" />
                 <DownloadCsvButton filename={`apt-${slugifyFilename(title)}-summary.csv`} rows={csvRows} />
                 <SaveAnalysisAction
-                  calculatorId={id ?? slugifyFilename(title)}
+                  calculatorId={calculatorSlug}
                   calculatorName={title}
                   defaultTitle={title}
                   inputs={inputs}
@@ -2416,6 +2464,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="How much support do I need to give?"
         onLoadExample={() => loadExample("required-soa-calculator")}
         exampleMessage={exampleMessage.id === "required-soa-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Standard retailer selling price", value: soaStandardRetail },
@@ -2489,6 +2538,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="Estimate retail/sale price from invoice price and target retailer margin."
         onLoadExample={() => loadExample("retail-selling-price-calculator")}
         exampleMessage={exampleMessage.id === "retail-selling-price-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Retailer invoice/buy price", value: rspInvoice },
@@ -2517,6 +2567,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="I know the invoice price, support or promo invoice, and retailer selling price. What margin is the retailer actually making?"
         onLoadExample={() => loadExample("actual-retailer-margin-calculator")}
         exampleMessage={exampleMessage.id === "actual-retailer-margin-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Normal retailer invoice/buy price", value: actualInvoice },
@@ -2570,6 +2621,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="Calculate the implied retailer invoice/buy price from retail price and target margin."
         onLoadExample={() => loadExample("invoice-price-calculator")}
         exampleMessage={exampleMessage.id === "invoice-price-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Retail selling price", value: invoiceRetail },
@@ -2609,6 +2661,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="What percentage support am I giving?"
         onLoadExample={() => loadExample("soa-support-percent-calculator")}
         exampleMessage={exampleMessage.id === "soa-support-percent-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "SOA / supplier support per unit", value: supportValue },
@@ -2651,6 +2704,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="If I give a per-unit SOA, what is the promo invoice price?"
         onLoadExample={() => loadExample("promo-invoice-calculator")}
         exampleMessage={exampleMessage.id === "promo-invoice-calculator" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Current retailer invoice/buy price", value: promoInvoiceCurrent },
@@ -2678,6 +2732,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="Convert retail price including tax to excluding tax, or excluding tax to including tax."
         onLoadExample={() => loadExample("sales-tax-vat-iva-retail-price-converter")}
         exampleMessage={exampleMessage.id === "sales-tax-vat-iva-retail-price-converter" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Retail selling price", value: converterPrice },
@@ -2715,6 +2770,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         question="What is the difference between markup and margin on this deal?"
         onLoadExample={() => loadExample("markup-vs-margin-helper")}
         exampleMessage={exampleMessage.id === "markup-vs-margin-helper" ? exampleMessage.text : ""}
+        trackOpened={Boolean(only)}
         inputs={[
           { label: "Currency", value: currencyCode },
           { label: "Cost / invoice price", value: markupCost },

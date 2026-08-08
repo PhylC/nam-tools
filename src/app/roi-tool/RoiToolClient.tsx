@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
@@ -480,6 +481,10 @@ function validateUploadRows(rows: Record<string, string>[]) {
     if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
   });
   return errors;
+}
+
+function isLineCalculationComplete(line: RoiLine) {
+  return has(line.baselineUnits) && has(line.promoUnits) && has(line.currentInvoice);
 }
 
 function CsvExportButton({ groups }: { groups: RoiGroup[] }) {
@@ -1162,7 +1167,9 @@ function FreeProPrompt() {
           save plans and export the results.
         </p>
       </div>
-      <Link className="button" href="/pricing">Switch to Pro</Link>
+      <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("roi_tool_prompt")}>
+        Switch to Pro
+      </Link>
     </article>
   );
 }
@@ -1170,6 +1177,7 @@ function FreeProPrompt() {
 export function RoiPlanner() {
   const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
   const isPro = plan === "pro" || plan === "team";
+  const hasTrackedCompletion = useRef(false);
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
@@ -1368,6 +1376,21 @@ export function RoiPlanner() {
   const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
   const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
   const activeScenarios = activeGroup?.scenarios ?? [];
+  const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
+
+  useEffect(() => {
+    trackCalculatorOpened("roi-tool", "Promotion ROI Planner");
+  }, []);
+
+  useEffect(() => {
+    if (!hasCompletedCalculation) {
+      hasTrackedCompletion.current = false;
+      return;
+    }
+    if (hasTrackedCompletion.current) return;
+    hasTrackedCompletion.current = true;
+    trackCalculatorCompleted("roi-tool", "Promotion ROI Planner");
+  }, [hasCompletedCalculation]);
 
   function setScenarioLines(scenarioId: string, lines: RoiLine[]) {
     if (!activeGroup) return;

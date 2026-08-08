@@ -1,7 +1,9 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { trackEvent } from "../../lib/analytics";
+import { useAptMode } from "./AptMode";
 
 type ToastState = {
   title: string;
@@ -29,6 +31,8 @@ export function AuthStatusToast() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { canUseTestMode, isLoadingTestMode } = useAptMode();
+  const trackedStatus = useRef<string | null>(null);
   const authStatus = searchParams.get("auth");
   const toast = useMemo(() => getToastState(authStatus), [authStatus]);
 
@@ -45,6 +49,14 @@ export function AuthStatusToast() {
     const timeout = window.setTimeout(dismissToast, 4500);
     return () => window.clearTimeout(timeout);
   }, [dismissToast, toast]);
+
+  useEffect(() => {
+    if (isLoadingTestMode || canUseTestMode || trackedStatus.current === authStatus) return;
+    if (authStatus === "logged-in") {
+      trackedStatus.current = authStatus;
+      trackEvent("login_completed");
+    }
+  }, [authStatus, canUseTestMode, isLoadingTestMode]);
 
   if (!toast) return null;
 

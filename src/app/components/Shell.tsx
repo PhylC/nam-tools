@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Suspense } from "react";
+import { Analytics } from "./Analytics";
 import { AptModeProvider } from "./AptMode";
 import { HeaderAuthNav } from "./AuthNav";
 import { AuthStatusToast } from "./AuthStatusToast";
@@ -30,6 +31,7 @@ const footerSiteLinks = [
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
     <AptModeProvider>
+      <Analytics />
       <header className="site-header">
         <div className="shell header-inner">
           <Link className="brand" href="/" aria-label="Account Planning Tools home">

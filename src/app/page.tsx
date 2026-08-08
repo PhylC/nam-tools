@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Hero, SectionHeader } from "./components/Shell";
+import { TrackedUpgradeLink } from "./components/TrackedLinks";
 import { seoMetadata } from "./seo";
 
 export const metadata = seoMetadata({
@@ -309,9 +310,9 @@ export default function Home() {
           <Link className="button" href="/calculators">
             Try free calculators
           </Link>
-          <Link className="button button-secondary" href="/pricing">
+          <TrackedUpgradeLink className="button button-secondary" href="/pricing" location="home_final_cta">
             See APT Pro
-          </Link>
+          </TrackedUpgradeLink>
         </div>
       </section>
     </div>

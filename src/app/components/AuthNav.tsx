@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useAuth } from "../../lib/useAuth";
 import { formatUserPlan, type UserPlan } from "../../lib/userPlan";
 
@@ -23,6 +24,7 @@ export function HeaderAuthNav() {
   async function handleSignOut() {
     const result = await signOut();
     if (result.ok) {
+      trackEvent("logout_completed");
       router.push("/calculators?auth=signed-out");
       return;
     }
@@ -60,7 +62,7 @@ export function HeaderAuthNav() {
       </details>
       <PlanBadge plan={actualPlan} />
       {actualPlan === "free" ? (
-        <Link className="plan-upgrade-link" href="/pricing">
+        <Link className="plan-upgrade-link" href="/pricing" onClick={() => trackUpgradeClicked("header")}>
           Upgrade
         </Link>
       ) : null}
@@ -76,7 +78,10 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
   async function handleSignOut() {
     const result = await signOut();
     onNavigate();
-    if (result.ok) router.push("/calculators?auth=signed-out");
+    if (result.ok) {
+      trackEvent("logout_completed");
+      router.push("/calculators?auth=signed-out");
+    }
   }
 
   if (isLoadingAuth) {
@@ -99,7 +104,16 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
         <PlanBadge plan={actualPlan} />
       </span>
       {actualPlan === "free" ? (
-        <Link className="mobile-nav-link mobile-nav-link-strong" href="/pricing" onClick={onNavigate}>Upgrade</Link>
+        <Link
+          className="mobile-nav-link mobile-nav-link-strong"
+          href="/pricing"
+          onClick={() => {
+            trackUpgradeClicked("mobile_header");
+            onNavigate();
+          }}
+        >
+          Upgrade
+        </Link>
       ) : null}
       <Link className="mobile-nav-link" href="/account" onClick={onNavigate}>Account</Link>
       <button className="mobile-nav-link mobile-nav-button" onClick={handleSignOut} type="button">Sign out</button>

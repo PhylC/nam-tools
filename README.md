@@ -26,6 +26,14 @@ The temporary Free / Pro test-mode switch is only for the authorised internal te
 
 Set `NEXT_PUBLIC_SHOW_PLAN_TOGGLE=true` and `APT_TEST_USER_EMAIL=<internal test email>` in the deployment environment to enable it for that account. If `APT_TEST_USER_EMAIL` is unset, the switch is hidden and the temporary Pro override is ignored for everyone.
 
+## Analytics
+
+Optional GA4 tracking is controlled by `NEXT_PUBLIC_GA_MEASUREMENT_ID`. Leave it unset to disable analytics locally or in any environment where tracking should not run.
+
+Tracked events are limited to public page views and core product events: calculator opened/completed, signup started/completed, login completed, logout completed and upgrade clicks. Events must not include email addresses, user IDs, SKU names, prices, margins, COGS, support values, scenario names or other commercial inputs/results.
+
+Analytics is suppressed for the authorised internal test-mode account through the same `APT_TEST_USER_EMAIL` gate used by the Free / Pro QA toggle. UK/EU production use should connect analytics to the site's consent approach before enabling GA4 where non-essential analytics cookies require consent.
+
 ## Mobile Navigation Note
 
 Mobile navigation intentionally uses one compact Menu control instead of duplicating site navigation below the header. This avoids horizontal overflow on small screens while keeping the authorised internal test-mode switch available only when configured.

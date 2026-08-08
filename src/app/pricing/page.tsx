@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
+import { TrackedUpgradeLink } from "../components/TrackedLinks";
 import { seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
@@ -120,9 +121,15 @@ export default function PricingPage() {
                   <li key={feature}>{feature}</li>
                 ))}
               </ul>
-              <Link className="text-link" href={plan.href}>
-                {plan.cta}
-              </Link>
+              {plan.name === "Free" ? (
+                <Link className="text-link" href={plan.href}>
+                  {plan.cta}
+                </Link>
+              ) : (
+                <TrackedUpgradeLink className="text-link" href={plan.href} location={`pricing_plan_${plan.name.toLowerCase().replaceAll(" ", "_")}`}>
+                  {plan.cta}
+                </TrackedUpgradeLink>
+              )}
             </article>
           ))}
         </div>
@@ -192,12 +199,12 @@ export default function PricingPage() {
             <p>APT Pro checkout is being prepared. Create an account now, or contact us if you want Pro access.</p>
           </div>
           <div className="cta-row">
-            <Link className="button" href="/create-account">
+            <TrackedUpgradeLink className="button" href="/create-account" location="pricing_comparison">
               Create account
-            </Link>
-            <Link className="button button-secondary" href="/contact">
+            </TrackedUpgradeLink>
+            <TrackedUpgradeLink className="button button-secondary" href="/contact" location="pricing_contact">
               Request Pro access
-            </Link>
+            </TrackedUpgradeLink>
           </div>
         </article>
       </section>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 import { useState } from "react";
+import { trackEvent } from "../../lib/analytics";
 import { useAuth } from "../../lib/useAuth";
 import { AuthDebugStatus } from "./AuthDebugStatus";
 
@@ -76,18 +77,23 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
     }
 
     setIsSubmitting(true);
+    if (isCreate) trackEvent("signup_started");
     try {
       const result = isCreate ? await signUp(trimmedEmail, password) : await signIn(trimmedEmail, password);
       setTone(result.ok ? "success" : "error");
       setMessage(result.message);
 
       if (result.ok && result.redirectTo) {
+        if (isCreate) trackEvent("signup_completed");
         router.push(result.redirectTo);
         return;
       }
 
       if (result.ok && !isCreate) {
         router.push(withAuthStatus(getReturnTo(DEFAULT_POST_AUTH_PATH), "logged-in"));
+      }
+      if (result.ok && isCreate) {
+        trackEvent("signup_completed");
       }
     } catch (error) {
       if (process.env.NODE_ENV !== "production") {
