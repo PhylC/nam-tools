@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { normaliseUserPlan, type UserPlan } from "./userPlan";
+import { normaliseUserPlan, type UserPlan } from "./userPlanShared";
 import { getSupabaseServiceClient } from "./serverAuth";
 
 export type BillingInterval = "monthly" | "annual";

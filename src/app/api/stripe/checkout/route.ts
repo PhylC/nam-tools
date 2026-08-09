@@ -8,7 +8,7 @@ import {
   subscriptionStatusHasProAccess,
   upsertBillingRecord,
 } from "../../../../lib/stripeBilling";
-import { normaliseUserPlan } from "../../../../lib/userPlan";
+import { normaliseUserPlan } from "../../../../lib/userPlanShared";
 
 export const dynamic = "force-dynamic";
 
