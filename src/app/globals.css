@@ -3697,8 +3697,26 @@ p {
   gap: 0.75rem;
 }
 
+.pricing-auth-actions-compact {
+  align-items: stretch;
+}
+
 .pricing-auth-actions .settings-message {
   flex-basis: 100%;
+}
+
+.pricing-auth-actions .button {
+  display: inline-grid;
+  gap: 0.12rem;
+  justify-items: center;
+  line-height: 1.15;
+}
+
+.pricing-auth-actions .button small {
+  color: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  opacity: 0.82;
 }
 
 .pricing-action-muted {

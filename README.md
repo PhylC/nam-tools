@@ -22,9 +22,25 @@ The Promo ROI / ROI Tool planner uses a spreadsheet-style table on desktop and a
 
 ## Internal Test Mode
 
-The temporary Free / Pro test-mode switch is only for the authorised internal test account while billing-backed plan detection is being prepared.
+The temporary Free / Pro test-mode switch is only for the authorised internal test account. It is separate from Stripe billing and must not create, cancel or modify Stripe subscriptions.
 
 Set `NEXT_PUBLIC_SHOW_PLAN_TOGGLE=true` and `APT_TEST_USER_EMAIL=<internal test email>` in the deployment environment to enable it for that account. If `APT_TEST_USER_EMAIL` is unset, the switch is hidden and the temporary Pro override is ignored for everyone.
+
+## Stripe Sandbox Billing
+
+Stripe Checkout, webhooks and Customer Portal use server-only Stripe environment variables:
+
+```bash
+STRIPE_SECRET_KEY=
+STRIPE_PRICE_MONTHLY=
+STRIPE_PRICE_ANNUAL=
+STRIPE_WEBHOOK_SECRET=
+NEXT_PUBLIC_APP_URL=https://accountplanningtools.com
+```
+
+Use sandbox values until APT is explicitly switched to live billing. `STRIPE_WEBHOOK_SECRET` can be empty for the first deployment; the webhook route will build but return a configuration error until the signing secret is added.
+
+Apply `supabase/migrations/20260809000000_add_stripe_billing.sql` before enabling Checkout. After deployment, register `https://accountplanningtools.com/api/stripe/webhook` in Stripe sandbox, then add the generated signing secret to Render as `STRIPE_WEBHOOK_SECRET`.
 
 ## Analytics
 

@@ -30,8 +30,8 @@ const plans = [
   },
   {
     name: "APT Pro",
-    price: "£19/month",
-    detail: "Best for regular commercial planning.",
+    price: "£9.99/month",
+    detail: "Or £99/year. Save £20.88 a year.",
     features: [
       "Save analyses and scenarios",
       "Reopen saved work from My workspace",
@@ -118,13 +118,20 @@ function getUpgradeMessage(feature?: string | string[]) {
   return upgradeMessages[key] ?? "Upgrade to Pro to use this feature.";
 }
 
+function getCheckoutMessage(checkout?: string | string[]) {
+  const value = Array.isArray(checkout) ? checkout[0] : checkout;
+  if (value === "cancelled") return "Checkout cancelled. You haven't been charged.";
+  return "";
+}
+
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ from?: string | string[]; feature?: string | string[] }>;
+  searchParams?: Promise<{ checkout?: string | string[]; from?: string | string[]; feature?: string | string[] }>;
 }) {
   const params = searchParams ? await searchParams : {};
   const upgradeMessage = getUpgradeMessage(params.feature);
+  const checkoutMessage = getCheckoutMessage(params.checkout);
 
   return (
     <div className="page-stack">
@@ -133,6 +140,7 @@ export default async function PricingPage({
           Start free for quick one-off checks. Upgrade to APT Pro when you need
           to save, compare and export commercial scenarios regularly.
         </p>
+        {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
         {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
       </Hero>
       <section className="shell section">
