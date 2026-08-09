@@ -26,7 +26,7 @@ The temporary Free / Pro test-mode switch is only for the authorised internal te
 
 Set `NEXT_PUBLIC_SHOW_PLAN_TOGGLE=true` and `APT_TEST_USER_EMAIL=<internal test email>` in the deployment environment to enable it for that account. If `APT_TEST_USER_EMAIL` is unset, the switch is hidden and the temporary Pro override is ignored for everyone.
 
-## Stripe Sandbox Billing
+## Stripe Billing
 
 Stripe Checkout, webhooks and Customer Portal use server-only Stripe environment variables:
 
@@ -38,9 +38,9 @@ STRIPE_WEBHOOK_SECRET=
 NEXT_PUBLIC_APP_URL=https://accountplanningtools.com
 ```
 
-Use sandbox values until APT is explicitly switched to live billing. `STRIPE_WEBHOOK_SECRET` can be empty for the first deployment; the webhook route will build but return a configuration error until the signing secret is added.
+Use values from the same Stripe account and mode for the secret key, prices and webhook signing secret. `STRIPE_WEBHOOK_SECRET` can be empty for the first deployment; the webhook route will build but return a configuration error until the signing secret is added.
 
-Apply `supabase/migrations/20260809000000_add_stripe_billing.sql` before enabling Checkout. After deployment, register `https://accountplanningtools.com/api/stripe/webhook` in Stripe sandbox, then add the generated signing secret to Render as `STRIPE_WEBHOOK_SECRET`.
+Apply `supabase/migrations/20260809000000_add_stripe_billing.sql` before enabling Checkout. After deployment, register `https://accountplanningtools.com/api/stripe/webhook` in Stripe, then add the generated signing secret to Render as `STRIPE_WEBHOOK_SECRET`.
 
 ## Analytics
 
