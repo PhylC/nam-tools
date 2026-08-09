@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createClient, type User } from "@supabase/supabase-js";
 
 export type ServerAuthResult =
