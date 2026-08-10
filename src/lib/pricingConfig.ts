@@ -100,6 +100,7 @@ export function getAptProPriceLabels(currency: PricingCurrency = "GBP") {
 
   return {
     currency,
+    free: formatPriceMinor(pricing, 0),
     monthly: `${formatPriceMinor(pricing, pricing.monthly.minor)}/month`,
     annual: `${formatPriceMinor(pricing, pricing.annual.minor)}/year`,
     annualSaving: `Save ${formatPriceMinor(pricing, annualSavingMinor)}/year`,

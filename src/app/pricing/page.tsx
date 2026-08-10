@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { TrackedUpgradeLink } from "../components/TrackedLinks";
 import { getAptProPriceLabels } from "../../lib/pricingConfig";
-import { LocalizedProPrice } from "./LocalizedProPrice";
+import { LocalizedFreePrice, LocalizedProPrice } from "./LocalizedProPrice";
 import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { seoMetadata } from "../seo";
 
@@ -16,7 +16,7 @@ export const metadata = seoMetadata({
 const plans = [
   {
     name: "Free",
-    price: "£0",
+    price: getAptProPriceLabels("GBP").free,
     detail: "Best for quick checks.",
     features: [
       "Single-product, single-scenario checks",
@@ -157,7 +157,9 @@ export default async function PricingPage({
           {plans.map((plan) => (
             <article className="card pricing-card" id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
               <h2>{plan.name}</h2>
-              {plan.name === "APT Pro" ? (
+              {plan.name === "Free" ? (
+                <LocalizedFreePrice />
+              ) : plan.name === "APT Pro" ? (
                 <LocalizedProPrice />
               ) : (
                 <>
