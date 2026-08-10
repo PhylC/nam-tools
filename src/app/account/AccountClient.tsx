@@ -248,61 +248,94 @@ export function AccountClient() {
   }
 
   const billingDisplay = getBillingDisplay(billing, actualPlan);
+  const planLabel = formatUserPlan(actualPlan);
+  const planBadgeClass = actualPlan === "free" ? "account-plan-badge" : "account-plan-badge account-plan-badge-pro";
+  const statusBadgeClass = billingDisplay.statusLabel
+    ? `account-status-badge account-status-badge-${billingDisplay.messageTone}`
+    : "account-status-badge";
+  const detailItems = [
+    {
+      label: "Email",
+      value: user?.email ?? "",
+      wide: true,
+    },
+    {
+      label: "Current plan",
+      value: planLabel,
+    },
+    billing?.billing_interval && billingDisplay.showManageBilling
+      ? {
+          label: "Billing cycle",
+          value: formatBillingInterval(billing.billing_interval),
+        }
+      : null,
+    billingDisplay.showBillingStatus
+      ? {
+          label: "Billing status",
+          value: billingDisplay.statusLabel,
+          badgeClassName: statusBadgeClass,
+        }
+      : null,
+    billingDisplay.dateLabel && billingDisplay.dateValue
+      ? {
+          label: billingDisplay.dateLabel,
+          value: billingDisplay.dateValue,
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string; wide?: boolean; badgeClassName?: string }>;
 
   return (
-    <section className="shell section">
-      <article className="card account-card">
-        <div>
-          <h2>Account details</h2>
-          <dl className="account-detail-list">
-            <div>
-              <dt>Email</dt>
-              <dd>{user?.email}</dd>
-            </div>
-            <div>
-              <dt>Current plan</dt>
-              <dd>{formatUserPlan(actualPlan)}</dd>
-            </div>
-            {billing?.billing_interval && billingDisplay.showManageBilling ? (
-              <div>
-                <dt>Billing</dt>
-                <dd>{formatBillingInterval(billing.billing_interval)}</dd>
-              </div>
-            ) : null}
-            {billingDisplay.showBillingStatus ? (
-              <div>
-                <dt>Billing status</dt>
-                <dd>{billingDisplay.statusLabel}</dd>
-              </div>
-            ) : null}
-            {billingDisplay.dateLabel && billingDisplay.dateValue ? (
-              <div>
-                <dt>{billingDisplay.dateLabel}</dt>
-                <dd>{billingDisplay.dateValue}</dd>
-              </div>
-            ) : null}
-          </dl>
-          {billingDisplay.message ? (
-            <p className={`settings-message settings-message-${billingDisplay.messageTone}`}>
-              {billingDisplay.message}
-            </p>
-          ) : null}
-          {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
+    <section className="shell section account-section">
+      <article className="card account-card account-dashboard-card">
+        <div className="account-card-header">
+          <div>
+            <p className="eyebrow">Account overview</p>
+            <h2>Your APT account</h2>
+            <p>Review your access, billing status and saved work.</p>
+          </div>
+          <span className={planBadgeClass}>{planLabel}</span>
         </div>
-        <div className="account-link-grid">
-          {actualPlan === "free" ? (
-            <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("account")}>
-              Upgrade
-            </Link>
-          ) : null}
-          {billingDisplay.showManageBilling ? (
-            <button className="button" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
-              {isOpeningPortal ? "Opening billing..." : "Manage billing"}
-            </button>
-          ) : null}
-          <Link className="button" href="/settings">Settings</Link>
-          <Link className="button button-secondary" href="/workspace">My workspace</Link>
-          <button className="button button-secondary" onClick={handleSignOut} type="button">Sign out</button>
+
+        <div className="account-dashboard-grid">
+          <div className="account-overview-panel">
+            <div className="account-detail-grid">
+              {detailItems.map((item) => (
+                <div className={item.wide ? "account-detail-item account-detail-item-wide" : "account-detail-item"} key={item.label}>
+                  <span>{item.label}</span>
+                  {item.badgeClassName ? <strong className={item.badgeClassName}>{item.value}</strong> : <strong>{item.value}</strong>}
+                </div>
+              ))}
+            </div>
+
+            {billingDisplay.message ? (
+              <p className={`account-status-note account-status-note-${billingDisplay.messageTone}`}>
+                {billingDisplay.message}
+              </p>
+            ) : null}
+            {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
+          </div>
+
+          <aside className="account-actions-panel" aria-label="Account actions">
+            <div>
+              <h3>Quick actions</h3>
+              <p>Manage billing, preferences and saved planning work from one place.</p>
+            </div>
+            <div className="account-link-grid">
+              {actualPlan === "free" ? (
+                <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("account")}>
+                  Upgrade to Pro
+                </Link>
+              ) : null}
+              {billingDisplay.showManageBilling ? (
+                <button className="button" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
+                  {isOpeningPortal ? "Opening billing..." : "Manage billing"}
+                </button>
+              ) : null}
+              <Link className="button button-secondary" href="/settings">Settings</Link>
+              <Link className="button button-secondary" href="/workspace">My workspace</Link>
+            </div>
+            <button className="button button-secondary account-sign-out-button" onClick={handleSignOut} type="button">Sign out</button>
+          </aside>
         </div>
         {message ? <p className="settings-message settings-message-success">{message}</p> : null}
       </article>
