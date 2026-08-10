@@ -30,6 +30,92 @@ function formatBillingInterval(value: "monthly" | "annual" | null) {
   return "";
 }
 
+function isPaymentIssueStatus(status: string | null | undefined) {
+  return status === "past_due" || status === "unpaid" || status === "incomplete";
+}
+
+function isEndedStatus(status: string | null | undefined) {
+  return status === "canceled" || status === "cancelled" || status === "incomplete_expired";
+}
+
+function getBillingDisplay(billing: BillingState, actualPlan: string) {
+  const status = billing?.stripe_subscription_status;
+  const formattedPeriodEnd = formatBillingDate(billing?.stripe_current_period_end);
+  const isFree = actualPlan === "free";
+
+  if (!billing || !status) {
+    return {
+      statusLabel: "",
+      dateLabel: "",
+      dateValue: "",
+      message: "",
+      messageTone: "info" as const,
+      showBillingStatus: false,
+      showManageBilling: false,
+    };
+  }
+
+  if (isPaymentIssueStatus(status)) {
+    return {
+      statusLabel: "Payment issue",
+      dateLabel: "",
+      dateValue: "",
+      message: "There's a problem with your payment method. Manage billing to update your payment details.",
+      messageTone: "warning" as const,
+      showBillingStatus: true,
+      showManageBilling: true,
+    };
+  }
+
+  if (status === "active" && billing.stripe_cancel_at_period_end) {
+    return {
+      statusLabel: "Cancelling",
+      dateLabel: "Pro access ends",
+      dateValue: formattedPeriodEnd,
+      message: formattedPeriodEnd
+        ? `Your subscription is cancelled and will not renew. You'll keep APT Pro until ${formattedPeriodEnd}.`
+        : "Your subscription is cancelled and will not renew.",
+      messageTone: "warning" as const,
+      showBillingStatus: true,
+      showManageBilling: true,
+    };
+  }
+
+  if ((status === "active" || status === "trialing") && !isFree) {
+    return {
+      statusLabel: "Active",
+      dateLabel: "Renews",
+      dateValue: formattedPeriodEnd,
+      message: "",
+      messageTone: "info" as const,
+      showBillingStatus: true,
+      showManageBilling: true,
+    };
+  }
+
+  if (isEndedStatus(status) || isFree) {
+    return {
+      statusLabel: "Ended",
+      dateLabel: "",
+      dateValue: "",
+      message: "",
+      messageTone: "info" as const,
+      showBillingStatus: isEndedStatus(status),
+      showManageBilling: false,
+    };
+  }
+
+  return {
+    statusLabel: "Ended",
+    dateLabel: "",
+    dateValue: "",
+    message: "",
+    messageTone: "info" as const,
+    showBillingStatus: true,
+    showManageBilling: false,
+  };
+}
+
 export function AccountClient() {
   const { user, isSignedIn, isLoadingAuth, signOut, actualPlan } = useAuth();
   const router = useRouter();
@@ -144,6 +230,8 @@ export function AccountClient() {
     );
   }
 
+  const billingDisplay = getBillingDisplay(billing, actualPlan);
+
   return (
     <section className="shell section">
       <article className="card account-card">
@@ -158,33 +246,28 @@ export function AccountClient() {
               <dt>Current plan</dt>
               <dd>{formatUserPlan(actualPlan)}</dd>
             </div>
-            {billing?.billing_interval ? (
+            {billing?.billing_interval && billingDisplay.showManageBilling ? (
               <div>
                 <dt>Billing</dt>
                 <dd>{formatBillingInterval(billing.billing_interval)}</dd>
               </div>
             ) : null}
-            {billing?.stripe_subscription_status ? (
+            {billingDisplay.showBillingStatus ? (
               <div>
                 <dt>Billing status</dt>
-                <dd>{billing.stripe_subscription_status.replaceAll("_", " ")}</dd>
+                <dd>{billingDisplay.statusLabel}</dd>
               </div>
             ) : null}
-            {billing?.stripe_current_period_end ? (
+            {billingDisplay.dateLabel && billingDisplay.dateValue ? (
               <div>
-                <dt>{billing.stripe_cancel_at_period_end ? "Pro access ends" : "Renews"}</dt>
-                <dd>{formatBillingDate(billing.stripe_current_period_end)}</dd>
+                <dt>{billingDisplay.dateLabel}</dt>
+                <dd>{billingDisplay.dateValue}</dd>
               </div>
             ) : null}
           </dl>
-          {billing?.stripe_cancel_at_period_end && actualPlan !== "free" ? (
-            <p className="settings-message settings-message-warning">
-              Your Pro subscription will end on {formatBillingDate(billing.stripe_current_period_end)}.
-            </p>
-          ) : null}
-          {billing?.stripe_subscription_status === "past_due" ? (
-            <p className="settings-message settings-message-warning">
-              There is a billing issue with your subscription. Manage billing to update payment details.
+          {billingDisplay.message ? (
+            <p className={`settings-message settings-message-${billingDisplay.messageTone}`}>
+              {billingDisplay.message}
             </p>
           ) : null}
           {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
@@ -195,7 +278,7 @@ export function AccountClient() {
               Upgrade
             </Link>
           ) : null}
-          {billing?.stripe_subscription_status ? (
+          {billingDisplay.showManageBilling ? (
             <button className="button" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
               {isOpeningPortal ? "Opening billing..." : "Manage billing"}
             </button>
