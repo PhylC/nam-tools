@@ -5,7 +5,10 @@ create table if not exists public.user_billing (
   stripe_subscription_status text,
   stripe_price_id text,
   stripe_current_period_end timestamptz,
+  stripe_cancel_at timestamptz,
+  stripe_canceled_at timestamptz,
   stripe_cancel_at_period_end boolean not null default false,
+  stripe_cancellation_reason text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

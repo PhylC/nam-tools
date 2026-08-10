@@ -11,7 +11,10 @@ import { formatUserPlan } from "../../lib/userPlan";
 type BillingState = {
   stripe_subscription_status: string | null;
   stripe_current_period_end: string | null;
+  stripe_cancel_at: string | null;
+  stripe_canceled_at: string | null;
   stripe_cancel_at_period_end: boolean;
+  stripe_cancellation_reason: string | null;
   billing_interval: "monthly" | "annual" | null;
 } | null;
 
@@ -38,9 +41,20 @@ function isEndedStatus(status: string | null | undefined) {
   return status === "canceled" || status === "cancelled" || status === "incomplete_expired";
 }
 
+function isFutureDate(value: string | null | undefined) {
+  if (!value) return false;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) && time > Date.now();
+}
+
+function isEntitledStatus(status: string | null | undefined) {
+  return status === "active" || status === "trialing";
+}
+
 function getBillingDisplay(billing: BillingState, actualPlan: string) {
   const status = billing?.stripe_subscription_status;
   const formattedPeriodEnd = formatBillingDate(billing?.stripe_current_period_end);
+  const formattedCancelAt = formatBillingDate(billing?.stripe_cancel_at);
   const isFree = actualPlan === "free";
 
   if (!billing || !status) {
@@ -67,13 +81,16 @@ function getBillingDisplay(billing: BillingState, actualPlan: string) {
     };
   }
 
-  if (status === "active" && billing.stripe_cancel_at_period_end) {
+  const isScheduledCancellation = isEntitledStatus(status) && (billing.stripe_cancel_at_period_end || isFutureDate(billing.stripe_cancel_at));
+
+  if (isScheduledCancellation) {
+    const accessEndDate = formattedCancelAt || formattedPeriodEnd;
     return {
       statusLabel: "Cancelling",
       dateLabel: "Pro access ends",
-      dateValue: formattedPeriodEnd,
-      message: formattedPeriodEnd
-        ? `Your subscription is cancelled and will not renew. You'll keep APT Pro until ${formattedPeriodEnd}.`
+      dateValue: accessEndDate,
+      message: accessEndDate
+        ? `Your subscription is cancelled and will not renew. You'll keep APT Pro until ${accessEndDate}.`
         : "Your subscription is cancelled and will not renew.",
       messageTone: "warning" as const,
       showBillingStatus: true,
@@ -81,7 +98,7 @@ function getBillingDisplay(billing: BillingState, actualPlan: string) {
     };
   }
 
-  if ((status === "active" || status === "trialing") && !isFree) {
+  if (isEntitledStatus(status) && !isFree) {
     return {
       statusLabel: "Active",
       dateLabel: "Renews",

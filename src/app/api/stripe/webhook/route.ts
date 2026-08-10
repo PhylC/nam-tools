@@ -36,7 +36,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       stripe_subscription_status: existing?.stripe_subscription_status ?? null,
       stripe_price_id: existing?.stripe_price_id ?? null,
       stripe_current_period_end: existing?.stripe_current_period_end ?? null,
+      stripe_cancel_at: existing?.stripe_cancel_at ?? null,
+      stripe_canceled_at: existing?.stripe_canceled_at ?? null,
       stripe_cancel_at_period_end: existing?.stripe_cancel_at_period_end ?? false,
+      stripe_cancellation_reason: existing?.stripe_cancellation_reason ?? null,
     });
   }
 

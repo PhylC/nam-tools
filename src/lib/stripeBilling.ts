@@ -11,7 +11,10 @@ export type UserBillingRecord = {
   stripe_subscription_status: string | null;
   stripe_price_id: string | null;
   stripe_current_period_end: string | null;
+  stripe_cancel_at: string | null;
+  stripe_canceled_at: string | null;
   stripe_cancel_at_period_end: boolean;
+  stripe_cancellation_reason: string | null;
 };
 
 const entitledSubscriptionStatuses = new Set(["active", "trialing"]);
@@ -68,6 +71,8 @@ function getSubscriptionPeriodEnd(subscription: Stripe.Subscription) {
 
 export function billingFieldsFromSubscription(subscription: Stripe.Subscription, userId: string): UserBillingRecord {
   const customer = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+  const cancellationReason =
+    typeof subscription.cancellation_details?.reason === "string" ? subscription.cancellation_details.reason : null;
   return {
     user_id: userId,
     stripe_customer_id: customer,
@@ -75,7 +80,10 @@ export function billingFieldsFromSubscription(subscription: Stripe.Subscription,
     stripe_subscription_status: subscription.status,
     stripe_price_id: firstSubscriptionPriceId(subscription),
     stripe_current_period_end: timestampToIso(getSubscriptionPeriodEnd(subscription)),
+    stripe_cancel_at: timestampToIso(subscription.cancel_at),
+    stripe_canceled_at: timestampToIso(subscription.canceled_at),
     stripe_cancel_at_period_end: subscription.cancel_at_period_end,
+    stripe_cancellation_reason: cancellationReason,
   };
 }
 

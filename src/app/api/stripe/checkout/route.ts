@@ -155,7 +155,10 @@ export async function POST(request: Request) {
         stripe_subscription_status: billing?.stripe_subscription_status ?? null,
         stripe_price_id: billing?.stripe_price_id ?? null,
         stripe_current_period_end: billing?.stripe_current_period_end ?? null,
+        stripe_cancel_at: billing?.stripe_cancel_at ?? null,
+        stripe_canceled_at: billing?.stripe_canceled_at ?? null,
         stripe_cancel_at_period_end: billing?.stripe_cancel_at_period_end ?? false,
+        stripe_cancellation_reason: billing?.stripe_cancellation_reason ?? null,
       });
     } catch (error) {
       logCheckoutFailure("upsert-billing-customer", error, { ...logContext, customerId });
