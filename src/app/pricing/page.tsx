@@ -17,15 +17,12 @@ const plans = [
   {
     name: "Free",
     price: getAptProPriceLabels("GBP").free,
-    detail: "Best for quick checks.",
+    detail: "For one-off commercial checks.",
     features: [
-      "Single-product, single-scenario checks",
       "Core calculators",
-      "Free single-line ROI Tool",
-      "Copy a basic summary",
-      "Download a simple CSV",
-      "Calculator defaults with a free account",
-      "No setup required",
+      "Single-line ROI checks",
+      "Basic summaries and CSVs",
+      "Saved calculator defaults with an account",
     ],
     href: "/calculators",
     cta: "Use free calculators",
@@ -35,30 +32,25 @@ const plans = [
     price: getAptProPriceLabels("GBP").monthly,
     detail: getAptProPriceLabels("GBP").annualDetail,
     features: [
-      "Save analyses and scenarios",
-      "Reopen saved work from My workspace",
-      "Duplicate deal versions",
-      "Compare different versions of a deal",
-      "Multi-SKU ROI scenario planner",
+      "Save analyses, scenarios and deck briefs",
+      "Compare deal versions and reopen saved work",
+      "Plan multi-SKU ROI scenarios",
       "Upload or paste spreadsheet data",
-      "Account-level calculator defaults",
-      "Save up to 3 PowerPoint templates for custom deck workflows",
-      "Save your company logo, disclaimer and export preferences",
-      "Cleaner exports for meetings and reviews",
+      "Save templates, branding and export preferences",
+      "Export cleaner meeting-ready outputs",
     ],
     href: "/pricing",
     cta: "Upgrade to Pro",
+    recommended: true,
   },
   {
     name: "Team",
     price: "Custom",
-    detail: "For teams that need shared planning standards, templates or scenario workflows.",
+    detail: "For shared standards and team workflows.",
     features: [
-      "Shared customer plans",
-      "Team scenario libraries",
-      "Manager review process",
+      "Shared customer plans and libraries",
       "Standardised templates",
-      "Shared export packs",
+      "Manager review process",
     ],
     href: "/contact",
     cta: "Contact sales",
@@ -66,34 +58,42 @@ const plans = [
 ];
 
 const comparisonRows = [
-  ["Calculators", "Included", "Included"],
-  ["Products per calculation", "1 product", "Multiple products"],
-  ["Scenarios", "1 scenario", "Save, duplicate and compare scenarios"],
-  ["Result summary", "Basic summary", "Advanced commercial summary"],
-  ["Copy summary", "Included", "Included"],
-  ["CSV download", "Current calculation only", "Included, plus richer exports"],
-  ["Excel export", "Not included", "Export workbook"],
-  ["PowerPoint export", "Not included", "Export presentation-ready summaries"],
-  ["Company branding", "Not included", "Logo, company details and disclaimer"],
-  ["Presentation templates", "Not included", "Save up to 3 .pptx templates"],
-  ["Calculator defaults", "Saved with a free account", "Saved to your account"],
-  ["Workspace", "Not included", "Saved analyses, scenarios, decks and exports"],
-  ["Best for", "Quick one-off checks", "Repeated commercial planning and retailer meetings"],
+  ["Best fit", "Quick one-off checks", "Repeat planning and retailer meetings"],
+  ["ROI planning", "Single line", "Multi-SKU scenarios"],
+  ["Saved work", "Defaults only", "Analyses, scenarios, decks and exports"],
+  ["Scenario handling", "One version", "Save, duplicate and compare versions"],
+  ["Exports", "Basic summary and CSV", "Cleaner meeting-ready outputs"],
+  ["Branding and templates", "Not included", "Logo, disclaimer and saved templates"],
 ];
 
 const mobileComparisonRows = [
-  ["Calculators", "Included", "Included"],
-  ["Products", "1", "Multiple"],
-  ["Scenarios", "1", "Save + compare"],
-  ["Summary", "Basic", "Advanced"],
-  ["Copy summary", "Included", "Included"],
-  ["CSV", "Current calc", "Included"],
-  ["Excel", "—", "Workbook"],
-  ["PowerPoint", "—", "Deck export"],
-  ["Branding", "—", "Logo + disclaimer"],
-  ["Templates", "Download", "Save templates"],
-  ["Defaults", "Account defaults", "Account + exports"],
-  ["Best for", "Quick checks", "Repeat planning"],
+  ["Best fit", "Quick checks", "Repeat planning"],
+  ["ROI", "Single line", "Multi-SKU"],
+  ["Saved work", "Defaults", "Work + exports"],
+  ["Scenarios", "One version", "Save + compare"],
+  ["Exports", "Basic", "Meeting-ready"],
+  ["Branding", "—", "Logo + templates"],
+];
+
+const decisionCards = [
+  {
+    title: "Need one quick answer?",
+    body: "Use Free for margin checks, a single ROI line or a quick commercial sense-check.",
+    href: "/calculators",
+    cta: "Use free calculators",
+  },
+  {
+    title: "Preparing repeat customer work?",
+    body: "Use Pro when you need to save versions, compare scenarios and return to work later.",
+    href: "#apt-pro-plan",
+    cta: "Choose Pro",
+  },
+  {
+    title: "Standardising a team?",
+    body: "Talk to us when templates, review steps or shared planning standards matter.",
+    href: "/contact",
+    cta: "Contact sales",
+  },
 ];
 
 const upgradeMessages: Record<string, string> = {
@@ -139,24 +139,38 @@ export default async function PricingPage({
     <div className="page-stack">
       <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
-          Start free for quick one-off checks. Upgrade to APT Pro when you need
-          to save, compare and export commercial scenarios regularly.
+          Use Free for quick checks. Choose APT Pro when you need to save,
+          compare and export customer-ready planning work.
         </p>
         {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
         {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
       </Hero>
       <section className="shell section">
-        <SectionHeader eyebrow="Plans" title="Useful for quick checks. Stronger for repeat work.">
-            <p>
-              Use the core calculators for single-product, single-scenario
-            checks. APT Pro adds saved scenarios, My workspace and cleaner
-            exports for meetings, reviews and planning.
-            </p>
+        <SectionHeader eyebrow="Choose" title="Pick the path that matches the job.">
+          <p>
+            Most people start free. Pro becomes useful when the same customer,
+            deal or planning question comes back again.
+          </p>
         </SectionHeader>
-        <div className="grid">
+        <div className="pricing-decision-grid">
+          {decisionCards.map((card) => (
+            <article className="pricing-decision-card" key={card.title}>
+              <h3>{card.title}</h3>
+              <p>{card.body}</p>
+              <Link className="text-link" href={card.href}>{card.cta}</Link>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="shell section">
+        <SectionHeader eyebrow="Plans" title="Simple plans for different levels of work." />
+        <div className="grid pricing-plan-grid">
           {plans.map((plan) => (
-            <article className="card pricing-card" id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
-              <h2>{plan.name}</h2>
+            <article className={plan.recommended ? "card pricing-card pricing-card-featured" : "card pricing-card"} id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
+              <div className="pricing-card-heading">
+                <h2>{plan.name}</h2>
+                {plan.recommended ? <span className="pill pro-pill recommended-pill">Recommended</span> : null}
+              </div>
               {plan.name === "Free" ? (
                 <LocalizedFreePrice />
               ) : plan.name === "APT Pro" ? (
@@ -188,10 +202,10 @@ export default async function PricingPage({
         </div>
       </section>
       <section className="shell section">
-        <SectionHeader eyebrow="Free vs APT Pro" title="Compare Free and APT Pro">
+        <SectionHeader eyebrow="Compare" title="The practical difference.">
           <p>
-            Free is built for quick one-off checks. APT Pro is for saving,
-            comparing and exporting commercial scenarios.
+            Free helps you get to an answer. Pro helps you manage the work when
+            there are versions, meetings and outputs to keep track of.
           </p>
         </SectionHeader>
         <div className="comparison-table-wrap desktop-comparison-table">
@@ -234,8 +248,8 @@ export default async function PricingPage({
         </div>
         <article className="card comparison-cta mobile-comparison-cta">
           <div>
-            <h3>Use Free for quick checks.</h3>
-            <p>Use APT Pro when you need to save, compare and export your work.</p>
+            <h3>Ready to save the work?</h3>
+            <p>Choose Pro when the calculation becomes a planning workflow.</p>
           </div>
           <div className="cta-row">
             <Link className="button button-secondary" href="/calculators">
@@ -248,8 +262,8 @@ export default async function PricingPage({
         </article>
         <article className="card comparison-cta comparison-cta-desktop">
           <div>
-            <h3>Use Free for quick checks.</h3>
-            <p>Use APT Pro when you need to save, compare and export your work.</p>
+            <h3>Ready to save the work?</h3>
+            <p>Choose Pro when the calculation becomes a planning workflow.</p>
           </div>
           <PricingUpgradeActions location="pricing_comparison" variant="panel" />
         </article>
@@ -257,18 +271,17 @@ export default async function PricingPage({
       <section className="shell section">
         <article className="card split-band">
           <div>
-            <p className="eyebrow">Why Pro</p>
-            <h2>APT Pro is for when the work does not stop at one calculation.</h2>
+            <p className="eyebrow">Onboarding</p>
+            <h2>After you join, start with one real customer question.</h2>
           </div>
           <div className="copy-stack">
             <p>
-              The free tools are for fast commercial checks: a quick ROI read,
-              a margin sense-check, or a first draft of a buyer meeting plan.
+              Create an account, set your defaults, then run the calculator or
+              ROI scenario you need for the next conversation.
             </p>
             <p>
-              Pro is for the real workflow: saving scenarios, comparing
-              versions, keeping your default setup, and turning results into
-              cleaner outputs for meetings and reviews.
+              If that work needs to be saved, compared or exported, Pro turns it
+              into a repeatable planning flow inside My workspace.
             </p>
           </div>
           <div className="pricing-workflow-visual">

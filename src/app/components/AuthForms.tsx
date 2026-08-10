@@ -11,7 +11,8 @@ import { AuthDebugStatus } from "./AuthDebugStatus";
 type AuthFormMode = "login" | "create";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const DEFAULT_POST_AUTH_PATH = "/calculators";
+const DEFAULT_LOGIN_PATH = "/workspace";
+const DEFAULT_CREATE_ACCOUNT_PATH = "/settings";
 
 function isSafeReturnPath(path: string) {
   if (!path.startsWith("/") || path.startsWith("//")) return false;
@@ -85,13 +86,13 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
 
       if (result.ok && result.redirectTo) {
         if (isCreate) trackEvent("signup_completed");
-        const destination = isCreate ? withAuthStatus(getReturnTo(result.redirectTo), "logged-in") : result.redirectTo;
+        const destination = isCreate ? withAuthStatus(getReturnTo(DEFAULT_CREATE_ACCOUNT_PATH), "logged-in") : result.redirectTo;
         router.push(destination);
         return;
       }
 
       if (result.ok && !isCreate) {
-        router.push(withAuthStatus(getReturnTo(DEFAULT_POST_AUTH_PATH), "logged-in"));
+        router.push(withAuthStatus(getReturnTo(DEFAULT_LOGIN_PATH), "logged-in"));
       }
       if (result.ok && isCreate) {
         trackEvent("signup_completed");
@@ -151,8 +152,8 @@ export function AuthForm({ mode }: { mode: AuthFormMode }) {
           <Link className="button button-secondary" href="/login">
             Go to login
           </Link>
-          <Link className="text-link" href="/calculators">
-            Back to calculators
+          <Link className="text-link" href="/settings">
+            Set defaults
           </Link>
         </div>
       ) : null}

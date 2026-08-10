@@ -1028,7 +1028,15 @@ function minBy<T>(items: T[], selector: (item: T) => number | null) {
   }, null);
 }
 
-function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenario[]; onAddScenario: () => void }) {
+function ScenarioComparison({
+  scenarios,
+  onAddScenario,
+  onSaveComparison,
+}: {
+  scenarios: RoiScenario[];
+  onAddScenario: () => void;
+  onSaveComparison: () => void | Promise<void>;
+}) {
   const metrics = scenarios.map(scenarioMetrics);
   const bestRevenue = maxBy(metrics, (item) => item.summary.revenueImpact);
   const bestProfit = maxBy(metrics, (item) => (item.summary.profitRows ? item.summary.profitImpact : null));
@@ -1044,13 +1052,65 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
         ? `${bestRevenue.scenario.name} delivers the strongest incremental revenue while also requiring the lowest support cost.`
         : `${bestRevenue.scenario.name} delivers the strongest incremental revenue, but ${lowestSupport.scenario.name} is more efficient on support cost. Recommended route: ${recommended.scenario.name}.`;
   }
+  type ComparisonMetric = {
+    label: string;
+    value: (item: ReturnType<typeof scenarioMetrics>) => string;
+    bestScenarioId?: string;
+    bestLabel?: string;
+  };
+  const comparisonRows: ComparisonMetric[] = [
+    {
+      label: "Baseline supplier invoice revenue",
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.baselineRevenue),
+    },
+    {
+      label: "Promo supplier invoice revenue",
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.promoRevenue),
+    },
+    {
+      label: "Incremental supplier invoice revenue",
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.revenueImpact),
+      bestScenarioId: bestRevenue?.scenario.id,
+    },
+    {
+      label: "Support cost",
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.supportCost),
+      bestScenarioId: lowestSupport?.scenario.id,
+      bestLabel: "Lowest",
+    },
+    {
+      label: "Incremental profit",
+      value: (item: ReturnType<typeof scenarioMetrics>) => (item.summary.profitRows ? money(item.summary.profitImpact) : "Add supplier COGS"),
+      bestScenarioId: bestProfit?.scenario.id,
+    },
+    {
+      label: "Supplier revenue ROI",
+      value: (item: ReturnType<typeof scenarioMetrics>) => pct(item.revenueRoi),
+    },
+    {
+      label: "Profit ROI",
+      value: (item: ReturnType<typeof scenarioMetrics>) => pct(item.profitRoi),
+      bestScenarioId: bestRoi?.scenario.id,
+    },
+    {
+      label: "Lines",
+      value: (item: ReturnType<typeof scenarioMetrics>) => item.scenario.lines.length.toLocaleString("en-GB"),
+    },
+  ];
 
   return (
     <section className="card scenario-comparison">
       <div className="scenario-comparison-desktop">
-        <div>
-          <h3>Scenario comparison</h3>
-          <p>{narrative}</p>
+        <div className="scenario-comparison-heading">
+          <div>
+            <h3>Scenario comparison</h3>
+            <p>{narrative}</p>
+          </div>
+          {scenarios.length > 1 ? (
+            <button className="button button-secondary button-small" onClick={onSaveComparison} type="button">
+              Save full comparison
+            </button>
+          ) : null}
         </div>
         {scenarios.length > 1 ? (
           <div className="comparison-chip-row">
@@ -1060,6 +1120,36 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
             <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+          </div>
+        ) : null}
+        {scenarios.length > 1 ? (
+          <div className="scenario-comparison-table-wrap" aria-label="Scenario metric comparison">
+            <table className="scenario-comparison-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metric</th>
+                  {metrics.map((item) => (
+                    <th scope="col" key={item.scenario.id}>{item.scenario.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row) => (
+                  <tr key={row.label}>
+                    <th scope="row">{row.label}</th>
+                    {metrics.map((item) => {
+                      const isBest = row.bestScenarioId === item.scenario.id;
+                      return (
+                        <td className={isBest ? "scenario-comparison-best" : undefined} key={item.scenario.id}>
+                          <strong>{row.value(item)}</strong>
+                          {isBest ? <span>{row.bestLabel ?? "Best"}</span> : null}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : null}
       </div>
@@ -1074,6 +1164,9 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
         ) : (
           <>
             <p>{narrative}</p>
+            <button className="button button-secondary button-small" onClick={onSaveComparison} type="button">
+              Save full comparison
+            </button>
             <div className="roi-mobile-comparison-list">
               {metrics.map((item) => {
                 const badges = [
@@ -1091,8 +1184,11 @@ function ScenarioComparison({ scenarios, onAddScenario }: { scenarios: RoiScenar
                     </div>
                     <dl>
                       <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
-                      <div><dt>ROI</dt><dd>{pct(item.profitRoi ?? item.revenueRoi)}</dd></div>
+                      <div><dt>Support cost</dt><dd>{money(item.summary.supportCost)}</dd></div>
                       <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add supplier COGS"}</dd></div>
+                      <div><dt>Supplier revenue ROI</dt><dd>{pct(item.revenueRoi)}</dd></div>
+                      <div><dt>Profit ROI</dt><dd>{pct(item.profitRoi)}</dd></div>
+                      <div><dt>Lines</dt><dd>{item.scenario.lines.length.toLocaleString("en-GB")}</dd></div>
                     </dl>
                   </article>
                 );
@@ -1124,10 +1220,10 @@ function SavedRoiPlansPanel({
 }) {
   return (
     <details className="saved-plans-details">
-      <summary>Load or manage saved ROI plans</summary>
+      <summary>Load or manage saved ROI comparisons</summary>
       <aside className="saved-panel saved-panel-compact">
       <div>
-        <p>Save your work and return to it later.</p>
+        <p>Save a full scenario group and return to the comparison later.</p>
           {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
           {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
         </div>
@@ -1136,7 +1232,7 @@ function SavedRoiPlansPanel({
             {groups.map((group) => (
               <div className="saved-row" key={group.id}>
                 <label className="field saved-name-field">
-                  <span>Saved ROI group</span>
+                <span>Saved comparison</span>
                   <input value={group.name} onChange={(event) => onRename(group.id, event.target.value)} />
                 </label>
                 <div>
@@ -1152,7 +1248,7 @@ function SavedRoiPlansPanel({
             ))}
           </div>
         ) : (
-          <p className="empty-state">No saved ROI plans yet.</p>
+          <p className="empty-state">No saved ROI comparisons yet.</p>
         )}
       </aside>
     </details>
@@ -1165,8 +1261,8 @@ function FreeProPrompt() {
       <div>
         <h3>Need to compare more than one option?</h3>
         <p>
-          APT Pro lets you add multiple products, build different scenarios, upload spreadsheets,
-          save plans and export the results.
+                  APT Pro lets you add multiple products, build different scenarios, upload spreadsheets,
+                  save full comparisons and export the results.
         </p>
       </div>
       <Link className="button" href={buildUpgradeHref({ from: "roi-tool", feature: "pro-actions" })} onClick={() => trackUpgradeClicked("roi_tool_prompt")}>
@@ -1543,7 +1639,7 @@ export function RoiPlanner() {
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
                 <CsvExportButton groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
-                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save plan</button>
+                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save comparison</button>
               </>
             ) : (
               <>
@@ -1551,7 +1647,7 @@ export function RoiPlanner() {
                 <ProOnlyAction onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}>
                   Download template
                 </ProOnlyAction>
-                <ProOnlyAction onClick={() => ensureRoiPro("save-plan")}>Save plan</ProOnlyAction>
+                <ProOnlyAction onClick={() => ensureRoiPro("save-plan")}>Save comparison</ProOnlyAction>
                 <ProOnlyAction onClick={() => ensureRoiPro("export-results")}>Export results</ProOnlyAction>
               </>
             )}
@@ -1672,7 +1768,7 @@ export function RoiPlanner() {
           )}
         </button>
 
-        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} /> : <FreeProPrompt />}
+        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} /> : <FreeProPrompt />}
       </article>
     </section>
   );

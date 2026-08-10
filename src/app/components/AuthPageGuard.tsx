@@ -10,7 +10,7 @@ type AuthPageGuardProps = {
   mode: "login" | "create";
 };
 
-const DEFAULT_SIGNED_IN_PATH = "/account";
+const DEFAULT_SIGNED_IN_PATH = "/workspace";
 
 function isSafeReturnPath(path: string | null) {
   if (!path || !path.startsWith("/") || path.startsWith("//")) return false;
