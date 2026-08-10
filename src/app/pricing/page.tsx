@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { TrackedUpgradeLink } from "../components/TrackedLinks";
+import { getAptProPriceLabels } from "../../lib/pricingConfig";
+import { LocalizedProPrice } from "./LocalizedProPrice";
 import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { seoMetadata } from "../seo";
 
@@ -30,8 +32,8 @@ const plans = [
   },
   {
     name: "APT Pro",
-    price: "£9.99/month",
-    detail: "Or £99/year. Save £20.88 a year.",
+    price: getAptProPriceLabels("GBP").monthly,
+    detail: getAptProPriceLabels("GBP").annualDetail,
     features: [
       "Save analyses and scenarios",
       "Reopen saved work from My workspace",
@@ -155,8 +157,14 @@ export default async function PricingPage({
           {plans.map((plan) => (
             <article className="card pricing-card" id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
               <h2>{plan.name}</h2>
-              <div className="price">{plan.price}</div>
-              <p>{plan.detail}</p>
+              {plan.name === "APT Pro" ? (
+                <LocalizedProPrice />
+              ) : (
+                <>
+                  <div className="price">{plan.price}</div>
+                  <p>{plan.detail}</p>
+                </>
+              )}
               <ul className="compact-list">
                 {plan.features.map((feature) => (
                   <li key={feature}>{feature}</li>
@@ -239,7 +247,7 @@ export default async function PricingPage({
         <article className="card comparison-cta comparison-cta-desktop">
           <div>
             <h3>Use Free for quick checks.</h3>
-            <p>APT Pro checkout is being prepared. The upgrade action will start here when payments are enabled.</p>
+            <p>Use APT Pro when you need to save, compare and export your work.</p>
           </div>
           <PricingUpgradeActions location="pricing_comparison" variant="panel" />
         </article>

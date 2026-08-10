@@ -6,6 +6,7 @@ import { useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { useLocalizedPricing } from "../../lib/useLocalizedPricing";
 
 type PricingUpgradeActionsProps = {
   location: string;
@@ -17,15 +18,16 @@ type BillingInterval = "monthly" | "annual";
 const billingOptions: Array<{
   interval: BillingInterval;
   label: string;
-  detail: string;
+  detailKey: "monthly" | "annualDetail";
   locationSuffix: string;
 }> = [
-  { interval: "monthly", label: "Upgrade monthly", detail: "£9.99/month", locationSuffix: "monthly" },
-  { interval: "annual", label: "Upgrade annually", detail: "£99/year. Save £20.88 a year.", locationSuffix: "annual" },
+  { interval: "monthly", label: "Upgrade monthly", detailKey: "monthly", locationSuffix: "monthly" },
+  { interval: "annual", label: "Upgrade annually", detailKey: "annualDetail", locationSuffix: "annual" },
 ];
 
 export function PricingUpgradeActions({ location, variant = "link" }: PricingUpgradeActionsProps) {
   const { isAuthenticated, isLoading, actualPlan } = useSupabaseAuth();
+  const pricing = useLocalizedPricing();
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [isStartingCheckout, setIsStartingCheckout] = useState<BillingInterval | null>(null);
@@ -126,7 +128,7 @@ export function PricingUpgradeActions({ location, variant = "link" }: PricingUpg
           onClick={() => startCheckout(option.interval)}
         >
           <span>{isStartingCheckout === option.interval ? "Opening Checkout..." : option.label}</span>
-          <small>{option.detail}</small>
+          <small>{pricing[option.detailKey]}</small>
         </button>
       ))}
       {message ? <p className="settings-message settings-message-error">{message}</p> : null}
