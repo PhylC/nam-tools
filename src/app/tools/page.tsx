@@ -27,7 +27,7 @@ const groups = [
 
 export default function ToolsPage() {
   return (
-    <div className="page-stack tools-hub-page snapshot-hero-page">
+    <div className="page-stack tools-hub-page">
       <Hero eyebrow="All resources" title="Commercial planning tools for retail supplier teams">
         <p>
           Choose the right tool for the job: build a promo ROI plan, run a quick

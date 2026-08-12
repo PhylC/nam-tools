@@ -12,7 +12,7 @@ export const metadata = seoMetadata({
 
 export default function CalculatorsPage() {
   return (
-    <div className="page-stack calculators-hub-page snapshot-hero-page">
+    <div className="page-stack calculators-hub-page">
       <Hero
         title="What are you trying to work out?"
         actions={

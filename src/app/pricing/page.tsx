@@ -136,7 +136,7 @@ export default async function PricingPage({
   const checkoutMessage = getCheckoutMessage(params.checkout);
 
   return (
-    <div className="page-stack pricing-page snapshot-hero-page">
+    <div className="page-stack pricing-page">
       <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
           Use Free for quick checks. Choose APT Pro when you need to save,
