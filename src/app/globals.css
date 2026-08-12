@@ -846,6 +846,76 @@ textarea:focus {
   gap: 0.65rem;
 }
 
+.account-menu-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.account-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  border: 1px solid rgba(222, 217, 207, 0.92);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--foreground);
+  padding: 0.72rem 0.85rem;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.account-menu-item:hover,
+.account-menu-item:focus-visible {
+  border-color: rgba(15, 118, 110, 0.34);
+  background: #f4fbfa;
+  color: var(--accent-dark);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.account-menu-item span {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.account-menu-item strong {
+  color: inherit;
+  font-size: 0.96rem;
+  font-weight: 950;
+  line-height: 1.22;
+}
+
+.account-menu-item small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+  line-height: 1.3;
+}
+
+.account-menu-item-active,
+.account-menu-item-primary {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: rgba(228, 240, 238, 0.55);
+  color: var(--accent-dark);
+}
+
+.account-menu-item-active {
+  cursor: default;
+}
+
+.account-menu-item-active:hover {
+  transform: none;
+}
+
+.account-menu-sign-out {
+  margin-top: 0.15rem;
+}
+
 .account-actions-panel .button,
 .account-sign-out-button {
   width: 100%;

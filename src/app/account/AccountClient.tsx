@@ -318,26 +318,53 @@ export function AccountClient() {
             {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
           </div>
 
-          <aside className="account-actions-panel" aria-label="Account actions">
+          <aside className="account-actions-panel" aria-label="Account menu">
             <div>
-              <h3>Quick actions</h3>
-              <p>Manage billing, preferences and saved planning work from one place.</p>
+              <h3>Account menu</h3>
+              <p>Move between your billing, settings and saved planning work.</p>
             </div>
-            <div className="account-link-grid">
+            <nav className="account-menu-list" aria-label="Account sections">
+              <div className="account-menu-item account-menu-item-active" aria-current="page">
+                <span>
+                  <strong>Account overview</strong>
+                  <small>Plan status and account details</small>
+                </span>
+              </div>
               {actualPlan === "free" ? (
-                <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("account")}>
-                  Upgrade to Pro
+                <Link className="account-menu-item account-menu-item-primary" href="/pricing" onClick={() => trackUpgradeClicked("account")}>
+                  <span>
+                    <strong>Plan &amp; billing</strong>
+                    <small>Upgrade to Pro or compare plans</small>
+                  </span>
                 </Link>
               ) : null}
               {billingDisplay.showManageBilling ? (
-                <button className="button" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
-                  {isOpeningPortal ? "Opening billing..." : "Manage billing"}
+                <button className="account-menu-item account-menu-item-primary" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
+                  <span>
+                    <strong>{isOpeningPortal ? "Opening billing..." : "Plan & billing"}</strong>
+                    <small>Manage subscription, invoices and payment details</small>
+                  </span>
                 </button>
               ) : null}
-              <Link className="button button-secondary" href="/settings">Settings</Link>
-              <Link className="button button-secondary" href="/workspace">My workspace</Link>
-            </div>
-            <button className="button button-secondary account-sign-out-button" onClick={handleSignOut} type="button">Sign out</button>
+              <Link className="account-menu-item" href="/settings">
+                <span>
+                  <strong>Settings</strong>
+                  <small>Defaults, branding and export preferences</small>
+                </span>
+              </Link>
+              <Link className="account-menu-item" href="/workspace">
+                <span>
+                  <strong>Workspace</strong>
+                  <small>Saved plans, scenarios, decks and exports</small>
+                </span>
+              </Link>
+            </nav>
+            <button className="account-menu-item account-menu-sign-out" onClick={handleSignOut} type="button">
+              <span>
+                <strong>Sign out</strong>
+                <small>End this session on this device</small>
+              </span>
+            </button>
           </aside>
         </div>
         {message ? <p className="settings-message settings-message-success">{message}</p> : null}
