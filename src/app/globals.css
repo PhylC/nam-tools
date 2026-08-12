@@ -867,8 +867,7 @@ textarea:focus {
 .account-menu-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.68rem;
   width: 100%;
   min-width: 0;
   min-height: 64px;
@@ -881,6 +880,26 @@ textarea:focus {
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
 }
 
+.account-menu-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 7px;
+  color: var(--accent-dark);
+}
+
+.account-menu-icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
 .account-menu-item:hover,
 .account-menu-item:focus-visible {
   border-color: rgba(15, 118, 110, 0.34);
@@ -890,7 +909,7 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
-.account-menu-item span {
+.account-menu-item > span:not(.account-menu-icon) {
   display: grid;
   gap: 0.18rem;
   min-width: 0;
@@ -927,6 +946,17 @@ textarea:focus {
 
 .account-menu-sign-out {
   margin-top: 0.15rem;
+  min-height: 48px;
+  color: var(--muted);
+  padding-block: 0.5rem;
+}
+
+.account-menu-sign-out .account-menu-icon {
+  color: var(--muted);
+}
+
+.account-menu-sign-out strong {
+  font-size: 0.9rem;
 }
 
 .account-actions-panel .button,
@@ -6175,10 +6205,22 @@ p {
   }
 
   .account-section-layout .account-menu-item {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr;
     justify-content: center;
     min-height: 46px;
     padding: 0.58rem 0.45rem;
     text-align: center;
+  }
+
+  .account-section-layout .account-menu-item-active {
+    border-bottom-color: rgba(15, 118, 110, 0.72);
+    border-bottom-width: 3px;
+  }
+
+  .account-section-layout .account-menu-icon {
+    display: none;
   }
 
   .account-section-layout .account-menu-item small {
@@ -6191,8 +6233,15 @@ p {
   }
 
   .account-section-layout .account-menu-sign-out {
-    min-height: 42px;
+    min-height: 36px;
     margin-top: 0;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .account-section-layout .account-menu-sign-out strong {
+    font-size: 0.78rem;
   }
 
   .account-plan-badge {

@@ -50,7 +50,6 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             <Link href="/tools">Planning tools</Link>
             <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
-            <Link href="/workspace">My workspace</Link>
           </nav>
           <div className="header-actions">
             <HeaderAuthNav />

@@ -16,8 +16,6 @@ const mobileLinks = [
   },
   { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates"] },
   { href: "/pricing", label: "Pricing", match: ["/pricing"] },
-  { href: "/workspace", label: "Workspace", match: ["/workspace"] },
-  { href: "/settings", label: "Settings", match: ["/settings"] },
 ];
 
 export function MobileNav() {
