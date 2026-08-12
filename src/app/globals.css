@@ -6149,11 +6149,46 @@ p {
 
   .account-section-layout > .account-actions-panel {
     position: static;
+    order: -1;
   }
 
   .account-overview-panel,
   .account-actions-panel {
     padding: 0.85rem;
+  }
+
+  .account-section-layout > .account-actions-panel {
+    gap: 0.65rem;
+  }
+
+  .account-section-layout > .account-actions-panel > div:first-child {
+    display: none;
+  }
+
+  .account-section-layout .account-menu-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  .account-section-layout .account-menu-item {
+    justify-content: center;
+    min-height: 46px;
+    padding: 0.58rem 0.45rem;
+    text-align: center;
+  }
+
+  .account-section-layout .account-menu-item small {
+    display: none;
+  }
+
+  .account-section-layout .account-menu-item strong {
+    font-size: 0.84rem;
+    line-height: 1.15;
+  }
+
+  .account-section-layout .account-menu-sign-out {
+    min-height: 42px;
+    margin-top: 0;
   }
 
   .account-plan-badge {
