@@ -302,6 +302,7 @@ export default async function PricingPage({
           <div className="pricing-workflow-visual">
             <ProductVisual
               alt="APT workspace showing saved analyses, scenarios, decks and exports"
+              aspectRatio="547 / 270"
               description="Saved analyses, scenarios, decks and exports in one workspace."
               filename="/images/apt/apt-workspace-dashboard-preview.webp"
               height={270}

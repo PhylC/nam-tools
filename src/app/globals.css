@@ -5973,6 +5973,15 @@ p {
     grid-template-columns: 1fr;
   }
 
+  .pricing-workflow-visual {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .pricing-workflow-visual .product-image-card {
+    min-height: 0;
+  }
+
   .roi-action-bar-simple {
     justify-content: flex-start;
   }
