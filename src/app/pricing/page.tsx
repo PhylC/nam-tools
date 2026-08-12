@@ -46,14 +46,15 @@ const plans = [
   {
     name: "Team",
     price: "Custom",
-    detail: "For shared standards and team workflows.",
+    detail: "For customised tools, branded templates and team workflows.",
     features: [
+      "Customised planning tools and calculators",
       "Shared customer plans and libraries",
-      "Standardised templates",
-      "Manager review process",
+      "Branded templates and export standards",
+      "Workflow support for team planning routines",
     ],
     href: "/contact",
-    cta: "Contact sales",
+    cta: "Discuss custom requirements",
   },
 ];
 
@@ -90,9 +91,9 @@ const decisionCards = [
   },
   {
     title: "Standardising a team?",
-    body: "Talk to us when templates, review steps or shared planning standards matter.",
+    body: "Talk to us when you need customised tools, templates, review steps or shared planning standards.",
     href: "/contact",
-    cta: "Contact sales",
+    cta: "Discuss custom requirements",
   },
 ];
 
