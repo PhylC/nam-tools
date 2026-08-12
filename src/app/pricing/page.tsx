@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { FaqSection } from "../components/FaqSection";
+import { JsonLd } from "../components/JsonLd";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { TrackedUpgradeLink } from "../components/TrackedLinks";
 import { getAptProPriceLabels } from "../../lib/pricingConfig";
 import { LocalizedFreePrice, LocalizedProPrice } from "./LocalizedProPrice";
 import { PricingUpgradeActions } from "./PricingUpgradeActions";
-import { seoMetadata } from "../seo";
+import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
   title: "Pricing - Free vs APT Pro",
@@ -111,6 +113,16 @@ const pricingFaqs = [
     question: "What happens to saved work if I cancel?",
     answer: "Your account remains available. Pro-only saved scenarios and exports stop when Pro access ends.",
   },
+  {
+    question: "Can teams ask for custom pricing?",
+    answer:
+      "Yes. Use the contact page for team pricing, branded templates, shared workflows or customised calculators.",
+  },
+  {
+    question: "Can the tools be customised?",
+    answer:
+      "Yes. Team and custom enquiries can cover calculator changes, branded outputs, template standards and workflow support.",
+  },
 ];
 
 const upgradeMessages: Record<string, string> = {
@@ -154,6 +166,15 @@ export default async function PricingPage({
 
   return (
     <div className="page-stack pricing-page">
+      <JsonLd
+        data={[
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Pricing", path: "/pricing" },
+          ]),
+          faqJsonLd(pricingFaqs),
+        ]}
+      />
       <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
           Use Free for quick checks. Choose APT Pro when you need to save,
@@ -314,17 +335,7 @@ export default async function PricingPage({
           </div>
         </article>
       </section>
-      <section className="shell section pricing-faq-section">
-        <SectionHeader eyebrow="Questions" title="Before you upgrade." />
-        <div className="pricing-faq-grid">
-          {pricingFaqs.map((item) => (
-            <article className="pricing-faq-item" key={item.question}>
-              <h3>{item.question}</h3>
-              <p>{item.answer}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+      <FaqSection title="Before you upgrade." faqs={pricingFaqs} />
     </div>
   );
 }

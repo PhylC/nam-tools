@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { JsonLd } from "../components/JsonLd";
 import { Hero, SectionHeader, ToolCard } from "../components/Shell";
 import { getTool, tools } from "../data/tools";
-import { seoMetadata } from "../seo";
+import { breadcrumbJsonLd, seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
   title: "Commercial Planning Resources for Account Managers and KAMs",
@@ -28,6 +29,12 @@ const groups = [
 export default function ToolsPage() {
   return (
     <div className="page-stack tools-hub-page">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Planning tools", path: "/tools" },
+        ])}
+      />
       <Hero eyebrow="All resources" title="Commercial planning tools for retail supplier teams">
         <p>
           Choose the right tool for the job: build a promo ROI plan, run a quick

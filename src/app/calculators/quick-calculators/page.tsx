@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { JsonLd } from "../../components/JsonLd";
 import { Hero, SectionHeader } from "../../components/Shell";
 import { quickCalculatorGroups, quickCalculators } from "../../data/quickCalculators";
-import { seoMetadata } from "../../seo";
+import { breadcrumbJsonLd, seoMetadata } from "../../seo";
 
 export const metadata = seoMetadata({
   title: "Commercial Calculators for Account Managers",
@@ -22,6 +23,13 @@ const choices = [
 export default function QuickCalculatorsIndexPage() {
   return (
     <div className="page-stack">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Quick calculators", path: "/calculators/quick-calculators" },
+        ])}
+      />
       <Hero eyebrow="Calculators" title="Choose the commercial calculation you need.">
         <p>
           Fast retail price, margin, invoice, SOA, support percentage and sales

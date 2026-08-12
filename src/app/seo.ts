@@ -3,6 +3,17 @@ import type { Metadata } from "next";
 export const SITE_URL = "https://accountplanningtools.com";
 export const SITE_NAME = "Account Planning Tools";
 export const OG_IMAGE = "/images/branding/og-image.png";
+export const SITE_LAST_MODIFIED = "2026-08-12T00:00:00.000Z";
+
+export type FaqItem = {
+  question: string;
+  answer: string;
+};
+
+type BreadcrumbItem = {
+  name: string;
+  path: string;
+};
 
 type SeoMetadataInput = {
   title: string;
@@ -61,6 +72,62 @@ export function privateMetadata(title: string, description: string): Metadata {
         index: false,
         follow: false,
       },
+    },
+  };
+}
+
+export function absoluteUrl(path: string) {
+  if (path === "/") return SITE_URL;
+  return `${SITE_URL}${path}`;
+}
+
+export function breadcrumbJsonLd(items: BreadcrumbItem[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(item.path),
+    })),
+  };
+}
+
+export function faqJsonLd(items: FaqItem[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+export function webApplicationJsonLd() {
+  return {
+    "@type": "WebApplication",
+    "@id": `${SITE_URL}/#webapp`,
+    name: SITE_NAME,
+    url: SITE_URL,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    browserRequirements: "Requires JavaScript. Works in modern web browsers.",
+    description:
+      "Commercial planning calculators and account planning tools for sales teams, account managers and retail supplier teams.",
+    publisher: {
+      "@id": `${SITE_URL}/#organization`,
+    },
+    offers: {
+      "@type": "Offer",
+      url: `${SITE_URL}/pricing`,
+      priceCurrency: "GBP",
+      availability: "https://schema.org/InStock",
     },
   };
 }

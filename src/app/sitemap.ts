@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { quickCalculators } from "./data/quickCalculators";
-import { SITE_URL } from "./seo";
+import { SITE_LAST_MODIFIED, SITE_URL } from "./seo";
 
 const routes: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }> = [
   { path: "", priority: 1, changeFrequency: "weekly" },
@@ -29,7 +29,7 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date();
+  const lastModified = new Date(SITE_LAST_MODIFIED);
   const calculatorRoutes = quickCalculators.map((calculator) => ({
     path: `/calculators/${calculator.slug}`,
     priority: 0.9,

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { JsonLd } from "../../components/JsonLd";
 import { Hero } from "../../components/Shell";
 import { QuickCommercialCalculators } from "../../components/ToolWidgets";
-import { seoMetadata } from "../../seo";
+import { breadcrumbJsonLd, seoMetadata } from "../../seo";
 import {
   getQuickCalculatorById,
   getQuickCalculatorBySlug,
@@ -93,6 +94,13 @@ export default async function CalculatorPage({
 
   return (
     <div className="page-stack">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: calculator.title, path: `/calculators/${calculator.slug}` },
+        ])}
+      />
       <Hero title={calculator.h1}>
         <p>{calculator.description}</p>
       </Hero>

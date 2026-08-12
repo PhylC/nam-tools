@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { JsonLd } from "./components/JsonLd";
 import { SiteShell } from "./components/Shell";
-import { OG_IMAGE, SITE_NAME, SITE_URL } from "./seo";
+import { OG_IMAGE, SITE_NAME, SITE_URL, webApplicationJsonLd } from "./seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -96,6 +97,7 @@ const structuredData = {
       description:
         "Commercial planning calculators and tools for account managers, sales teams and retail supplier teams.",
     },
+    webApplicationJsonLd(),
   ],
 };
 
@@ -112,10 +114,7 @@ export default function RootLayout({
   return (
     <html lang="en-GB">
       <body>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
-        />
+        <JsonLd data={structuredData} />
         <SiteShell>{children}</SiteShell>
       </body>
     </html>

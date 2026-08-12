@@ -7,8 +7,10 @@ import { HeaderAuthNav } from "./AuthNav";
 import { AuthStatusToast } from "./AuthStatusToast";
 import { CookieConsent, CookieSettingsButton } from "./CookieConsent";
 import { DevPlanToggle } from "./DevPlanToggle";
+import { JsonLd } from "./JsonLd";
 import { MobileNav } from "./MobileNav";
 import { relatedTools, tools } from "../data/tools";
+import { breadcrumbJsonLd } from "../seo";
 import type { Tool } from "../data/tools";
 
 const footerResourceLinks = [
@@ -234,6 +236,13 @@ export function ToolPage({
 
   return (
     <div className="page-stack">
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Planning tools", path: "/tools" },
+          { name: tool.title, path: tool.href },
+        ])}
+      />
       <Hero
         eyebrow={tool.category}
         title={tool.title}

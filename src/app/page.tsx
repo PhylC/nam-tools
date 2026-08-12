@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { FaqSection } from "./components/FaqSection";
+import { JsonLd } from "./components/JsonLd";
 import { Hero, SectionHeader } from "./components/Shell";
-import { seoMetadata } from "./seo";
+import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "./seo";
 
 export const metadata = seoMetadata({
   title: "Commercial Planning Calculators for Sales & Account Teams",
@@ -163,9 +165,28 @@ const heroComparisonRows: Array<{
   },
 ];
 
+const homeFaqs = [
+  {
+    question: "What is Account Planning Tools for?",
+    answer:
+      "APT helps account managers and commercial teams run promotion ROI, margin, support and planning checks before customer conversations.",
+  },
+  {
+    question: "Do I need to build a spreadsheet first?",
+    answer:
+      "No. The calculators are designed for quick commercial checks, with summaries you can copy into account plans, emails or meeting notes.",
+  },
+  {
+    question: "When should I use APT Pro?",
+    answer:
+      "Use Pro when you need to save work, compare scenarios, manage repeat planning flows or export cleaner outputs for meetings.",
+  },
+];
+
 export default function Home() {
   return (
     <div className="page-stack home-page">
+      <JsonLd data={[breadcrumbJsonLd([{ name: "Home", path: "/" }]), faqJsonLd(homeFaqs)]} />
       <Hero
         eyebrow="Commercial planning calculators for account teams"
         title="Make account planning decisions with clearer numbers."
@@ -371,6 +392,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <FaqSection title="Commercial planning FAQs." faqs={homeFaqs} />
 
       <section className="section shell final-cta">
         <h2>Start with one commercial question.</h2>
