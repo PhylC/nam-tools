@@ -764,8 +764,7 @@ textarea:focus {
   top: 88px;
 }
 
-.account-overview-panel,
-.account-actions-panel {
+.account-overview-panel {
   border: 1px solid rgba(222, 217, 207, 0.86);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.78);
@@ -838,6 +837,8 @@ textarea:focus {
 .account-actions-panel {
   display: grid;
   gap: 0.95rem;
+  border-left: 1px solid rgba(222, 217, 207, 0.9);
+  padding: 0.35rem 0 0.35rem 1rem;
 }
 
 .account-actions-panel h3 {
@@ -871,9 +872,9 @@ textarea:focus {
   width: 100%;
   min-width: 0;
   min-height: 64px;
-  border: 1px solid rgba(222, 217, 207, 0.92);
+  border: 1px solid transparent;
   border-radius: 8px;
-  background: #ffffff;
+  background: transparent;
   color: var(--foreground);
   padding: 0.72rem 0.85rem;
   text-align: left;
@@ -883,7 +884,7 @@ textarea:focus {
 .account-menu-item:hover,
 .account-menu-item:focus-visible {
   border-color: rgba(15, 118, 110, 0.34);
-  background: #f4fbfa;
+  background: rgba(244, 251, 250, 0.86);
   color: var(--accent-dark);
   outline: none;
   transform: translateY(-1px);
@@ -912,7 +913,7 @@ textarea:focus {
 .account-menu-item-active,
 .account-menu-item-primary {
   border-color: rgba(15, 118, 110, 0.28);
-  background: rgba(228, 240, 238, 0.55);
+  background: rgba(228, 240, 238, 0.58);
   color: var(--accent-dark);
 }
 
