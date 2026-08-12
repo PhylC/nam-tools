@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { trackEvent, trackUpgradeClicked } from "../../lib/analytics";
+import { trackEvent } from "../../lib/analytics";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
 import { useAuth } from "../../lib/useAuth";
 import { formatUserPlan } from "../../lib/userPlan";
+import { AccountMenu } from "../components/AccountMenu";
 
 type BillingState = {
   stripe_subscription_status: string | null;
@@ -318,54 +319,14 @@ export function AccountClient() {
             {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
           </div>
 
-          <aside className="account-actions-panel" aria-label="Account menu">
-            <div>
-              <h3>Account menu</h3>
-              <p>Move between your billing, settings and saved planning work.</p>
-            </div>
-            <nav className="account-menu-list" aria-label="Account sections">
-              <div className="account-menu-item account-menu-item-active" aria-current="page">
-                <span>
-                  <strong>Account overview</strong>
-                  <small>Plan status and account details</small>
-                </span>
-              </div>
-              {actualPlan === "free" ? (
-                <Link className="account-menu-item account-menu-item-primary" href="/pricing" onClick={() => trackUpgradeClicked("account")}>
-                  <span>
-                    <strong>Plan &amp; billing</strong>
-                    <small>Upgrade to Pro or compare plans</small>
-                  </span>
-                </Link>
-              ) : null}
-              {billingDisplay.showManageBilling ? (
-                <button className="account-menu-item account-menu-item-primary" disabled={isOpeningPortal} onClick={openBillingPortal} type="button">
-                  <span>
-                    <strong>{isOpeningPortal ? "Opening billing..." : "Plan & billing"}</strong>
-                    <small>Manage subscription, invoices and payment details</small>
-                  </span>
-                </button>
-              ) : null}
-              <Link className="account-menu-item" href="/settings">
-                <span>
-                  <strong>Settings</strong>
-                  <small>Defaults, branding and export preferences</small>
-                </span>
-              </Link>
-              <Link className="account-menu-item" href="/workspace">
-                <span>
-                  <strong>Workspace</strong>
-                  <small>Saved plans, scenarios, decks and exports</small>
-                </span>
-              </Link>
-            </nav>
-            <button className="account-menu-item account-menu-sign-out" onClick={handleSignOut} type="button">
-              <span>
-                <strong>Sign out</strong>
-                <small>End this session on this device</small>
-              </span>
-            </button>
-          </aside>
+          <AccountMenu
+            active="account"
+            actualPlan={actualPlan}
+            canManageBilling={billingDisplay.showManageBilling}
+            isOpeningPortal={isOpeningPortal}
+            onOpenBilling={openBillingPortal}
+            onSignOut={handleSignOut}
+          />
         </div>
         {message ? <p className="settings-message settings-message-success">{message}</p> : null}
       </article>

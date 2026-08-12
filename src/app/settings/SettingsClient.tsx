@@ -4,6 +4,7 @@ import { ChangeEvent, useState } from "react";
 import Link from "next/link";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { uploadDeckTemplate } from "../../lib/storageUploads";
+import { AccountMenu } from "../components/AccountMenu";
 import {
   CalculatorDefaults,
   defaultCalculatorDefaults,
@@ -182,43 +183,44 @@ export function SettingsClient() {
 
   return (
     <section className="shell section">
-      <div className="settings-layout">
-        <article className="settings-account-notice">
-          {!isAuthenticated ? (
-            <>
-              <div>
-                <h3>Save calculator defaults with a free account</h3>
-                <p>Create a free account to keep your market, currency and tax defaults across visits. You can still use calculators without an account.</p>
-              </div>
-              <div className="settings-banner-actions">
-                <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
-                  Create free account
+      <div className={isAuthenticated ? "account-section-layout" : "settings-layout"}>
+        <div className="settings-layout">
+          <article className="settings-account-notice">
+            {!isAuthenticated ? (
+              <>
+                <div>
+                  <h3>Save calculator defaults with a free account</h3>
+                  <p>Create a free account to keep your market, currency and tax defaults across visits. You can still use calculators without an account.</p>
+                </div>
+                <div className="settings-banner-actions">
+                  <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>
+                    Create free account
+                  </Link>
+                  <Link className="text-link" href="/calculators">
+                    Use calculators without an account
+                  </Link>
+                </div>
+              </>
+            ) : isPro ? (
+              <>
+                <div>
+                  <h3>Your calculator and export settings can be saved to your account.</h3>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h3>Your calculator defaults can be saved to your account.</h3>
+                  <p>APT Pro adds export defaults, presentation templates and saved workspace features.</p>
+                </div>
+                <Link className="button button-small" href="/pricing">
+                  See APT Pro
                 </Link>
-                <Link className="text-link" href="/calculators">
-                  Use calculators without an account
-                </Link>
-              </div>
-            </>
-          ) : isPro ? (
-            <>
-              <div>
-                <h3>Your calculator and export settings can be saved to your account.</h3>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <h3>Your calculator defaults can be saved to your account.</h3>
-                <p>APT Pro adds export defaults, presentation templates and saved workspace features.</p>
-              </div>
-              <Link className="button button-small" href="/pricing">
-                See APT Pro
-              </Link>
-            </>
-          )}
-        </article>
+              </>
+            )}
+          </article>
 
-        <article className="card settings-card">
+          <article className="card settings-card">
           <div className="settings-card-header">
             <div>
               <h2>Calculator defaults</h2>
@@ -565,9 +567,11 @@ export function SettingsClient() {
               </p>
             </div>
           )}
-        </article>
+          </article>
 
-        {message ? <p className={`settings-message settings-message-${message.tone}`}>{message.text}</p> : null}
+          {message ? <p className={`settings-message settings-message-${message.tone}`}>{message.text}</p> : null}
+        </div>
+        {isAuthenticated ? <AccountMenu active="settings" actualPlan={plan} /> : null}
       </div>
     </section>
   );

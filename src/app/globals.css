@@ -752,6 +752,18 @@ textarea:focus {
   align-items: start;
 }
 
+.account-section-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.account-section-layout > .account-actions-panel {
+  position: sticky;
+  top: 88px;
+}
+
 .account-overview-panel,
 .account-actions-panel {
   border: 1px solid rgba(222, 217, 207, 0.86);
@@ -6130,8 +6142,13 @@ p {
   }
 
   .account-dashboard-grid,
+  .account-section-layout,
   .account-detail-grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-section-layout > .account-actions-panel {
+    position: static;
   }
 
   .account-overview-panel,

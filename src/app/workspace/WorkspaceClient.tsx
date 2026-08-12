@@ -10,6 +10,7 @@ import {
   listSavedScenarios,
 } from "../../lib/saveStore";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { AccountMenu } from "../components/AccountMenu";
 
 type SavedRecord = Record<string, unknown>;
 
@@ -307,111 +308,117 @@ export function WorkspaceClient() {
   if (!isPro) {
     return (
       <section className="shell section">
-        <article className="card workspace-message">
-          <div className="workspace-message-copy">
-            <h2>My workspace is included with APT Pro.</h2>
-            <p>
-              Free accounts can save calculator defaults. APT Pro adds saved scenarios, analyses, decks and exports.
-            </p>
-            <div className="workspace-actions">
-              <Link className="button" href="/pricing">
-                See APT Pro
-              </Link>
-              <Link className="button button-secondary" href="/calculators">
-                Use free calculators
-              </Link>
+        <div className="account-section-layout">
+          <article className="card workspace-message">
+            <div className="workspace-message-copy">
+              <h2>My workspace is included with APT Pro.</h2>
+              <p>
+                Free accounts can save calculator defaults. APT Pro adds saved scenarios, analyses, decks and exports.
+              </p>
+              <div className="workspace-actions">
+                <Link className="button" href="/pricing">
+                  See APT Pro
+                </Link>
+                <Link className="button button-secondary" href="/calculators">
+                  Use free calculators
+                </Link>
+              </div>
             </div>
-          </div>
-        </article>
+          </article>
+          <AccountMenu active="workspace" actualPlan={plan} />
+        </div>
       </section>
     );
   }
 
   return (
     <section className="shell section">
-      <div className="settings-layout">
-        <article className="card workspace-message">
-          <div className="workspace-message-copy">
-            <h2>Your Pro workspace</h2>
-            <p>
-              Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
-              when you export your work.
-            </p>
-            {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
-          </div>
-          <img
-            alt="APT workspace showing saved analyses, scenarios, decks and exports"
-            className="workspace-preview-image"
-            loading="lazy"
-            src="/images/apt/apt-workspace-dashboard-preview.webp"
-          />
-        </article>
+      <div className="account-section-layout">
+        <div className="settings-layout">
+          <article className="card workspace-message">
+            <div className="workspace-message-copy">
+              <h2>Your Pro workspace</h2>
+              <p>
+                Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
+                when you export your work.
+              </p>
+              {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
+            </div>
+            <img
+              alt="APT workspace showing saved analyses, scenarios, decks and exports"
+              className="workspace-preview-image"
+              loading="lazy"
+              src="/images/apt/apt-workspace-dashboard-preview.webp"
+            />
+          </article>
 
-        <div className="workspace-grid">
-          <WorkspaceSection
-            cta="View saved analyses"
-            description="Commercial calculations and deal checks you have saved."
-            emptyBody="Run a calculator and save the result to return to it later."
-            emptyCta="Open calculators"
-            emptyHref="/calculators"
-            emptyTitle="No saved analyses yet."
-            href="/workspace#analyses"
-            id="analyses"
-            items={savedAnalyses}
-            itemType="Analysis"
-            onDuplicate={duplicateSavedItem}
-            title="Saved analyses"
-          />
-          <WorkspaceSection
-            cta="View scenarios"
-            description="Deal versions and options saved for comparison."
-            emptyBody="Save different versions of a deal so you can compare options later."
-            emptyCta="Open ROI planner"
-            emptyHref="/roi-tool"
-            emptyTitle="No saved scenarios yet."
-            href="/workspace#scenarios"
-            id="scenarios"
-            items={savedScenarios}
-            itemType="Scenario"
-            onDuplicate={duplicateSavedItem}
-            title="Saved scenarios"
-          />
-          <WorkspaceSection
-            cta="View saved decks"
-            description="Presentation outputs and meeting-ready summaries."
-            emptyBody="Saved decks will appear here when you create them."
-            emptyCta="View presentation templates"
-            emptyHref="/presentation-templates"
-            emptyTitle="No saved decks yet."
-            href="/workspace#decks"
-            id="decks"
-            items={deckBriefs}
-            itemType="Deck"
-            title="Saved decks"
-          />
-          <WorkspaceSection
-            cta="View exports"
-            description="PowerPoint, Excel and CSV exports created from your work."
-            emptyBody="Exports will appear here when you export your work."
-            emptyCta="Open calculators"
-            emptyHref="/calculators"
-            emptyTitle="No exports yet."
-            href="/workspace#exports"
-            id="exports"
-            title="Exports"
-          />
-          <WorkspaceSection
-            cta="Manage templates"
-            description="Manage your saved presentation templates and export defaults."
-            emptyBody="Add saved PowerPoint templates and export defaults when you are ready to shape outputs."
-            emptyCta="Open settings"
-            emptyHref="/settings#presentation-templates"
-            emptyTitle="No template preferences saved yet."
-            href="/settings#presentation-templates"
-            id="templates"
-            title="Templates"
-          />
+          <div className="workspace-grid">
+            <WorkspaceSection
+              cta="View saved analyses"
+              description="Commercial calculations and deal checks you have saved."
+              emptyBody="Run a calculator and save the result to return to it later."
+              emptyCta="Open calculators"
+              emptyHref="/calculators"
+              emptyTitle="No saved analyses yet."
+              href="/workspace#analyses"
+              id="analyses"
+              items={savedAnalyses}
+              itemType="Analysis"
+              onDuplicate={duplicateSavedItem}
+              title="Saved analyses"
+            />
+            <WorkspaceSection
+              cta="View scenarios"
+              description="Deal versions and options saved for comparison."
+              emptyBody="Save different versions of a deal so you can compare options later."
+              emptyCta="Open ROI planner"
+              emptyHref="/roi-tool"
+              emptyTitle="No saved scenarios yet."
+              href="/workspace#scenarios"
+              id="scenarios"
+              items={savedScenarios}
+              itemType="Scenario"
+              onDuplicate={duplicateSavedItem}
+              title="Saved scenarios"
+            />
+            <WorkspaceSection
+              cta="View saved decks"
+              description="Presentation outputs and meeting-ready summaries."
+              emptyBody="Saved decks will appear here when you create them."
+              emptyCta="View presentation templates"
+              emptyHref="/presentation-templates"
+              emptyTitle="No saved decks yet."
+              href="/workspace#decks"
+              id="decks"
+              items={deckBriefs}
+              itemType="Deck"
+              title="Saved decks"
+            />
+            <WorkspaceSection
+              cta="View exports"
+              description="PowerPoint, Excel and CSV exports created from your work."
+              emptyBody="Exports will appear here when you export your work."
+              emptyCta="Open calculators"
+              emptyHref="/calculators"
+              emptyTitle="No exports yet."
+              href="/workspace#exports"
+              id="exports"
+              title="Exports"
+            />
+            <WorkspaceSection
+              cta="Manage templates"
+              description="Manage your saved presentation templates and export defaults."
+              emptyBody="Add saved PowerPoint templates and export defaults when you are ready to shape outputs."
+              emptyCta="Open settings"
+              emptyHref="/settings#presentation-templates"
+              emptyTitle="No template preferences saved yet."
+              href="/settings#presentation-templates"
+              id="templates"
+              title="Templates"
+            />
+          </div>
         </div>
+        <AccountMenu active="workspace" actualPlan={plan} />
       </div>
     </section>
   );
