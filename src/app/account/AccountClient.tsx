@@ -287,17 +287,17 @@ export function AccountClient() {
 
   return (
     <section className="shell section account-section">
-      <article className="card account-card account-dashboard-card">
-        <div className="account-card-header">
-          <div>
-            <p className="eyebrow">Account overview</p>
-            <h2>Your APT account</h2>
-            <p>Review your access, billing status and saved work.</p>
+      <div className="account-section-layout">
+        <article className="card account-card account-dashboard-card">
+          <div className="account-card-header">
+            <div>
+              <p className="eyebrow">Account overview</p>
+              <h2>Your APT account</h2>
+              <p>Review your access, billing status and saved work.</p>
+            </div>
+            <span className={planBadgeClass}>{planLabel}</span>
           </div>
-          <span className={planBadgeClass}>{planLabel}</span>
-        </div>
 
-        <div className="account-dashboard-grid">
           <div className="account-overview-panel">
             <div className="account-detail-grid">
               {detailItems.map((item) => (
@@ -319,17 +319,17 @@ export function AccountClient() {
             {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
           </div>
 
-          <AccountMenu
-            active="account"
-            actualPlan={actualPlan}
-            canManageBilling={billingDisplay.showManageBilling}
-            isOpeningPortal={isOpeningPortal}
-            onOpenBilling={openBillingPortal}
-            onSignOut={handleSignOut}
-          />
-        </div>
-        {message ? <p className="settings-message settings-message-success">{message}</p> : null}
-      </article>
+          {message ? <p className="settings-message settings-message-success">{message}</p> : null}
+        </article>
+        <AccountMenu
+          active="account"
+          actualPlan={actualPlan}
+          canManageBilling={billingDisplay.showManageBilling}
+          isOpeningPortal={isOpeningPortal}
+          onOpenBilling={openBillingPortal}
+          onSignOut={handleSignOut}
+        />
+      </div>
     </section>
   );
 }

@@ -6159,6 +6159,9 @@ p {
 
   .account-section-layout > .account-actions-panel {
     gap: 0.65rem;
+    border: 0;
+    background: transparent;
+    padding: 0;
   }
 
   .account-section-layout > .account-actions-panel > div:first-child {
