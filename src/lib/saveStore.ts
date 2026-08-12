@@ -253,13 +253,14 @@ export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecor
     updated_at: item.updated_at,
   });
 
-  if (error) return saveLocalRoiPlan(item, "Could not save right now. Your plan is still available in saved plans.");
+  if (error) return saveLocalRoiPlan(item, "Saved on this device. Account sync is unavailable right now.");
   return { data: item, mode: "account" };
 }
 
 export async function listRoiPlans(): Promise<StoreResult<AnyRecord[]>> {
   const { supabase, user } = await getAuthenticatedUser();
-  if (!supabase || !user) return { data: readLocal(ROI_LOCAL_KEY), mode: "local" };
+  const localPlans = readLocal<AnyRecord>(ROI_LOCAL_KEY).map(normalizeRoiPlan);
+  if (!supabase || !user) return { data: localPlans, mode: "local" };
 
   const { data, error } = await supabase
     .from("roi_plans")
@@ -272,9 +273,12 @@ export async function listRoiPlans(): Promise<StoreResult<AnyRecord[]>> {
   }
 
   return {
-    data: (data ?? []).map((row) =>
-      normalizeRoiPlan({ ...asRecord(row.data), id: row.id, name: row.name, created_at: row.created_at, updated_at: row.updated_at }),
-    ),
+    data: [
+      ...(data ?? []).map((row) =>
+        normalizeRoiPlan({ ...asRecord(row.data), id: row.id, name: row.name, created_at: row.created_at, updated_at: row.updated_at }),
+      ),
+      ...localPlans.filter((localPlan) => !(data ?? []).some((row) => row.id === localPlan.id)),
+    ],
     mode: "account",
   };
 }

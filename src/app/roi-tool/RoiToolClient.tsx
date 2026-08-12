@@ -1350,10 +1350,11 @@ export function RoiPlanner() {
     if (!activeGroup) return;
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
     const now = new Date().toISOString();
+    const comparisonName = activeGroup.name.trim() || "ROI comparison";
     const snapshot = {
       ...activeGroup,
-      name: activeGroup.name,
-      group_name: activeGroup.name,
+      name: comparisonName,
+      group_name: comparisonName,
       savedAt: now,
       createdAt: existing?.createdAt ?? now,
       updatedAt: now,
@@ -1361,8 +1362,12 @@ export function RoiPlanner() {
       updated_at: now,
     };
     const result = await saveRoiPlan(snapshot);
-    setSaveMessage(result.message ?? "");
     await refreshSavedGroups();
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: comparisonName } : group)),
+    }));
+    setSaveMessage(result.message ?? `Saved comparison "${comparisonName}".`);
   }
 
   function openSaveScenario(scenario: RoiScenario) {
@@ -1609,13 +1614,15 @@ export function RoiPlanner() {
           <div>
             {isPro ? (
               <label className="field inline-plan-name">
-                <span>Plan name</span>
+                <span>Comparison name</span>
                 <input
+                  aria-describedby="roi-comparison-name-help"
                   value={activeGroup?.name ?? ""}
                   onChange={(event) =>
                     setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, name: event.target.value } : group)))
                   }
                 />
+                <small id="roi-comparison-name-help">This is the name used when you save the comparison.</small>
               </label>
             ) : null}
             <p className="roi-planner-helper">
@@ -1639,7 +1646,7 @@ export function RoiPlanner() {
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
                 <CsvExportButton groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
-                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save comparison</button>
+                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save named comparison</button>
               </>
             ) : (
               <>
@@ -1655,6 +1662,7 @@ export function RoiPlanner() {
         </div>
 
         {proMessage ? <p className="pro-inline-message" role="status">{proMessage}</p> : null}
+        {isPro && saveMessage ? <p className="pro-inline-message roi-save-status" role="status">{saveMessage}</p> : null}
 
         {isPro ? (
           <SavedRoiPlansPanel

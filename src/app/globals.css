@@ -3128,6 +3128,13 @@ p {
   max-width: 420px;
 }
 
+.inline-plan-name small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
 .roi-planner-helper {
   max-width: 720px;
   color: var(--muted);
@@ -3582,6 +3589,10 @@ p {
   font-weight: 900;
   margin: 0;
   padding: 0.62rem 0.78rem;
+}
+
+.roi-save-status {
+  max-width: 720px;
 }
 
 .pro-upgrade-panel {
