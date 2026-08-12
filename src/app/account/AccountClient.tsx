@@ -312,6 +312,9 @@ export function AccountClient() {
                 {billingDisplay.message}
               </p>
             ) : null}
+            {actualPlan !== "free" && !billingDisplay.message ? (
+              <p className="account-status-note account-status-note-success">Your Pro tools are available.</p>
+            ) : null}
             {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
           </div>
 

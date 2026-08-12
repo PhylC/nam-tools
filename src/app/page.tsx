@@ -382,6 +382,9 @@ export default function Home() {
           <Link className="button button-secondary" href="/calculators">
             See all calculators
           </Link>
+          <Link className="button button-secondary" href="/pricing">
+            Compare Free vs Pro
+          </Link>
         </div>
       </section>
     </div>

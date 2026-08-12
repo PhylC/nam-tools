@@ -11,7 +11,7 @@ const mobileLinks = [
   { href: "/calculators", label: "Calculators", match: ["/calculators"] },
   {
     href: "/tools",
-    label: "Planning",
+    label: "Planning tools",
     match: ["/tools/buyer-meeting-prep", "/tools/account-plan-generator", "/tools/joint-business-plan-builder", "/tools/customer-review-template"],
   },
   { href: "/presentation-templates", label: "Presentations", match: ["/presentation-templates", "/templates"] },

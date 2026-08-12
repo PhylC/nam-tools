@@ -96,6 +96,21 @@ const decisionCards = [
   },
 ];
 
+const pricingFaqs = [
+  {
+    question: "Can I cancel anytime?",
+    answer: "Yes. You can manage or cancel your subscription from your Account page through Stripe billing.",
+  },
+  {
+    question: "Is checkout secure?",
+    answer: "Yes. Card and payment details are handled by Stripe; APT does not store card details.",
+  },
+  {
+    question: "What happens to saved work if I cancel?",
+    answer: "Your account remains available. Pro-only saved scenarios and exports stop when Pro access ends.",
+  },
+];
+
 const upgradeMessages: Record<string, string> = {
   "add-line": "Upgrade to Pro to add multiple ROI lines.",
   "add-product": "Upgrade to Pro to add multiple products.",
@@ -295,6 +310,17 @@ export default async function PricingPage({
             />
           </div>
         </article>
+      </section>
+      <section className="shell section pricing-faq-section">
+        <SectionHeader eyebrow="Questions" title="Before you upgrade." />
+        <div className="pricing-faq-grid">
+          {pricingFaqs.map((item) => (
+            <article className="pricing-faq-item" key={item.question}>
+              <h3>{item.question}</h3>
+              <p>{item.answer}</p>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );

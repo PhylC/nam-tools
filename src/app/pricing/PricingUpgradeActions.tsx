@@ -20,9 +20,10 @@ const billingOptions: Array<{
   label: string;
   detailKey: "monthly" | "annualDetail";
   locationSuffix: string;
+  valueLabel?: string;
 }> = [
   { interval: "monthly", label: "Upgrade monthly", detailKey: "monthly", locationSuffix: "monthly" },
-  { interval: "annual", label: "Upgrade annually", detailKey: "annualDetail", locationSuffix: "annual" },
+  { interval: "annual", label: "Upgrade annually", detailKey: "annualDetail", locationSuffix: "annual", valueLabel: "Best value" },
 ];
 
 export function PricingUpgradeActions({ location, variant = "link" }: PricingUpgradeActionsProps) {
@@ -118,7 +119,7 @@ export function PricingUpgradeActions({ location, variant = "link" }: PricingUpg
 
   return variant === "panel" ? (
     <div className="pricing-auth-actions">
-      <p className="settings-message settings-message-info">Current plan: Free. Choose monthly or annual billing.</p>
+      <p className="settings-message settings-message-info">Current plan: Free. Secure checkout via Stripe. Cancel anytime from your account.</p>
       {billingOptions.map((option) => (
         <button
           className={option.interval === "annual" ? "button" : "button button-secondary"}
@@ -128,9 +129,10 @@ export function PricingUpgradeActions({ location, variant = "link" }: PricingUpg
           onClick={() => startCheckout(option.interval)}
         >
           <span>{isStartingCheckout === option.interval ? "Opening Checkout..." : option.label}</span>
-          <small>{pricing[option.detailKey]}</small>
+          <small>{option.valueLabel ? `${option.valueLabel} - ${pricing[option.detailKey]}` : pricing[option.detailKey]}</small>
         </button>
       ))}
+      <p className="pricing-checkout-note">After checkout, Pro access is added to this account automatically.</p>
       {message ? <p className="settings-message settings-message-error">{message}</p> : null}
     </div>
   ) : (
@@ -146,6 +148,7 @@ export function PricingUpgradeActions({ location, variant = "link" }: PricingUpg
           {isStartingCheckout === option.interval ? "Opening..." : option.label}
         </button>
       ))}
+      <p className="pricing-checkout-note">Secure checkout via Stripe. Cancel anytime.</p>
       {message ? <p className="settings-message settings-message-error">{message}</p> : null}
     </div>
   );

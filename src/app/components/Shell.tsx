@@ -14,7 +14,7 @@ import type { Tool } from "../data/tools";
 const footerResourceLinks = [
   { href: "/roi-tool", label: "ROI Tool" },
   { href: "/calculators", label: "Calculators" },
-  { href: "/tools", label: "Planning" },
+  { href: "/tools", label: "Planning tools" },
   { href: "/presentation-templates", label: "Presentations" },
   { href: "/tools/promotion-roi-calculator", label: "Promotion ROI" },
   { href: "/tools/buyer-meeting-prep", label: "Buyer Meeting Planner" },
@@ -47,7 +47,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <nav className="main-nav" aria-label="Main navigation">
             <Link href="/roi-tool">ROI Tool</Link>
             <Link href="/calculators">Calculators</Link>
-            <Link href="/tools">Planning</Link>
+            <Link href="/tools">Planning tools</Link>
             <Link href="/presentation-templates">Presentations</Link>
             <Link href="/pricing">Pricing</Link>
             <Link href="/workspace">My workspace</Link>
