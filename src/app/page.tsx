@@ -102,14 +102,6 @@ const mobilePlanSummaries = [
   },
 ];
 
-const heroMetrics = [
-  ["Scenario", "Promo support"],
-  ["Revenue uplift", "£24k"],
-  ["Support spend", "£6.2k"],
-  ["Gross profit", "£8.9k"],
-  ["ROI", "1.4x"],
-];
-
 const credibilityPoints = [
   "Built for account managers and sales leaders",
   "Fast commercial checks without spreadsheet rebuilds",
@@ -122,35 +114,61 @@ const heroWorkflowSteps = [
   "Copy a cleaner summary",
 ];
 
+const heroComparisonHighlights = [
+  ["Best revenue", "Feature + display"],
+  ["Best incremental profit", "Feature + display"],
+  ["Best ROI", "Base feature"],
+  ["Lowest support", "Base feature"],
+  ["Recommended", "Feature + display"],
+];
+
+const heroComparisonRows: Array<{
+  metric: string;
+  scenarios: string[];
+  best?: number;
+  lowest?: number;
+}> = [
+  {
+    metric: "Baseline supplier invoice revenue",
+    scenarios: ["£48,000", "£48,000", "£48,000"],
+  },
+  {
+    metric: "Promo supplier invoice revenue",
+    scenarios: ["£61,200", "£72,400", "£68,900"],
+  },
+  {
+    metric: "Incremental supplier invoice revenue",
+    scenarios: ["£13,200", "£24,400", "£20,900"],
+    best: 1,
+  },
+  {
+    metric: "Support cost",
+    scenarios: ["£4,800", "£9,600", "£7,900"],
+    lowest: 0,
+  },
+  {
+    metric: "Incremental profit",
+    scenarios: ["£3,150", "£5,420", "£4,360"],
+    best: 1,
+  },
+  {
+    metric: "Supplier revenue ROI",
+    scenarios: ["2.8x", "2.5x", "2.6x"],
+    best: 0,
+  },
+  {
+    metric: "Profit ROI",
+    scenarios: ["0.7x", "0.6x", "0.6x"],
+    best: 0,
+  },
+];
+
 export default function Home() {
   return (
     <div className="page-stack home-page">
       <Hero
         eyebrow="Commercial planning calculators for account teams"
         title="Make account planning decisions with clearer numbers."
-        visual={
-          <aside className="home-deal-preview" aria-label="Example APT deal summary">
-            <div className="home-deal-preview-header">
-              <div>
-                <span>Example planning check</span>
-                <strong>Is this promotion worth funding?</strong>
-              </div>
-              <span className="home-preview-badge">Free preview</span>
-            </div>
-            <dl className="home-deal-metrics">
-              {heroMetrics.map(([label, value]) => (
-                <div className={label === "ROI" ? "home-deal-metric home-deal-metric-strong" : "home-deal-metric"} key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="home-preview-summary">
-              <span>Output</span>
-              <strong>Buyer-ready summary with the assumptions visible.</strong>
-            </div>
-          </aside>
-        }
         actions={
           <>
             <Link className="button" href="/roi-tool">
@@ -160,6 +178,45 @@ export default function Home() {
               Choose a tool
             </Link>
           </>
+        }
+        visual={
+          <div className="home-hero-comparison" aria-hidden="true">
+            <div className="home-hero-comparison-heading">
+              <div>
+                <strong>Scenario comparison</strong>
+                <span>Compare promotion options before the account conversation.</span>
+              </div>
+              <span className="home-hero-comparison-action">Save full comparison</span>
+            </div>
+            <div className="home-hero-comparison-highlights">
+              {heroComparisonHighlights.map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="home-hero-comparison-table">
+              <div className="home-hero-comparison-row home-hero-comparison-head">
+                <span>Metric</span>
+                <span>Base feature</span>
+                <span>Feature + display</span>
+                <span>Multibuy</span>
+              </div>
+              {heroComparisonRows.map((row) => (
+                <div className="home-hero-comparison-row" key={row.metric}>
+                  <span>{row.metric}</span>
+                  {row.scenarios.map((value, index) => (
+                    <span className={row.best === index || row.lowest === index ? "is-highlighted" : undefined} key={`${row.metric}-${index}`}>
+                      {value}
+                      {row.best === index ? <small>Best</small> : null}
+                      {row.lowest === index ? <small>Lowest</small> : null}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         }
       >
         <p>

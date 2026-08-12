@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { currencyFromLocales, getAptProPriceLabels, type PricingCurrency } from "./pricingConfig";
 
 function browserCurrency(): PricingCurrency {
@@ -11,11 +11,11 @@ function browserCurrency(): PricingCurrency {
 }
 
 export function useLocalizedPricing() {
-  const [currency, setCurrency] = useState<PricingCurrency>("GBP");
-
-  useEffect(() => {
-    setCurrency(browserCurrency());
-  }, []);
+  const currency = useSyncExternalStore<PricingCurrency>(
+    () => () => {},
+    browserCurrency,
+    () => "GBP",
+  );
 
   return getAptProPriceLabels(currency);
 }

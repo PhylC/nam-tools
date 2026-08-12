@@ -11,7 +11,7 @@ export const metadata = seoMetadata({
 
 export default function PresentationTemplatesPage() {
   return (
-    <div className="page-stack">
+    <div className="page-stack presentation-templates-page snapshot-hero-page">
       <Hero title="Buyer-ready presentations and planning templates">
         <p>
           Use this when you have the numbers but still need to turn them into a

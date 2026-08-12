@@ -16,6 +16,8 @@ type FreeTemplate = {
   includes: string;
   previewSrc?: string;
   previewAlt?: string;
+  previewWidth?: number;
+  previewHeight?: number;
 };
 
 // Templates intentionally use editable example content so users can adapt them for real customer meetings.
@@ -31,6 +33,8 @@ const freeTemplates: FreeTemplate[] = [
     includes: "objectives, growth plan, investment plan and success measures",
     previewSrc: "/images/apt/apt-template-jbp-preview.webp",
     previewAlt: "Preview of the APT Joint Business Plan PowerPoint template",
+    previewWidth: 466,
+    previewHeight: 287,
   },
   {
     title: "Quarterly Business Review",
@@ -43,6 +47,8 @@ const freeTemplates: FreeTemplate[] = [
     includes: "performance summary, insights, risks and next steps",
     previewSrc: "/images/apt/apt-template-qbr-preview.webp",
     previewAlt: "Preview of the APT Quarterly Business Review PowerPoint template",
+    previewWidth: 444,
+    previewHeight: 287,
   },
   {
     title: "Promotional Proposal",
@@ -55,6 +61,8 @@ const freeTemplates: FreeTemplate[] = [
     includes: "mechanic, support, financial impact and recommendation",
     previewSrc: "/images/apt/apt-template-promo-proposal-preview.webp",
     previewAlt: "Preview of the APT Promotional Proposal PowerPoint template",
+    previewWidth: 494,
+    previewHeight: 286,
   },
   {
     title: "Range Review Template",
@@ -176,8 +184,10 @@ export function PresentationTemplatesFree() {
                   <img
                     alt={template.previewAlt ?? `Preview of the APT ${template.title} PowerPoint template`}
                     className="template-card-image"
+                    height={template.previewHeight}
                     loading="lazy"
                     src={template.previewSrc}
+                    width={template.previewWidth}
                   />
                 ) : null}
                 <h2>{template.title}</h2>

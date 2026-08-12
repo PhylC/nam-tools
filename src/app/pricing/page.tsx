@@ -136,7 +136,7 @@ export default async function PricingPage({
   const checkoutMessage = getCheckoutMessage(params.checkout);
 
   return (
-    <div className="page-stack">
+    <div className="page-stack pricing-page snapshot-hero-page">
       <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
           Use Free for quick checks. Choose APT Pro when you need to save,
@@ -289,7 +289,9 @@ export default async function PricingPage({
               alt="APT workspace showing saved analyses, scenarios, decks and exports"
               description="Saved analyses, scenarios, decks and exports in one workspace."
               filename="/images/apt/apt-workspace-dashboard-preview.webp"
+              height={270}
               title="My workspace"
+              width={547}
             />
           </div>
         </article>

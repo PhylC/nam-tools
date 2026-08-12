@@ -187,6 +187,8 @@ export function ProductVisual({
   alt,
   aspectRatio = "16 / 9",
   loading = "lazy",
+  width,
+  height,
 }: {
   filename: string;
   title: string;
@@ -194,10 +196,18 @@ export function ProductVisual({
   alt?: string;
   aspectRatio?: string;
   loading?: "eager" | "lazy";
+  width?: number;
+  height?: number;
 }) {
   return (
     <figure className="product-image-card" style={{ aspectRatio }}>
-      <img alt={alt ?? `${title}: ${description}`} loading={loading} src={filename} />
+      <img
+        alt={alt ?? `${title}: ${description}`}
+        height={height}
+        loading={loading}
+        src={filename}
+        width={width}
+      />
       <figcaption>
         <strong>{title}</strong>
         <small>{description}</small>

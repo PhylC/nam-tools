@@ -11,7 +11,7 @@ export const metadata = seoMetadata({
 
 export default function RoiToolPage() {
   return (
-    <div className="page-stack">
+    <div className="page-stack roi-tool-page snapshot-hero-page">
       <Hero
         eyebrow="ROI Tool"
         title="ROI planner"
