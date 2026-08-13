@@ -2775,6 +2775,14 @@ p {
   text-underline-offset: 3px;
 }
 
+.text-button-danger {
+  color: #9f2f2f;
+}
+
+.text-button-danger:hover {
+  color: #7e2424;
+}
+
 .input-section-header {
   display: flex;
   align-items: flex-start;

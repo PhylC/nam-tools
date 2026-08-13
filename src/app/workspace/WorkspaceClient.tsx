@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  deleteDeckBrief,
+  deleteRoiPlan,
+  deleteSavedAnalysis,
+  deleteSavedScenario,
   duplicateSavedAnalysis,
   duplicateRoiPlan,
   duplicateSavedScenario,
@@ -25,6 +29,7 @@ type WorkspaceSectionProps = {
   items?: SavedRecord[];
   itemType?: "Analysis" | "Comparison" | "Scenario" | "Deck";
   onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
+  onDelete?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
   emptyImage?: {
     src: string;
     alt: string;
@@ -120,10 +125,12 @@ function SavedItemCard({
   item,
   type,
   onDuplicate,
+  onDelete,
 }: {
   item: SavedRecord;
   type: "Analysis" | "Comparison" | "Scenario" | "Deck";
   onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
+  onDelete?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
 }) {
   const title = getText(item.title ?? item.name ?? item.group_name ?? item.deck_name, type === "Deck" ? "Saved deck" : type === "Comparison" ? "Saved comparison" : type === "Scenario" ? "Saved scenario" : "Saved analysis");
   const description = type === "Deck" ? getDeckDescription(item) : type === "Comparison" ? getComparisonDescription(item) : type === "Scenario" ? getScenarioDescription(item) : getAnalysisDescription(item);
@@ -157,6 +164,11 @@ function SavedItemCard({
           {onDuplicate && itemId && type !== "Deck" ? (
             <button className="text-button" onClick={() => onDuplicate(itemId, type)} type="button">
               Duplicate
+            </button>
+          ) : null}
+          {onDelete && itemId ? (
+            <button className="text-button text-button-danger" onClick={() => onDelete(itemId, type)} type="button">
+              Delete
             </button>
           ) : null}
         </div>
@@ -207,6 +219,7 @@ function WorkspaceSection({
   emptyCta,
   emptyHref,
   onDuplicate,
+  onDelete,
 }: WorkspaceSectionProps) {
   return (
     <article className="card workspace-card" id={id}>
@@ -222,7 +235,7 @@ function WorkspaceSection({
       {items.length > 0 && itemType ? (
         <div className="saved-item-list">
           {items.slice(0, 3).map((item, index) => (
-            <SavedItemCard item={item} key={String(item.id ?? `${id}-${index}`)} onDuplicate={onDuplicate} type={itemType} />
+            <SavedItemCard item={item} key={String(item.id ?? `${id}-${index}`)} onDelete={onDelete} onDuplicate={onDuplicate} type={itemType} />
           ))}
         </div>
       ) : (
@@ -291,6 +304,29 @@ export function WorkspaceClient() {
     if (type === "Scenario") {
       const result = await duplicateSavedScenario(id);
       setLoadMessage(result.data ? "Scenario duplicated." : result.message ?? "Could not duplicate scenario.");
+    }
+    await refreshSavedWork();
+  }
+
+  async function deleteSavedItem(id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") {
+    const confirmed = window.confirm(`Delete this saved ${type.toLowerCase()}?`);
+    if (!confirmed) return;
+
+    if (type === "Analysis") {
+      const result = await deleteSavedAnalysis(id);
+      setLoadMessage(result.data ? "Analysis deleted." : result.message ?? "Could not delete analysis.");
+    }
+    if (type === "Comparison") {
+      const result = await deleteRoiPlan(id);
+      setLoadMessage(result.data ? "Comparison deleted." : result.message ?? "Could not delete comparison.");
+    }
+    if (type === "Scenario") {
+      const result = await deleteSavedScenario(id);
+      setLoadMessage(result.data ? "Scenario deleted." : result.message ?? "Could not delete scenario.");
+    }
+    if (type === "Deck") {
+      const result = await deleteDeckBrief(id);
+      setLoadMessage(result.data ? "Deck deleted." : result.message ?? "Could not delete deck.");
     }
     await refreshSavedWork();
   }
@@ -395,6 +431,7 @@ export function WorkspaceClient() {
               id="analyses"
               items={savedAnalyses}
               itemType="Analysis"
+              onDelete={deleteSavedItem}
               onDuplicate={duplicateSavedItem}
               title="Saved analyses"
             />
@@ -409,6 +446,7 @@ export function WorkspaceClient() {
               id="comparisons"
               items={savedComparisons}
               itemType="Comparison"
+              onDelete={deleteSavedItem}
               onDuplicate={duplicateSavedItem}
               title="Saved ROI comparisons"
             />
@@ -423,6 +461,7 @@ export function WorkspaceClient() {
               id="scenarios"
               items={savedScenarios}
               itemType="Scenario"
+              onDelete={deleteSavedItem}
               onDuplicate={duplicateSavedItem}
               title="Saved scenarios"
             />
@@ -437,6 +476,7 @@ export function WorkspaceClient() {
               id="decks"
               items={deckBriefs}
               itemType="Deck"
+              onDelete={deleteSavedItem}
               title="Saved decks"
             />
             <WorkspaceSection
