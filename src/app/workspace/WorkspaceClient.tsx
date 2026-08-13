@@ -136,14 +136,16 @@ function SavedItemCard({
         ? `${sourcePath}?saved=${String(item.id)}`
         : sourcePath;
   const itemId = typeof item.id === "string" ? item.id : "";
-  const saveMode = item.saveMode === "account" ? "Account save" : item.saveMode === "local" ? "Device save" : "";
+  const saveMode = item.saveMode === "account" ? "Saved to account" : item.saveMode === "local" ? "Saved on this device" : "";
+  const saveModeClass = item.saveMode === "account" ? "save-mode-badge save-mode-account" : item.saveMode === "local" ? "save-mode-badge save-mode-local" : "";
 
   return (
     <article className="saved-item-card">
       <div>
-        <span className="saved-item-meta">{type}{saveMode ? ` · ${saveMode}` : ""}</span>
+        <span className="saved-item-meta">{type}</span>
         <h4>{title}</h4>
       </div>
+      {saveMode ? <span className={saveModeClass}>{saveMode}</span> : null}
       <p>{description}</p>
       <SavedItemDetails item={item} type={type} />
       <div className="saved-item-footer">
@@ -184,7 +186,7 @@ function EmptyState({
       {image ? <img alt={image.alt} className="workspace-empty-image" loading="lazy" src={image.src} /> : null}
       <strong>{title}</strong>
       <p>{body}</p>
-      <Link className="text-link" href={href}>
+      <Link className="button button-secondary button-small" href={href}>
         {cta}
       </Link>
     </div>
@@ -367,6 +369,10 @@ export function WorkspaceClient() {
                 Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
                 when you export your work.
               </p>
+              <div className="workspace-sync-note">
+                <span className="save-mode-badge save-mode-account">Account saves</span>
+                <span>Saved comparisons and deck briefs follow you across signed-in devices.</span>
+              </div>
               {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
             </div>
             <img
@@ -381,7 +387,7 @@ export function WorkspaceClient() {
             <WorkspaceSection
               cta="View saved analyses"
               description="Commercial calculations and deal checks you have saved."
-              emptyBody="Run a calculator and save the result to return to it later."
+              emptyBody="Run a calculator, save the result, and it will appear here for quick follow-up."
               emptyCta="Open calculators"
               emptyHref="/calculators"
               emptyTitle="No saved analyses yet."
@@ -395,8 +401,8 @@ export function WorkspaceClient() {
             <WorkspaceSection
               cta="View comparisons"
               description="Full ROI comparison groups saved from the planner."
-              emptyBody="Save a named comparison from the ROI planner to return to the full scenario group later."
-              emptyCta="Open ROI planner"
+              emptyBody="Create a named comparison in the ROI planner to return to the full scenario group later."
+              emptyCta="Create ROI comparison"
               emptyHref="/roi-tool"
               emptyTitle="No saved comparisons yet."
               href="/workspace#comparisons"
@@ -409,8 +415,8 @@ export function WorkspaceClient() {
             <WorkspaceSection
               cta="View scenarios"
               description="Single deal versions saved from ROI tools."
-              emptyBody="Save different versions of a deal so you can compare options later."
-              emptyCta="Open ROI planner"
+              emptyBody="Save individual deal versions when you want a lightweight record of one scenario."
+              emptyCta="Save a scenario"
               emptyHref="/roi-tool"
               emptyTitle="No saved scenarios yet."
               href="/workspace#scenarios"
@@ -423,8 +429,8 @@ export function WorkspaceClient() {
             <WorkspaceSection
               cta="View saved decks"
               description="Presentation outputs and meeting-ready summaries."
-              emptyBody="Saved decks will appear here when you create them."
-              emptyCta="View presentation templates"
+              emptyBody="Create a deck brief from a template and keep the meeting-ready summary here."
+              emptyCta="Create deck brief"
               emptyHref="/presentation-templates"
               emptyTitle="No saved decks yet."
               href="/workspace#decks"

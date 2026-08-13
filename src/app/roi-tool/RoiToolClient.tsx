@@ -1218,14 +1218,20 @@ function SavedRoiPlansPanel({
   onLoad: (id: string) => void | Promise<void>;
   onRename: (id: string, name: string) => void | Promise<void>;
 }) {
+  const isFallbackSave = /device|unavailable|could not/i.test(saveMessage);
+  const saveStatusClass = isFallbackSave ? "save-status-message save-status-warning" : "save-status-message save-status-success";
+
   return (
     <details className="saved-plans-details">
       <summary>Load or manage saved ROI comparisons</summary>
       <aside className="saved-panel saved-panel-compact">
-      <div>
-        <p>Save a full scenario group and return to the comparison later.</p>
+        <div>
+          <p>Save a full scenario group and return to the comparison later.</p>
+          <p className="saved-panel-note">
+            Account saves are available in Workspace on any signed-in device. Device saves stay in this browser.
+          </p>
           {isLoading ? <p className="empty-state">Checking account save status...</p> : null}
-          {saveMessage ? <p className="empty-state">{saveMessage}</p> : null}
+          {saveMessage ? <p className={saveStatusClass} role="status">{saveMessage}</p> : null}
         </div>
         {groups.length ? (
           <div className="saved-list">
@@ -1248,7 +1254,10 @@ function SavedRoiPlansPanel({
             ))}
           </div>
         ) : (
-          <p className="empty-state">No saved ROI comparisons yet.</p>
+          <div className="saved-panel-empty">
+            <strong>No saved ROI comparisons yet.</strong>
+            <p>Name this plan, add the scenarios you want to compare, then use Save named comparison.</p>
+          </div>
         )}
       </aside>
     </details>
@@ -1287,6 +1296,9 @@ export function RoiPlanner() {
   const [scenarioSaveMessage, setScenarioSaveMessage] = useState("");
   const [scenarioMessageId, setScenarioMessageId] = useState("");
   const [savedScenarioId, setSavedScenarioId] = useState("");
+  const saveStatusClass = /device|unavailable|could not/i.test(saveMessage)
+    ? "pro-inline-message roi-save-status roi-save-status-warning"
+    : "pro-inline-message roi-save-status";
 
   useEffect(() => {
     if (isPro) refreshSavedGroups();
@@ -1427,7 +1439,7 @@ export function RoiPlanner() {
       sourcePath: "/roi-tool",
     });
     setSavedScenarioId(String(result.data.id ?? ""));
-    setScenarioSaveMessage("Scenario saved.");
+    setScenarioSaveMessage("Scenario saved on this device.");
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
   }
@@ -1686,7 +1698,7 @@ export function RoiPlanner() {
         </div>
 
         {proMessage ? <p className="pro-inline-message" role="status">{proMessage}</p> : null}
-        {isPro && saveMessage ? <p className="pro-inline-message roi-save-status" role="status">{saveMessage}</p> : null}
+        {isPro && saveMessage ? <p className={saveStatusClass} role="status">{saveMessage}</p> : null}
 
         {isPro ? (
           <SavedRoiPlansPanel

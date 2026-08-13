@@ -4069,6 +4069,33 @@ p {
   padding: 0.9rem;
 }
 
+.saved-panel-note {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  line-height: 1.45;
+  margin-top: 0.35rem;
+}
+
+.save-status-message {
+  width: fit-content;
+  border: 1px solid #aac6c2;
+  border-radius: 8px;
+  background: #f4fbfa;
+  color: var(--accent-dark);
+  font-size: 0.86rem;
+  font-weight: 900;
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.7rem;
+}
+
+.save-status-warning,
+.roi-save-status-warning {
+  border-color: #e2c792;
+  background: #fff8e8;
+  color: #7a5a08;
+}
+
 .field span {
   color: var(--foreground);
 }
@@ -5063,7 +5090,8 @@ p {
 
 .workspace-empty {
   display: grid;
-  gap: 0.45rem;
+  justify-items: start;
+  gap: 0.55rem;
   border-top: 1px solid var(--border);
   background: transparent;
   padding-top: 0.85rem;
@@ -5099,6 +5127,17 @@ p {
   font-weight: 800;
 }
 
+.workspace-sync-note {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .saved-item-list {
   display: grid;
   gap: 0.65rem;
@@ -5120,6 +5159,31 @@ p {
 .saved-item-card h4 {
   margin: 0.1rem 0 0;
   font-size: 1rem;
+}
+
+.save-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0.34rem 0.5rem;
+  text-transform: uppercase;
+}
+
+.save-mode-account {
+  border-color: #aac6c2;
+  background: #f0faf8;
+  color: var(--accent-dark);
+}
+
+.save-mode-local {
+  border-color: #e2c792;
+  background: #fff8e8;
+  color: #7a5a08;
 }
 
 .saved-item-details {
@@ -5798,6 +5862,25 @@ p {
 .saved-list {
   display: grid;
   gap: 0.65rem;
+}
+
+.saved-panel-empty {
+  display: grid;
+  gap: 0.3rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.saved-panel-empty strong {
+  color: var(--foreground);
+}
+
+.saved-panel-empty p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0;
 }
 
 .saved-row {
