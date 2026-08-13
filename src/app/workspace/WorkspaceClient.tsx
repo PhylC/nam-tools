@@ -221,6 +221,10 @@ function WorkspaceSection({
   onDuplicate,
   onDelete,
 }: WorkspaceSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const visibleItems = isExpanded ? items : items.slice(0, 3);
+  const hiddenCount = Math.max(items.length - visibleItems.length, 0);
+
   return (
     <article className="card workspace-card" id={id}>
       <div className="workspace-card-header">
@@ -233,11 +237,21 @@ function WorkspaceSection({
         </Link>
       </div>
       {items.length > 0 && itemType ? (
-        <div className="saved-item-list">
-          {items.slice(0, 3).map((item, index) => (
-            <SavedItemCard item={item} key={String(item.id ?? `${id}-${index}`)} onDelete={onDelete} onDuplicate={onDuplicate} type={itemType} />
-          ))}
-        </div>
+        <>
+          <div className="saved-item-list">
+            {visibleItems.map((item, index) => (
+              <SavedItemCard item={item} key={String(item.id ?? `${id}-${index}`)} onDelete={onDelete} onDuplicate={onDuplicate} type={itemType} />
+            ))}
+          </div>
+          {items.length > 3 ? (
+            <div className="workspace-section-more">
+              <span>{isExpanded ? `${items.length} shown` : `${hiddenCount} more saved`}</span>
+              <button className="text-button" onClick={() => setIsExpanded((current) => !current)} type="button">
+                {isExpanded ? "Show less" : "Show all"}
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : (
         <EmptyState title={emptyTitle} body={emptyBody} cta={emptyCta} href={emptyHref} image={emptyImage} />
       )}

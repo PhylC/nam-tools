@@ -5151,6 +5151,23 @@ p {
   gap: 0.65rem;
 }
 
+.workspace-section-more {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.workspace-section-more span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .saved-item-card {
   display: grid;
   gap: 0.5rem;
