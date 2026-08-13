@@ -528,7 +528,7 @@ function SaveAnalysisAction({
       sourcePath,
     });
     setSavedId(String(result.data.id ?? ""));
-    setMessage("Analysis saved.");
+    setMessage(result.message ?? (result.mode === "account" ? "Analysis saved to your account." : "Analysis saved on this device."));
     setIsOpen(false);
   }
 

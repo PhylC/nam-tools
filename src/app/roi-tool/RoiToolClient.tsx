@@ -1439,7 +1439,7 @@ export function RoiPlanner() {
       sourcePath: "/roi-tool",
     });
     setSavedScenarioId(String(result.data.id ?? ""));
-    setScenarioSaveMessage("Scenario saved on this device.");
+    setScenarioSaveMessage(result.message ?? (result.mode === "account" ? "Scenario saved to your account." : "Scenario saved on this device."));
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
   }

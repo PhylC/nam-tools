@@ -102,6 +102,7 @@ function normalizeSavedAnalysis(analysis: AnyRecord) {
     updatedAt: analysis.updatedAt ?? analysis.updated_at ?? now,
     created_at: analysis.created_at ?? analysis.createdAt ?? now,
     updated_at: analysis.updated_at ?? analysis.updatedAt ?? now,
+    saveMode: analysis.saveMode ?? "local",
   };
 }
 
@@ -126,6 +127,7 @@ function normalizeSavedScenario(scenario: AnyRecord) {
     updatedAt: scenario.updatedAt ?? scenario.updated_at ?? now,
     created_at: scenario.created_at ?? scenario.createdAt ?? now,
     updated_at: scenario.updated_at ?? scenario.updatedAt ?? now,
+    saveMode: scenario.saveMode ?? "local",
   };
 }
 
@@ -154,8 +156,7 @@ function saveLocalDeckBrief(brief: AnyRecord, message?: string): StoreResult<Any
 }
 
 function saveLocalAnalysis(analysis: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // TODO: Replace local saved analyses with authenticated profile/Supabase storage for APT Pro accounts.
-  const item = normalizeSavedAnalysis(analysis);
+  const item = normalizeSavedAnalysis({ ...analysis, saveMode: "local" });
   const current = readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
   writeLocal(ANALYSIS_LOCAL_KEY, next);
@@ -163,8 +164,7 @@ function saveLocalAnalysis(analysis: AnyRecord, message?: string): StoreResult<A
 }
 
 function saveLocalScenario(scenario: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // TODO: Replace local saved scenarios with authenticated profile/Supabase storage for APT Pro accounts.
-  const item = normalizeSavedScenario(scenario);
+  const item = normalizeSavedScenario({ ...scenario, saveMode: "local" });
   const current = readLocal<AnyRecord>(SCENARIO_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
   writeLocal(SCENARIO_LOCAL_KEY, next);
@@ -172,11 +172,60 @@ function saveLocalScenario(scenario: AnyRecord, message?: string): StoreResult<A
 }
 
 export async function saveAnalysis(analysis: AnyRecord): Promise<StoreResult<AnyRecord>> {
-  return saveLocalAnalysis(analysis);
+  const item = normalizeSavedAnalysis({ ...analysis, saveMode: "account" });
+  const { supabase, user } = await getAuthenticatedUser();
+  if (!supabase || !user) return saveLocalAnalysis(item);
+
+  const { error } = await supabase.from("saved_analyses").upsert({
+    id: item.id,
+    user_id: user.id,
+    title: item.title,
+    calculator_id: item.calculatorId,
+    calculator_name: item.calculatorName,
+    source_path: item.sourcePath,
+    data: item,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  });
+
+  if (error) return saveLocalAnalysis(item, "Saved on this device. Account sync is unavailable right now.");
+  return { data: item, mode: "account" };
 }
 
 export async function listSavedAnalyses(): Promise<StoreResult<AnyRecord[]>> {
-  return { data: readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY).map(normalizeSavedAnalysis), mode: "local" };
+  const { supabase, user } = await getAuthenticatedUser();
+  const localAnalyses = readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY).map((analysis) => normalizeSavedAnalysis({ ...analysis, saveMode: "local" }));
+  if (!supabase || !user) return { data: localAnalyses, mode: "local" };
+
+  const { data, error } = await supabase
+    .from("saved_analyses")
+    .select("id,title,calculator_id,calculator_name,source_path,data,created_at,updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { data: localAnalyses, mode: "local", message: "Could not load account saves. Showing device saves only." };
+  }
+
+  return {
+    data: [
+      ...(data ?? []).map((row) =>
+        normalizeSavedAnalysis({
+          ...asRecord(row.data),
+          id: row.id,
+          title: row.title,
+          calculatorId: row.calculator_id,
+          calculatorName: row.calculator_name,
+          sourcePath: row.source_path,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          saveMode: "account",
+        }),
+      ),
+      ...localAnalyses.filter((localAnalysis) => !(data ?? []).some((row) => row.id === localAnalysis.id)),
+    ],
+    mode: "account",
+  };
 }
 
 export async function loadSavedAnalysis(id: string): Promise<StoreResult<AnyRecord | null>> {
@@ -202,15 +251,71 @@ export async function duplicateSavedAnalysis(id: string): Promise<StoreResult<An
 
 export async function deleteSavedAnalysis(id: string): Promise<StoreResult<boolean>> {
   writeLocal(ANALYSIS_LOCAL_KEY, readLocal<AnyRecord>(ANALYSIS_LOCAL_KEY).filter((analysis) => analysis.id !== id));
-  return { data: true, mode: "local" };
+  const { supabase, user } = await getAuthenticatedUser();
+  if (!supabase || !user) {
+    return { data: true, mode: "local" };
+  }
+
+  const { error } = await supabase.from("saved_analyses").delete().eq("id", id).eq("user_id", user.id);
+  if (error) return { data: false, mode: "account", message: "Could not update account saves. Local saves are unchanged." };
+  return { data: true, mode: "account" };
 }
 
 export async function saveScenario(scenario: AnyRecord): Promise<StoreResult<AnyRecord>> {
-  return saveLocalScenario(scenario);
+  const item = normalizeSavedScenario({ ...scenario, saveMode: "account" });
+  const { supabase, user } = await getAuthenticatedUser();
+  if (!supabase || !user) return saveLocalScenario(item);
+
+  const { error } = await supabase.from("saved_scenarios").upsert({
+    id: item.id,
+    user_id: user.id,
+    title: item.title,
+    tool_id: item.toolId,
+    tool_name: item.toolName,
+    source_path: item.sourcePath,
+    data: item,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  });
+
+  if (error) return saveLocalScenario(item, "Saved on this device. Account sync is unavailable right now.");
+  return { data: item, mode: "account" };
 }
 
 export async function listSavedScenarios(): Promise<StoreResult<AnyRecord[]>> {
-  return { data: readLocal<AnyRecord>(SCENARIO_LOCAL_KEY).map(normalizeSavedScenario), mode: "local" };
+  const { supabase, user } = await getAuthenticatedUser();
+  const localScenarios = readLocal<AnyRecord>(SCENARIO_LOCAL_KEY).map((scenario) => normalizeSavedScenario({ ...scenario, saveMode: "local" }));
+  if (!supabase || !user) return { data: localScenarios, mode: "local" };
+
+  const { data, error } = await supabase
+    .from("saved_scenarios")
+    .select("id,title,tool_id,tool_name,source_path,data,created_at,updated_at")
+    .eq("user_id", user.id)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { data: localScenarios, mode: "local", message: "Could not load account saves. Showing device saves only." };
+  }
+
+  return {
+    data: [
+      ...(data ?? []).map((row) =>
+        normalizeSavedScenario({
+          ...asRecord(row.data),
+          id: row.id,
+          title: row.title,
+          toolId: row.tool_id,
+          toolName: row.tool_name,
+          sourcePath: row.source_path,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          saveMode: "account",
+        }),
+      ),
+      ...localScenarios.filter((localScenario) => !(data ?? []).some((row) => row.id === localScenario.id)),
+    ],
+    mode: "account",
+  };
 }
 
 export async function loadSavedScenario(id: string): Promise<StoreResult<AnyRecord | null>> {
@@ -236,7 +341,14 @@ export async function duplicateSavedScenario(id: string): Promise<StoreResult<An
 
 export async function deleteSavedScenario(id: string): Promise<StoreResult<boolean>> {
   writeLocal(SCENARIO_LOCAL_KEY, readLocal<AnyRecord>(SCENARIO_LOCAL_KEY).filter((scenario) => scenario.id !== id));
-  return { data: true, mode: "local" };
+  const { supabase, user } = await getAuthenticatedUser();
+  if (!supabase || !user) {
+    return { data: true, mode: "local" };
+  }
+
+  const { error } = await supabase.from("saved_scenarios").delete().eq("id", id).eq("user_id", user.id);
+  if (error) return { data: false, mode: "account", message: "Could not update account saves. Local saves are unchanged." };
+  return { data: true, mode: "account" };
 }
 
 export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecord>> {
