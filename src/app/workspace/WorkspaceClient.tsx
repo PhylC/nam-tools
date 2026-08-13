@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   duplicateSavedAnalysis,
+  duplicateRoiPlan,
   duplicateSavedScenario,
+  listRoiPlans,
   listDeckBriefs,
   listSavedAnalyses,
   listSavedScenarios,
@@ -21,8 +23,8 @@ type WorkspaceSectionProps = {
   cta: string;
   href: string;
   items?: SavedRecord[];
-  itemType?: "Analysis" | "Scenario" | "Deck";
-  onDuplicate?: (id: string, type: "Analysis" | "Scenario" | "Deck") => void | Promise<void>;
+  itemType?: "Analysis" | "Comparison" | "Scenario" | "Deck";
+  onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
   emptyImage?: {
     src: string;
     alt: string;
@@ -57,6 +59,15 @@ function getAnalysisDescription(item: SavedRecord) {
   return summary ? summary.slice(0, 120) : `${calculatorName} result`;
 }
 
+function getComparisonDescription(item: SavedRecord) {
+  const scenarios = Array.isArray(item.scenarios) ? item.scenarios : [];
+  const lineCount = scenarios.reduce((total, scenario) => {
+    const record = scenario && typeof scenario === "object" && !Array.isArray(scenario) ? (scenario as SavedRecord) : {};
+    return total + (Array.isArray(record.lines) ? record.lines.length : 0);
+  }, 0);
+  return `${scenarios.length || 0} scenario(s) · ${lineCount} product line(s)`;
+}
+
 function getScenarioDescription(item: SavedRecord) {
   const outputs = item.outputs && typeof item.outputs === "object" && !Array.isArray(item.outputs) ? (item.outputs as SavedRecord) : {};
   const lines = outputs.lines ? `${outputs.lines} line(s)` : "Saved deal version";
@@ -69,8 +80,8 @@ function getRecordEntries(value: unknown) {
   return Object.entries(value as SavedRecord).filter(([, entryValue]) => entryValue !== "" && entryValue !== null && entryValue !== undefined);
 }
 
-function SavedItemDetails({ item, type }: { item: SavedRecord; type: "Analysis" | "Scenario" | "Deck" }) {
-  if (type === "Deck") return null;
+function SavedItemDetails({ item, type }: { item: SavedRecord; type: "Analysis" | "Comparison" | "Scenario" | "Deck" }) {
+  if (type === "Comparison" || type === "Deck") return null;
   const inputs = getRecordEntries(item.inputs).slice(0, 6);
   const outputs = getRecordEntries(item.outputs).slice(0, 6);
   const summary = getText(item.summaryText, "");
@@ -111,19 +122,26 @@ function SavedItemCard({
   onDuplicate,
 }: {
   item: SavedRecord;
-  type: "Analysis" | "Scenario" | "Deck";
-  onDuplicate?: (id: string, type: "Analysis" | "Scenario" | "Deck") => void | Promise<void>;
+  type: "Analysis" | "Comparison" | "Scenario" | "Deck";
+  onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
 }) {
-  const title = getText(item.title ?? item.name ?? item.group_name ?? item.deck_name, type === "Deck" ? "Saved deck" : type === "Scenario" ? "Saved scenario" : "Saved analysis");
-  const description = type === "Deck" ? getDeckDescription(item) : type === "Scenario" ? getScenarioDescription(item) : getAnalysisDescription(item);
-  const sourcePath = getText(item.sourcePath, type === "Deck" ? "/presentation-templates" : type === "Scenario" ? "/roi-tool" : "/calculators");
-  const href = type === "Scenario" && item.id ? `${sourcePath}?saved=${String(item.id)}` : sourcePath;
+  const title = getText(item.title ?? item.name ?? item.group_name ?? item.deck_name, type === "Deck" ? "Saved deck" : type === "Comparison" ? "Saved comparison" : type === "Scenario" ? "Saved scenario" : "Saved analysis");
+  const description = type === "Deck" ? getDeckDescription(item) : type === "Comparison" ? getComparisonDescription(item) : type === "Scenario" ? getScenarioDescription(item) : getAnalysisDescription(item);
+  const defaultPath = type === "Deck" ? "/presentation-templates" : type === "Analysis" ? "/calculators" : "/roi-tool";
+  const sourcePath = getText(item.sourcePath, defaultPath);
+  const href =
+    type === "Comparison" && item.id
+      ? `${sourcePath}?comparison=${String(item.id)}`
+      : type === "Scenario" && item.id
+        ? `${sourcePath}?saved=${String(item.id)}`
+        : sourcePath;
   const itemId = typeof item.id === "string" ? item.id : "";
+  const saveMode = item.saveMode === "account" ? "Account save" : item.saveMode === "local" ? "Device save" : "";
 
   return (
     <article className="saved-item-card">
       <div>
-        <span className="saved-item-meta">{type}</span>
+        <span className="saved-item-meta">{type}{saveMode ? ` · ${saveMode}` : ""}</span>
         <h4>{title}</h4>
       </div>
       <p>{description}</p>
@@ -215,6 +233,7 @@ function WorkspaceSection({
 export function WorkspaceClient() {
   const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
   const [savedAnalyses, setSavedAnalyses] = useState<SavedRecord[]>([]);
+  const [savedComparisons, setSavedComparisons] = useState<SavedRecord[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<SavedRecord[]>([]);
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
   const [loadMessage, setLoadMessage] = useState("");
@@ -226,18 +245,19 @@ export function WorkspaceClient() {
     }
 
     let isMounted = true;
-    // TODO: Replace local saved analyses/scenarios with user profile storage when backend tables are ready.
-    Promise.all([listSavedAnalyses(), listSavedScenarios(), listDeckBriefs()])
-      .then(([analyses, scenarios, decks]) => {
+    Promise.all([listSavedAnalyses(), listRoiPlans(), listSavedScenarios(), listDeckBriefs()])
+      .then(([analyses, comparisons, scenarios, decks]) => {
         if (!isMounted) return;
         setSavedAnalyses(analyses.data);
+        setSavedComparisons(comparisons.data);
         setSavedScenarios(scenarios.data);
         setDeckBriefs(decks.data);
-        setLoadMessage(analyses.message ?? scenarios.message ?? decks.message ?? "");
+        setLoadMessage(analyses.message ?? comparisons.message ?? scenarios.message ?? decks.message ?? "");
       })
       .catch(() => {
         if (!isMounted) return;
         setSavedAnalyses([]);
+        setSavedComparisons([]);
         setSavedScenarios([]);
         setDeckBriefs([]);
         setLoadMessage("Could not load saved work right now.");
@@ -249,17 +269,22 @@ export function WorkspaceClient() {
   }, [isAuthenticated, isPro]);
 
   async function refreshSavedWork() {
-    const [analyses, scenarios, decks] = await Promise.all([listSavedAnalyses(), listSavedScenarios(), listDeckBriefs()]);
+    const [analyses, comparisons, scenarios, decks] = await Promise.all([listSavedAnalyses(), listRoiPlans(), listSavedScenarios(), listDeckBriefs()]);
     setSavedAnalyses(analyses.data);
+    setSavedComparisons(comparisons.data);
     setSavedScenarios(scenarios.data);
     setDeckBriefs(decks.data);
-    setLoadMessage(analyses.message ?? scenarios.message ?? decks.message ?? "");
+    setLoadMessage(analyses.message ?? comparisons.message ?? scenarios.message ?? decks.message ?? "");
   }
 
-  async function duplicateSavedItem(id: string, type: "Analysis" | "Scenario" | "Deck") {
+  async function duplicateSavedItem(id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") {
     if (type === "Analysis") {
       const result = await duplicateSavedAnalysis(id);
       setLoadMessage(result.data ? "Analysis duplicated." : result.message ?? "Could not duplicate analysis.");
+    }
+    if (type === "Comparison") {
+      const result = await duplicateRoiPlan(id);
+      setLoadMessage(result.data ? "Comparison duplicated." : result.message ?? "Could not duplicate comparison.");
     }
     if (type === "Scenario") {
       const result = await duplicateSavedScenario(id);
@@ -368,8 +393,22 @@ export function WorkspaceClient() {
               title="Saved analyses"
             />
             <WorkspaceSection
+              cta="View comparisons"
+              description="Full ROI comparison groups saved from the planner."
+              emptyBody="Save a named comparison from the ROI planner to return to the full scenario group later."
+              emptyCta="Open ROI planner"
+              emptyHref="/roi-tool"
+              emptyTitle="No saved comparisons yet."
+              href="/workspace#comparisons"
+              id="comparisons"
+              items={savedComparisons}
+              itemType="Comparison"
+              onDuplicate={duplicateSavedItem}
+              title="Saved ROI comparisons"
+            />
+            <WorkspaceSection
               cta="View scenarios"
-              description="Deal versions and options saved for comparison."
+              description="Single deal versions saved from ROI tools."
               emptyBody="Save different versions of a deal so you can compare options later."
               emptyCta="Open ROI planner"
               emptyHref="/roi-tool"

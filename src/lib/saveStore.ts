@@ -55,6 +55,7 @@ function normalizeRoiPlan(plan: AnyRecord) {
     createdAt: plan.createdAt ?? plan.created_at ?? now,
     updatedAt: plan.updatedAt ?? plan.updated_at ?? now,
     savedAt: plan.savedAt ?? plan.updated_at ?? plan.updatedAt ?? now,
+    saveMode: plan.saveMode ?? "local",
   };
 }
 
@@ -76,6 +77,7 @@ function normalizeDeckBrief(brief: AnyRecord) {
     updated_at: brief.updated_at ?? brief.updatedAt ?? now,
     createdAt: brief.createdAt ?? brief.created_at ?? now,
     updatedAt: brief.updatedAt ?? brief.updated_at ?? now,
+    saveMode: brief.saveMode ?? "local",
   };
 }
 
@@ -136,8 +138,7 @@ async function getAuthenticatedUser() {
 }
 
 function saveLocalRoiPlan(plan: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // Temporary local save. Replace with profile-backed saved groups when backend tables are ready.
-  const item = normalizeRoiPlan(plan);
+  const item = normalizeRoiPlan({ ...plan, saveMode: "local" });
   const current = readLocal<AnyRecord>(ROI_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
   writeLocal(ROI_LOCAL_KEY, next);
@@ -145,8 +146,7 @@ function saveLocalRoiPlan(plan: AnyRecord, message?: string): StoreResult<AnyRec
 }
 
 function saveLocalDeckBrief(brief: AnyRecord, message?: string): StoreResult<AnyRecord> {
-  // Temporary local save. Replace with profile-backed saved decks when backend tables are ready.
-  const item = normalizeDeckBrief(brief);
+  const item = normalizeDeckBrief({ ...brief, saveMode: "local" });
   const current = readLocal<AnyRecord>(DECK_LOCAL_KEY);
   const next = [item, ...current.filter((saved) => saved.id !== item.id)];
   writeLocal(DECK_LOCAL_KEY, next);
@@ -240,7 +240,7 @@ export async function deleteSavedScenario(id: string): Promise<StoreResult<boole
 }
 
 export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecord>> {
-  const item = normalizeRoiPlan(plan);
+  const item = normalizeRoiPlan({ ...plan, saveMode: "account" });
   const { supabase, user } = await getAuthenticatedUser();
   if (!supabase || !user) return saveLocalRoiPlan(item);
 
@@ -259,7 +259,7 @@ export async function saveRoiPlan(plan: AnyRecord): Promise<StoreResult<AnyRecor
 
 export async function listRoiPlans(): Promise<StoreResult<AnyRecord[]>> {
   const { supabase, user } = await getAuthenticatedUser();
-  const localPlans = readLocal<AnyRecord>(ROI_LOCAL_KEY).map(normalizeRoiPlan);
+  const localPlans = readLocal<AnyRecord>(ROI_LOCAL_KEY).map((plan) => normalizeRoiPlan({ ...plan, saveMode: "local" }));
   if (!supabase || !user) return { data: localPlans, mode: "local" };
 
   const { data, error } = await supabase
@@ -269,13 +269,13 @@ export async function listRoiPlans(): Promise<StoreResult<AnyRecord[]>> {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { data: readLocal(ROI_LOCAL_KEY), mode: "local", message: "Could not load saved plans right now." };
+    return { data: localPlans, mode: "local", message: "Could not load account saves. Showing device saves only." };
   }
 
   return {
     data: [
       ...(data ?? []).map((row) =>
-        normalizeRoiPlan({ ...asRecord(row.data), id: row.id, name: row.name, created_at: row.created_at, updated_at: row.updated_at }),
+        normalizeRoiPlan({ ...asRecord(row.data), id: row.id, name: row.name, created_at: row.created_at, updated_at: row.updated_at, saveMode: "account" }),
       ),
       ...localPlans.filter((localPlan) => !(data ?? []).some((row) => row.id === localPlan.id)),
     ],
@@ -303,9 +303,9 @@ export async function duplicateRoiPlan(id: string): Promise<StoreResult<AnyRecor
 }
 
 export async function deleteRoiPlan(id: string): Promise<StoreResult<boolean>> {
+  writeLocal(ROI_LOCAL_KEY, readLocal<AnyRecord>(ROI_LOCAL_KEY).filter((plan) => plan.id !== id));
   const { supabase, user } = await getAuthenticatedUser();
   if (!supabase || !user) {
-    writeLocal(ROI_LOCAL_KEY, readLocal<AnyRecord>(ROI_LOCAL_KEY).filter((plan) => plan.id !== id));
     return { data: true, mode: "local" };
   }
 
@@ -315,7 +315,7 @@ export async function deleteRoiPlan(id: string): Promise<StoreResult<boolean>> {
 }
 
 export async function saveDeckBrief(brief: AnyRecord): Promise<StoreResult<AnyRecord>> {
-  const item = normalizeDeckBrief(brief);
+  const item = normalizeDeckBrief({ ...brief, saveMode: "account" });
   const { supabase, user } = await getAuthenticatedUser();
   if (!supabase || !user) return saveLocalDeckBrief(item);
 
@@ -330,13 +330,14 @@ export async function saveDeckBrief(brief: AnyRecord): Promise<StoreResult<AnyRe
     updated_at: item.updated_at,
   });
 
-  if (error) return saveLocalDeckBrief(item, "Could not save right now. Your deck is still available in saved decks.");
+  if (error) return saveLocalDeckBrief(item, "Saved on this device. Account sync is unavailable right now.");
   return { data: item, mode: "account" };
 }
 
 export async function listDeckBriefs(): Promise<StoreResult<AnyRecord[]>> {
   const { supabase, user } = await getAuthenticatedUser();
-  if (!supabase || !user) return { data: readLocal(DECK_LOCAL_KEY), mode: "local" };
+  const localDecks = readLocal<AnyRecord>(DECK_LOCAL_KEY).map((brief) => normalizeDeckBrief({ ...brief, saveMode: "local" }));
+  if (!supabase || !user) return { data: localDecks, mode: "local" };
 
   const { data, error } = await supabase
     .from("deck_briefs")
@@ -345,21 +346,25 @@ export async function listDeckBriefs(): Promise<StoreResult<AnyRecord[]>> {
     .order("updated_at", { ascending: false });
 
   if (error) {
-    return { data: readLocal(DECK_LOCAL_KEY), mode: "local", message: "Could not load saved decks right now." };
+    return { data: localDecks, mode: "local", message: "Could not load account saves. Showing device saves only." };
   }
 
   return {
-    data: (data ?? []).map((row) =>
-      normalizeDeckBrief({
-        ...asRecord(row.data),
-        id: row.id,
-        name: row.name,
-        template_type: row.template_type,
-        generated_outline: row.generated_outline,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-      }),
-    ),
+    data: [
+      ...(data ?? []).map((row) =>
+        normalizeDeckBrief({
+          ...asRecord(row.data),
+          id: row.id,
+          name: row.name,
+          template_type: row.template_type,
+          generated_outline: row.generated_outline,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          saveMode: "account",
+        }),
+      ),
+      ...localDecks.filter((localDeck) => !(data ?? []).some((row) => row.id === localDeck.id)),
+    ],
     mode: "account",
   };
 }
@@ -384,9 +389,9 @@ export async function duplicateDeckBrief(id: string): Promise<StoreResult<AnyRec
 }
 
 export async function deleteDeckBrief(id: string): Promise<StoreResult<boolean>> {
+  writeLocal(DECK_LOCAL_KEY, readLocal<AnyRecord>(DECK_LOCAL_KEY).filter((brief) => brief.id !== id));
   const { supabase, user } = await getAuthenticatedUser();
   if (!supabase || !user) {
-    writeLocal(DECK_LOCAL_KEY, readLocal<AnyRecord>(DECK_LOCAL_KEY).filter((brief) => brief.id !== id));
     return { data: true, mode: "local" };
   }
 

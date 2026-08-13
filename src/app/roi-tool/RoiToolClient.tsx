@@ -1294,7 +1294,31 @@ export function RoiPlanner() {
 
   useEffect(() => {
     if (!isPro || typeof window === "undefined") return;
-    const savedId = new URLSearchParams(window.location.search).get("saved");
+    const params = new URLSearchParams(window.location.search);
+    const comparisonId = params.get("comparison");
+    const savedId = params.get("saved");
+    if (comparisonId) {
+      let isMounted = true;
+      loadRoiPlan(comparisonId).then((result) => {
+        if (!isMounted) return;
+        const saved = result.data as SavedRoiGroup | null;
+        if (!saved) {
+          setSaveMessage(result.message ?? "");
+          setProMessage("Could not find that saved comparison.");
+          return;
+        }
+        setPlannerState({
+          groups: [saved],
+          activeGroupId: saved.id,
+          activeScenarioId: saved.scenarios[0]?.id ?? "",
+        });
+        setSaveMessage(result.message ?? `Loaded comparison "${saved.name}".`);
+      });
+
+      return () => {
+        isMounted = false;
+      };
+    }
     if (!savedId) return;
 
     let isMounted = true;
@@ -1367,7 +1391,7 @@ export function RoiPlanner() {
       ...current,
       groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: comparisonName } : group)),
     }));
-    setSaveMessage(result.message ?? `Saved comparison "${comparisonName}".`);
+    setSaveMessage(result.message ?? `Saved comparison "${comparisonName}" to your account.`);
   }
 
   function openSaveScenario(scenario: RoiScenario) {

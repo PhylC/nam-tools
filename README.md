@@ -40,7 +40,7 @@ NEXT_PUBLIC_APP_URL=https://accountplanningtools.com
 
 Use values from the same Stripe account and mode for the secret key, prices and webhook signing secret. `STRIPE_WEBHOOK_SECRET` can be empty for the first deployment; the webhook route will build but return a configuration error until the signing secret is added.
 
-Apply `supabase/migrations/20260809000000_add_stripe_billing.sql` before enabling Checkout. After deployment, register `https://accountplanningtools.com/api/stripe/webhook` in Stripe, then add the generated signing secret to Render as `STRIPE_WEBHOOK_SECRET`.
+Apply the Supabase migrations in `supabase/migrations/` before enabling Checkout or account-backed saved work. The billing migration creates subscription state, and the saved-work migration creates `roi_plans` and `deck_briefs` for Pro workspace saves. After deployment, register `https://accountplanningtools.com/api/stripe/webhook` in Stripe, then add the generated signing secret to Render as `STRIPE_WEBHOOK_SECRET`.
 
 ## Analytics
 
