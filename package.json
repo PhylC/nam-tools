@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "npm run generate:templates && next build",
     "start": "next start",
+    "test": "vitest run",
     "lint": "eslint",
     "generate:templates": "node scripts/generate-pptx-templates.mjs"
   },
@@ -24,6 +25,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.10"
   }
 }
