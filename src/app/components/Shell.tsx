@@ -202,12 +202,12 @@ export function ProductVisual({
 }) {
   return (
     <figure className="product-image-card" style={{ aspectRatio }}>
-      <img
+      <Image
         alt={alt ?? `${title}: ${description}`}
-        height={height}
         loading={loading}
         src={filename}
-        width={width}
+        width={width ?? 1200}
+        height={height ?? 675}
       />
       <figcaption>
         <strong>{title}</strong>

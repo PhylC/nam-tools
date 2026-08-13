@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -195,7 +196,7 @@ function EmptyState({
 }) {
   return (
     <div className="workspace-empty">
-      {image ? <img alt={image.alt} className="workspace-empty-image" loading="lazy" src={image.src} /> : null}
+      {image ? <Image alt={image.alt} className="workspace-empty-image" height={360} loading="lazy" src={image.src} width={640} /> : null}
       <strong>{title}</strong>
       <p>{body}</p>
       <Link className="button button-secondary button-small" href={href}>
@@ -425,11 +426,13 @@ export function WorkspaceClient() {
               </div>
               {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
             </div>
-            <img
+            <Image
               alt="APT workspace showing saved analyses, scenarios, decks and exports"
               className="workspace-preview-image"
+              height={270}
               loading="lazy"
               src="/images/apt/apt-workspace-dashboard-preview.webp"
+              width={547}
             />
           </article>
 

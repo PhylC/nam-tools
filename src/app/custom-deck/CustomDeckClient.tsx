@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useMemo, useState } from "react";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
@@ -539,11 +540,13 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         </form>
 
         <aside className="card custom-deck-sidebar">
-          <img
+          <Image
             alt="APT custom deck builder showing deck type, uploads and brief fields"
             className="custom-deck-preview-image"
+            height={525}
             loading="lazy"
             src="/images/apt/apt-custom-deck-builder-preview.webp"
+            width={663}
           />
           <h2>What to include</h2>
           <ul className="compact-list">

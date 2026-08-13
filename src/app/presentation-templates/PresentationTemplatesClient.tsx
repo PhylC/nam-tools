@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
@@ -181,13 +182,13 @@ export function PresentationTemplatesFree() {
             <article className="template-card">
               <div className="template-card-content">
                 {template.previewSrc ? (
-                  <img
+                  <Image
                     alt={template.previewAlt ?? `Preview of the APT ${template.title} PowerPoint template`}
                     className="template-card-image"
-                    height={template.previewHeight}
+                    height={template.previewHeight ?? 287}
                     loading="lazy"
                     src={template.previewSrc}
-                    width={template.previewWidth}
+                    width={template.previewWidth ?? 466}
                   />
                 ) : null}
                 <h2>{template.title}</h2>

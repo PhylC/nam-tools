@@ -17,19 +17,6 @@ import {
 } from "../../lib/proSettings";
 import { saveAnalysis } from "../../lib/saveStore";
 
-const currency = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  maximumFractionDigits: 0,
-});
-
-const money2 = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 const number = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
 const percent = new Intl.NumberFormat("en-GB", {
   style: "percent",
@@ -634,27 +621,6 @@ function InfoPanel({ title, children }: { title: string; children: React.ReactNo
       <h3>{title}</h3>
       {children}
     </section>
-  );
-}
-
-function FreeResult({
-  summary,
-  children,
-}: {
-  summary: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="result-box">
-      <div className="output-header">
-        <div>
-          <h2>Quick commercial read</h2>
-        </div>
-        <CopyButton text={summary} />
-      </div>
-      <PlanningDisclaimer />
-      {children}
-    </div>
   );
 }
 
