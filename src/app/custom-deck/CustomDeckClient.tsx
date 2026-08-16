@@ -2,15 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ChangeEvent, DragEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
-import { readPresentationTemplates } from "../../lib/proSettings";
+import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
+import { saveDeckBrief } from "../../lib/saveStore";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SUPPORTING_FILES = 5;
-const CUSTOM_DECK_REQUESTS_KEY = "aptCustomDeckRequests";
 const deckTemplateExtensions = [".pptx", ".potx", ".pdf", ".key"];
 const supportingFileExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt", ".pptx", ".key", ".numbers", ".pages"];
 
@@ -176,7 +176,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
   );
-  const [savedTemplates] = useState(() => readPresentationTemplates());
+  const [savedTemplates, setSavedTemplates] = useState<SavedPresentationTemplate[]>([]);
   const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
   const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
   const [selectedSavedTemplateId, setSelectedSavedTemplateId] = useState(defaultSavedTemplate?.id ?? "");
@@ -198,6 +198,22 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],
   );
+
+  useEffect(() => {
+    let isMounted = true;
+    loadAccountSettings().then((result) => {
+      if (!isMounted) return;
+      const templates = result.data.presentationTemplates;
+      setSavedTemplates(templates);
+      const defaultTemplate = templates.find((template) => template.isDefault) ?? templates[0] ?? null;
+      if (!defaultTemplate) return;
+      setSelectedSavedTemplateId((current) => current || defaultTemplate.id);
+      setTemplateSource((current) => (current === "apt_default" ? "saved" : current));
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   function validateOneOffTemplateFiles(files: File[]) {
     setTemplateError("");
@@ -234,7 +250,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     setSupportingFiles(next);
   }
 
-  function saveDeckRequest() {
+  async function saveDeckRequest() {
     if (!requirePro(() => undefined, { feature: "custom-deck", location: "custom_deck_save_request" })) return;
     setRequestMessage("");
     setGoogleSlidesError("");
@@ -244,6 +260,9 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     }
     const requestPayload = {
       id: crypto.randomUUID ? crypto.randomUUID() : `deck-request-${Date.now()}`,
+      name: `${selectedDeck.label} deck brief`,
+      deck_name: `${selectedDeck.label} deck brief`,
+      template_type: selectedDeck.label,
       deckType,
       templateSource,
       savedTemplateId: templateSource === "saved" ? selectedSavedTemplateId : "",
@@ -258,22 +277,17 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       exportFormat,
       createdAt: new Date().toISOString(),
     };
-    if (typeof window !== "undefined") {
-      let previous: unknown[] = [];
-      try {
-        const saved = window.localStorage.getItem(CUSTOM_DECK_REQUESTS_KEY);
-        previous = saved ? JSON.parse(saved) : [];
-      } catch {
-        previous = [];
-      }
-      window.localStorage.setItem(CUSTOM_DECK_REQUESTS_KEY, JSON.stringify([requestPayload, ...previous].slice(0, 10)));
+    const result = await saveDeckBrief(requestPayload);
+    if (!result.data) {
+      setRequestMessage(result.message ?? "Could not save deck brief.");
+      return;
     }
-    setRequestMessage("Deck request saved on this device.");
+    setRequestMessage("Deck brief saved to your account.");
   }
 
   function preventSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    saveDeckRequest();
+    void saveDeckRequest();
   }
 
   return (

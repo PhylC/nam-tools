@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { uploadDeckTemplate } from "../../lib/storageUploads";
@@ -16,6 +16,7 @@ import {
   readCalculatorDefaults,
   readExportDefaults,
   readPresentationTemplates,
+  loadAccountSettings,
   saveCalculatorDefaults,
   saveExportDefaults,
   savePresentationTemplates,
@@ -50,7 +51,22 @@ export function SettingsClient() {
   const [message, setMessage] = useState<Message>(null);
   const isPro = plan === "pro" || plan === "team";
 
-  function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
+  useEffect(() => {
+    let isMounted = true;
+    if (!isAuthenticated) return;
+    loadAccountSettings().then((result) => {
+      if (!isMounted) return;
+      setCalculatorDefaults(result.data.calculatorDefaults);
+      setExportDefaults(result.data.exportDefaults);
+      setPresentationTemplates(result.data.presentationTemplates);
+      if (result.message) setMessage({ tone: "error", text: result.message });
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated]);
+
+  async function updateCalculatorDefaults(next: CalculatorDefaults, text?: string) {
     const trimmedTaxLabel = next.customTaxLabel.trim();
     const clean = {
       ...next,
@@ -62,14 +78,14 @@ export function SettingsClient() {
       return;
     }
     setCalculatorDefaults(clean);
-    saveCalculatorDefaults(clean);
-    setMessage(text ? { tone: "success", text } : null);
+    const result = await saveCalculatorDefaults(clean);
+    setMessage(result.message ? { tone: "error", text: result.message } : text ? { tone: "success", text } : null);
   }
 
-  function updateExportDefaults(next: ExportDefaults, text?: string) {
+  async function updateExportDefaults(next: ExportDefaults, text?: string) {
     setExportDefaults(next);
-    saveExportDefaults(next);
-    setMessage(text ? { tone: "success", text } : null);
+    const result = await saveExportDefaults(next);
+    setMessage(result.message ? { tone: "error", text: result.message } : text ? { tone: "success", text } : null);
   }
 
   function handleLogoFile(event: ChangeEvent<HTMLInputElement>) {
@@ -79,7 +95,7 @@ export function SettingsClient() {
     updateExportDefaults({ ...exportDefaults, companyLogoFilename: file.name }, "Logo selected.");
   }
 
-  function saveTemplateLibrary(next: SavedPresentationTemplate[], text?: string) {
+  async function saveTemplateLibrary(next: SavedPresentationTemplate[], text?: string) {
     const clean = next.slice(0, PRESENTATION_TEMPLATE_LIBRARY_LIMIT);
     const hasDefault = clean.some((template) => template.isDefault);
     const normalized = clean.map((template, index) => ({
@@ -88,8 +104,8 @@ export function SettingsClient() {
       isDefault: hasDefault ? template.isDefault : index === 0,
     }));
     setPresentationTemplates(normalized);
-    savePresentationTemplates(normalized);
-    if (text) setMessage({ tone: "success", text });
+    const result = await savePresentationTemplates(normalized);
+    setMessage(result.message ? { tone: "error", text: result.message } : text ? { tone: "success", text } : null);
   }
 
   async function handleTemplateFile(event: ChangeEvent<HTMLInputElement>, replaceId?: string) {
@@ -133,11 +149,11 @@ export function SettingsClient() {
         )
       : [...presentationTemplates, nextTemplate];
 
-    saveTemplateLibrary(
+    await saveTemplateLibrary(
       next,
       storagePath && !uploadError
         ? "Presentation template saved."
-        : "Template details saved on this device.",
+        : "Template reference saved to your account.",
     );
   }
 
@@ -166,18 +182,21 @@ export function SettingsClient() {
     );
   }
 
-  function resetSettings() {
+  async function resetSettings() {
     setCalculatorDefaults(defaultCalculatorDefaults);
     setExportDefaults(defaultExportDefaults);
-    saveCalculatorDefaults(defaultCalculatorDefaults);
-    saveExportDefaults(defaultExportDefaults);
-    setMessage({ tone: "success", text: "Settings reset." });
+    const [calculatorResult, exportResult] = await Promise.all([
+      saveCalculatorDefaults(defaultCalculatorDefaults),
+      saveExportDefaults(defaultExportDefaults),
+    ]);
+    const error = calculatorResult.message ?? exportResult.message;
+    setMessage(error ? { tone: "error", text: error } : { tone: "success", text: "Settings reset." });
   }
 
   function showCreateAccountPrompt() {
     setMessage({
       tone: "info",
-      text: "Defaults are saved on this device. Create a free account to keep your currency, market and tax defaults across visits.",
+      text: "Create a free account to save your currency, market and tax defaults across devices.",
     });
   }
 
@@ -190,7 +209,7 @@ export function SettingsClient() {
               <>
                 <div>
                   <h3>Save calculator defaults with a free account</h3>
-                  <p>Create a free account to keep your market, currency and tax defaults across visits. You can still use calculators without an account.</p>
+                  <p>Create a free account to keep your market, currency and tax defaults across devices. Settings are not saved on this device.</p>
                 </div>
                 <div className="settings-banner-actions">
                   <Link className="button button-small" href="/create-account?returnTo=/settings" onClick={showCreateAccountPrompt}>

@@ -1,11 +1,8 @@
 "use client";
 
 import { EXPORT_PLANNING_CAVEAT } from "./commercialCaveats";
+import { getSupabaseBrowserClient } from "./supabaseClient";
 
-export const CALCULATOR_DEFAULTS_KEY = "aptCalculatorDefaults";
-export const EXPORT_DEFAULTS_KEY = "aptExportDefaults";
-export const PRESENTATION_TEMPLATE_META_KEY = "aptPresentationTemplateMeta";
-export const PRESENTATION_TEMPLATES_KEY = "aptPresentationTemplates";
 export const PRESENTATION_TEMPLATE_LIMIT_BYTES = 20 * 1024 * 1024;
 export const PRESENTATION_TEMPLATE_LIBRARY_LIMIT = 3;
 
@@ -72,44 +69,38 @@ export const defaultExportDefaults: ExportDefaults = {
   disclaimer: EXPORT_PLANNING_CAVEAT,
 };
 
-function readLocalObject<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  const saved = window.localStorage.getItem(key);
-  if (!saved) return fallback;
-  try {
-    return { ...fallback, ...(JSON.parse(saved) as Partial<T>) };
-  } catch {
-    return fallback;
-  }
-}
+type AccountSettings = {
+  calculatorDefaults: CalculatorDefaults;
+  exportDefaults: ExportDefaults;
+  presentationTemplates: SavedPresentationTemplate[];
+};
 
-function writeLocalObject<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(key, JSON.stringify(value));
-}
+type AccountSettingsRow = {
+  calculator_defaults: Partial<CalculatorDefaults> | null;
+  export_defaults: Partial<ExportDefaults> | null;
+  presentation_templates: SavedPresentationTemplate[] | null;
+};
 
-export function readCalculatorDefaults() {
-  // TODO: Load authenticated Pro account defaults from Supabase profile storage before local fallback.
-  const saved = readLocalObject(CALCULATOR_DEFAULTS_KEY, defaultCalculatorDefaults);
+export type AccountSettingsResult = {
+  data: AccountSettings;
+  message?: string;
+};
+
+function normalizeCalculatorDefaults(saved: Partial<CalculatorDefaults> | null | undefined): CalculatorDefaults {
+  const next = { ...defaultCalculatorDefaults, ...(saved ?? {}) };
   return {
-    currency: saved.currency || defaultCalculatorDefaults.currency,
-    market: saved.market || defaultCalculatorDefaults.market,
-    retailTaxBasis: saved.retailTaxBasis || defaultCalculatorDefaults.retailTaxBasis,
-    taxRate: Number.isFinite(saved.taxRate) ? saved.taxRate : defaultCalculatorDefaults.taxRate,
-    taxLabel: saved.taxLabel || defaultCalculatorDefaults.taxLabel,
-    customTaxLabel: saved.customTaxLabel || defaultCalculatorDefaults.customTaxLabel,
-    cogsBehaviour: saved.cogsBehaviour || defaultCalculatorDefaults.cogsBehaviour,
+    currency: next.currency || defaultCalculatorDefaults.currency,
+    market: next.market || defaultCalculatorDefaults.market,
+    retailTaxBasis: next.retailTaxBasis || defaultCalculatorDefaults.retailTaxBasis,
+    taxRate: Number.isFinite(next.taxRate) ? next.taxRate : defaultCalculatorDefaults.taxRate,
+    taxLabel: next.taxLabel || defaultCalculatorDefaults.taxLabel,
+    customTaxLabel: next.customTaxLabel || defaultCalculatorDefaults.customTaxLabel,
+    cogsBehaviour: next.cogsBehaviour || defaultCalculatorDefaults.cogsBehaviour,
   };
 }
 
-export function saveCalculatorDefaults(defaults: CalculatorDefaults) {
-  // TODO: Save authenticated Pro account defaults to Supabase profile storage.
-  writeLocalObject(CALCULATOR_DEFAULTS_KEY, defaults);
-}
-
-export function readExportDefaults() {
-  // TODO: Load authenticated Pro export defaults from Supabase profile storage before local fallback.
-  const saved = readLocalObject(EXPORT_DEFAULTS_KEY, defaultExportDefaults);
+function normalizeExportDefaults(saved: Partial<ExportDefaults> | null | undefined): ExportDefaults {
+  const next = { ...defaultExportDefaults, ...(saved ?? {}) };
   const formatAliases: Record<string, ExportDefaults["defaultExportFormat"]> = {
     powerpoint: "pptx",
     pptx: "pptx",
@@ -117,35 +108,47 @@ export function readExportDefaults() {
     keynote_compatible: "keynote_compatible",
   };
   return {
-    ...saved,
-    defaultExportFormat: formatAliases[saved.defaultExportFormat] ?? defaultExportDefaults.defaultExportFormat,
+    ...next,
+    companyLogoStoragePath: next.companyLogoStoragePath ?? null,
+    defaultExportFormat: formatAliases[next.defaultExportFormat] ?? defaultExportDefaults.defaultExportFormat,
   };
 }
 
-export function saveExportDefaults(defaults: ExportDefaults) {
-  // TODO: Save authenticated Pro export defaults to Supabase profile storage.
-  writeLocalObject(EXPORT_DEFAULTS_KEY, defaults);
+export function readCalculatorDefaults() {
+  return defaultCalculatorDefaults;
+}
+
+export async function saveCalculatorDefaults(defaults: CalculatorDefaults) {
+  return saveAccountSettings({ calculatorDefaults: normalizeCalculatorDefaults(defaults) });
+}
+
+export function readExportDefaults() {
+  return defaultExportDefaults;
+}
+
+export async function saveExportDefaults(defaults: ExportDefaults) {
+  return saveAccountSettings({ exportDefaults: normalizeExportDefaults(defaults) });
 }
 
 export function readPresentationTemplateMeta(): PresentationTemplateMeta {
-  if (typeof window === "undefined") return null;
-  const saved = window.localStorage.getItem(PRESENTATION_TEMPLATE_META_KEY);
-  if (!saved) return null;
-  try {
-    return JSON.parse(saved) as PresentationTemplateMeta;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
-export function savePresentationTemplateMeta(meta: PresentationTemplateMeta) {
-  // TODO: Save authenticated Pro template metadata and storage reference to Supabase profile storage.
-  if (typeof window === "undefined") return;
-  if (!meta) {
-    window.localStorage.removeItem(PRESENTATION_TEMPLATE_META_KEY);
-    return;
-  }
-  window.localStorage.setItem(PRESENTATION_TEMPLATE_META_KEY, JSON.stringify(meta));
+export async function savePresentationTemplateMeta(meta: PresentationTemplateMeta) {
+  const templates = meta
+    ? [
+        {
+          id: meta.id || `template-${meta.uploadedAt}`,
+          displayName: meta.displayName || "Main company template",
+          filename: meta.filename,
+          uploadedAt: meta.uploadedAt,
+          size: meta.size,
+          storagePathOrUrl: meta.storagePathOrUrl || meta.storagePath || null,
+          isDefault: true,
+        },
+      ]
+    : [];
+  return savePresentationTemplates(templates);
 }
 
 export function getSavedPresentationTemplate() {
@@ -172,40 +175,80 @@ function normaliseTemplateLibrary(items: SavedPresentationTemplate[]) {
 }
 
 export function readPresentationTemplates(): SavedPresentationTemplate[] {
-  // TODO: Load authenticated Pro presentation template library metadata from Supabase profile storage.
-  if (typeof window === "undefined") return [];
-  const saved = window.localStorage.getItem(PRESENTATION_TEMPLATES_KEY);
-  if (saved) {
-    try {
-      return normaliseTemplateLibrary(JSON.parse(saved) as SavedPresentationTemplate[]);
-    } catch {
-      return [];
-    }
-  }
-
-  const legacy = readPresentationTemplateMeta();
-  if (!legacy) return [];
-  return normaliseTemplateLibrary([
-    {
-      id: legacy.id || `legacy-${legacy.uploadedAt}`,
-      displayName: legacy.displayName || "Main company template",
-      filename: legacy.filename,
-      uploadedAt: legacy.uploadedAt,
-      size: legacy.size,
-      storagePathOrUrl: legacy.storagePathOrUrl || legacy.storagePath || null,
-      isDefault: true,
-    },
-  ]);
+  return [];
 }
 
-export function savePresentationTemplates(templates: SavedPresentationTemplate[]) {
-  // TODO: Save authenticated Pro presentation template library metadata to Supabase profile storage.
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(PRESENTATION_TEMPLATES_KEY, JSON.stringify(normaliseTemplateLibrary(templates)));
+export async function savePresentationTemplates(templates: SavedPresentationTemplate[]) {
+  return saveAccountSettings({ presentationTemplates: normaliseTemplateLibrary(templates) });
 }
 
 export function getDefaultPresentationTemplate() {
   return readPresentationTemplates().find((template) => template.isDefault) ?? null;
+}
+
+async function getAuthenticatedUser() {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) return { supabase: null, user: null };
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return { supabase, user: null };
+  return { supabase, user: data.user };
+}
+
+function defaultAccountSettings(): AccountSettings {
+  return {
+    calculatorDefaults: defaultCalculatorDefaults,
+    exportDefaults: defaultExportDefaults,
+    presentationTemplates: [],
+  };
+}
+
+function normalizeAccountSettings(row?: AccountSettingsRow | null): AccountSettings {
+  return {
+    calculatorDefaults: normalizeCalculatorDefaults(row?.calculator_defaults),
+    exportDefaults: normalizeExportDefaults(row?.export_defaults),
+    presentationTemplates: normaliseTemplateLibrary(row?.presentation_templates ?? []),
+  };
+}
+
+export async function loadAccountSettings(): Promise<AccountSettingsResult> {
+  const { supabase, user } = await getAuthenticatedUser();
+  if (!supabase || !user) {
+    return { data: defaultAccountSettings(), message: "Sign in to load account settings." };
+  }
+
+  const { data, error } = await supabase
+    .from("account_settings")
+    .select("calculator_defaults,export_defaults,presentation_templates")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return { data: defaultAccountSettings(), message: "Could not load account settings." };
+  return { data: normalizeAccountSettings(data as AccountSettingsRow | null) };
+}
+
+export async function saveAccountSettings(partial: Partial<AccountSettings>): Promise<AccountSettingsResult> {
+  const { supabase, user } = await getAuthenticatedUser();
+  const current = await loadAccountSettings();
+  const merged = {
+    calculatorDefaults: normalizeCalculatorDefaults(partial.calculatorDefaults ?? current.data.calculatorDefaults),
+    exportDefaults: normalizeExportDefaults(partial.exportDefaults ?? current.data.exportDefaults),
+    presentationTemplates: normaliseTemplateLibrary(partial.presentationTemplates ?? current.data.presentationTemplates),
+  };
+
+  if (!supabase || !user) {
+    return { data: merged, message: "Sign in to save settings to your account. Nothing was saved on this device." };
+  }
+
+  const { error } = await supabase.from("account_settings").upsert({
+    user_id: user.id,
+    calculator_defaults: merged.calculatorDefaults,
+    export_defaults: merged.exportDefaults,
+    presentation_templates: merged.presentationTemplates,
+    updated_at: new Date().toISOString(),
+  });
+
+  if (error) return { data: merged, message: "Could not save settings to your account. Nothing was saved on this device." };
+  return { data: merged };
 }
 
 export function retailTaxBasisToVatBasis(value: RetailTaxBasisDefault) {

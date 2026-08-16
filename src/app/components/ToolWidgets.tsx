@@ -11,6 +11,7 @@ import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "./CalculatorCaveat";
 import {
   getActiveTaxLabel,
+  loadAccountSettings,
   readCalculatorDefaults,
   saveCalculatorDefaults,
   vatBasisToRetailTaxBasis,
@@ -40,8 +41,6 @@ const currencyChoices = [
   { label: "Other (¤)", value: "Other", symbol: "¤" },
 ];
 
-const LAST_USED_CALCULATOR_VALUES_KEY = "aptLastUsedCalculatorValues";
-const TOOL_DEFAULTS_KEY = "aptToolDefaults";
 const DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY = "aptDismissedCreateAccountDefaultsPrompt";
 const SUPPORT_HELP =
   "Supplier-funded support per unit, such as off-invoice support, allowance or trade funding.";
@@ -97,7 +96,7 @@ function inferToolDefaultsFromBrowser(): ToolDefaults {
 function readToolDefaults(): ToolDefaults {
   const savedDefaults = readCalculatorDefaults();
   const inferred = inferToolDefaultsFromBrowser();
-  const fallback: ToolDefaults = {
+  return {
     ...inferred,
     market: savedDefaults.market || inferred.market,
     currency: savedDefaults.currency || inferred.currency,
@@ -106,46 +105,16 @@ function readToolDefaults(): ToolDefaults {
     taxRate: String(savedDefaults.taxRate || inferred.taxRate),
     retailTaxBasis: savedDefaults.retailTaxBasis === "includes_tax" ? "includes" : "excludes",
   };
-  if (typeof window === "undefined") return fallback;
-  try {
-    const saved = { ...fallback, ...(JSON.parse(window.localStorage.getItem(TOOL_DEFAULTS_KEY) ?? "{}") as Partial<ToolDefaults>) };
-    return {
-      market: saved.market,
-      currency: saved.currency,
-      taxLabel: saved.taxLabel,
-      customTaxLabel: saved.customTaxLabel,
-      taxRate: saved.taxRate,
-      retailTaxBasis: saved.retailTaxBasis,
-    };
-  } catch {
-    return fallback;
-  }
 }
 
-function writeToolDefaults(next: Partial<ToolDefaults>) {
-  if (typeof window === "undefined") return;
-  const current = readToolDefaults();
-  window.localStorage.setItem(TOOL_DEFAULTS_KEY, JSON.stringify({ ...current, ...next }));
-}
-
-function readLastUsedCalculatorValues(id: string) {
-  if (typeof window === "undefined") return {};
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(LAST_USED_CALCULATOR_VALUES_KEY) ?? "{}") as Record<string, Record<string, string>>;
-    return saved[id] ?? {};
-  } catch {
-    return {};
-  }
+function readLastUsedCalculatorValues(id: string): Record<string, string> {
+  void id;
+  return {};
 }
 
 function writeLastUsedCalculatorValues(id: string, values: Record<string, string>) {
-  if (typeof window === "undefined") return;
-  try {
-    const saved = JSON.parse(window.localStorage.getItem(LAST_USED_CALCULATOR_VALUES_KEY) ?? "{}") as Record<string, Record<string, string>>;
-    window.localStorage.setItem(LAST_USED_CALCULATOR_VALUES_KEY, JSON.stringify({ ...saved, [id]: values }));
-  } catch {
-    window.localStorage.setItem(LAST_USED_CALCULATOR_VALUES_KEY, JSON.stringify({ [id]: values }));
-  }
+  void id;
+  void values;
 }
 
 function csvEscape(value: string | number) {
@@ -514,8 +483,14 @@ function SaveAnalysisAction({
       summaryText,
       sourcePath,
     });
+    if (!result.data) {
+      setSavedId("");
+      setMessage(result.message ?? "Could not save analysis.");
+      setIsOpen(false);
+      return;
+    }
     setSavedId(String(result.data.id ?? ""));
-    setMessage(result.message ?? (result.mode === "account" ? "Analysis saved to your account." : "Analysis saved on this device."));
+    setMessage("Analysis saved to your account.");
     setIsOpen(false);
   }
 
@@ -806,6 +781,26 @@ function ContextualCalculatorSettings({
   const needsSettings = requirements.usesCurrency || requirements.usesRetailTaxBasis || requirements.usesVatRate;
   const usesTax = requirements.usesRetailTaxBasis || requirements.usesVatRate;
 
+  useEffect(() => {
+    let isMounted = true;
+    if (!isAuthenticated) return;
+    loadAccountSettings().then((result) => {
+      if (!isMounted || result.message) return;
+      const defaults = result.data.calculatorDefaults;
+      setMarket(defaults.market);
+      setCurrencyCode(defaults.currency);
+      setVatRate(String(defaults.taxRate));
+      setTaxLabel(defaults.taxLabel);
+      setCustomTaxLabel(defaults.customTaxLabel);
+      const nextBasis = defaults.retailTaxBasis === "includes_tax" ? "includes" : "excludes";
+      setLocalRetailTaxBasis(nextBasis);
+      setRetailTaxBasis?.(nextBasis);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, setCurrencyCode, setRetailTaxBasis, setVatRate, setTaxLabel, setCustomTaxLabel]);
+
   if (!needsSettings) return null;
 
   const activeTaxLabel = getActiveTaxLabel({ taxLabel, customTaxLabel });
@@ -815,22 +810,19 @@ function ContextualCalculatorSettings({
     ? `${currencyCode} · ${market} ${tax} ${Number(vatRate) || 0}% · ${basisSummary}`
     : `${currencyCode} · ${market}`;
 
-  function saveDefaults() {
+  async function saveDefaults() {
+    if (!isAuthenticated) {
+      setSavedMessage("Create a free account to save defaults across devices.");
+      setIsExpanded(false);
+      window.setTimeout(() => setSavedMessage(""), 3200);
+      return;
+    }
     const current = readCalculatorDefaults();
-    const nextToolDefaults: ToolDefaults = {
-      market,
-      currency: currencyCode,
-      taxLabel,
-      customTaxLabel: customTaxLabel.trim(),
-      taxRate: vatRate,
-      retailTaxBasis: activeRetailTaxBasis,
-    };
     if (taxLabel === "Custom" && !customTaxLabel.trim()) {
       setSavedMessage("Enter a custom tax label or choose VAT, IVA or Sales tax.");
       return;
     }
-    writeToolDefaults(nextToolDefaults);
-    saveCalculatorDefaults({
+    const result = await saveCalculatorDefaults({
       ...current,
       market,
       currency: currencyCode,
@@ -839,19 +831,14 @@ function ContextualCalculatorSettings({
       customTaxLabel: customTaxLabel.trim(),
       retailTaxBasis: vatBasisToRetailTaxBasis(activeRetailTaxBasis),
     });
-    setSavedMessage(isAuthenticated ? "Defaults saved." : "Defaults saved on this device.");
+    setSavedMessage(result.message ?? "Defaults saved to your account.");
     setIsExpanded(false);
     window.setTimeout(() => setSavedMessage(""), 3200);
-  }
-
-  function rememberToolDefaults(next: Partial<ToolDefaults>) {
-    writeToolDefaults(next);
   }
 
   function updateRetailBasis(value: VatBasis) {
     setLocalRetailTaxBasis(value);
     setRetailTaxBasis?.(value);
-    rememberToolDefaults({ retailTaxBasis: value });
   }
 
   function dismissAccountPrompt() {
@@ -862,7 +849,6 @@ function ContextualCalculatorSettings({
   }
 
   function handleCreateAccountClick() {
-    saveDefaults();
     if (typeof window !== "undefined") {
       window.location.href = `/create-account?returnTo=${encodeURIComponent(window.location.pathname)}`;
     }
@@ -878,15 +864,9 @@ function ContextualCalculatorSettings({
           <button className="button button-secondary button-small" type="button" onClick={() => setIsExpanded((current) => !current)}>
             {isExpanded ? "Done" : "Change"}
           </button>
-          {isAuthenticated ? (
-            <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
-              Save defaults
-            </button>
-          ) : (
-            <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
-              Save on this device
-            </button>
-          )}
+          <button className="button button-secondary button-small" type="button" onClick={saveDefaults}>
+            Save defaults
+          </button>
         </div>
       </div>
 
@@ -901,7 +881,6 @@ function ContextualCalculatorSettings({
               value={market}
               onChange={(value) => {
                 setMarket(value);
-                rememberToolDefaults({ market: value });
               }}
               options={marketOptions.map((value) => ({ label: value, value }))}
             />
@@ -912,7 +891,6 @@ function ContextualCalculatorSettings({
             value={currencyCode}
             onChange={(value) => {
               setCurrencyCode(value);
-              rememberToolDefaults({ currency: value });
             }}
             options={currencyChoices.map(({ label, value }) => ({ label, value }))}
           />
@@ -925,7 +903,6 @@ function ContextualCalculatorSettings({
             onChange={(value) => {
               const next = value as TaxLabel;
               setTaxLabel(next);
-              rememberToolDefaults({ taxLabel: next });
             }}
             options={[
               { label: "VAT", value: "VAT" },
@@ -952,7 +929,6 @@ function ContextualCalculatorSettings({
               onChange={(event) => {
                 const next = event.target.value.slice(0, 20);
                 setCustomTaxLabel(next);
-                rememberToolDefaults({ customTaxLabel: next });
               }}
             />
           </Field>
@@ -967,10 +943,7 @@ function ContextualCalculatorSettings({
             }
             placeholder="e.g. 20"
             value={vatRate}
-            onChange={(value) => {
-              setVatRate(value);
-              rememberToolDefaults({ taxRate: value });
-            }}
+            onChange={setVatRate}
           />
         ) : null}
         {usesTax ? (

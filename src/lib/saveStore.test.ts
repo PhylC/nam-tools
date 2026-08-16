@@ -81,7 +81,7 @@ describe("saveStore", () => {
     window.localStorage.clear();
   });
 
-  it("saves analyses locally when no Supabase client is available", async () => {
+  it("does not save analyses locally when no account client is available", async () => {
     const saved = await saveAnalysis({
       title: "Margin check",
       calculatorId: "gross-margin",
@@ -89,21 +89,23 @@ describe("saveStore", () => {
       outputs: { margin: "32%" },
     });
 
-    expect(saved.mode).toBe("local");
-    expect(saved.data).toMatchObject({
-      title: "Margin check",
-      calculatorId: "gross-margin",
-      saveMode: "local",
+    expect(saved).toMatchObject({
+      data: null,
+      mode: "account",
+      message: "Sign in to save analyses to your account.",
     });
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
 
     const listed = await listSavedAnalyses();
-    expect(listed.mode).toBe("local");
-    expect(listed.data).toHaveLength(1);
-    expect(listed.data[0]).toMatchObject({ title: "Margin check", saveMode: "local" });
+    expect(listed).toMatchObject({
+      data: [],
+      mode: "account",
+      message: "Sign in to view account saves.",
+    });
   });
 
-  it("saves analyses to the account and merges device-only saves when listing", async () => {
-    await saveAnalysis({ title: "Device only analysis", calculatorId: "local" });
+  it("saves analyses to the account without merging device-only saves", async () => {
+    window.localStorage.setItem("aptSavedAnalyses", JSON.stringify([{ id: "local-1", title: "Device only analysis" }]));
 
     const { client, tables } = createSupabaseMock();
     mockState.client = client;
@@ -116,6 +118,7 @@ describe("saveStore", () => {
     });
 
     expect(saved.mode).toBe("account");
+    expect(saved.data).toMatchObject({ title: "Account analysis", saveMode: "account" });
     expect(tables.saved_analyses).toHaveLength(1);
     expect(tables.saved_analyses[0]).toMatchObject({
       user_id: "user-1",
@@ -127,28 +130,27 @@ describe("saveStore", () => {
 
     const listed = await listSavedAnalyses();
     expect(listed.mode).toBe("account");
-    expect(listed.data.map((item) => item.title)).toEqual(["Account analysis", "Device only analysis"]);
-    expect(listed.data.map((item) => item.saveMode)).toEqual(["account", "local"]);
+    expect(listed.data.map((item) => item.title)).toEqual(["Account analysis"]);
+    expect(listed.data.map((item) => item.saveMode)).toEqual(["account"]);
   });
 
-  it("falls back to a device scenario save when account upsert fails", async () => {
+  it("does not save scenarios when account upsert fails", async () => {
     const { client, tables } = createSupabaseMock({ upsertError: true });
     mockState.client = client;
 
     const saved = await saveScenario({
-      title: "Fallback scenario",
-      scenarioData: { name: "Fallback scenario" },
+      title: "Failed scenario",
+      scenarioData: { name: "Failed scenario" },
       sourcePath: "/roi-tool",
     });
 
-    expect(saved.mode).toBe("local");
-    expect(saved.message).toBe("Saved on this device. Account sync is unavailable right now.");
-    expect(saved.data).toMatchObject({ title: "Fallback scenario", saveMode: "local" });
+    expect(saved).toMatchObject({
+      data: null,
+      mode: "account",
+      message: "Could not save to your account. Nothing was saved.",
+    });
     expect(tables.saved_scenarios).toHaveLength(0);
-
-    const listed = await listSavedScenarios();
-    expect(listed.data).toHaveLength(1);
-    expect(listed.data[0]).toMatchObject({ title: "Fallback scenario", saveMode: "local" });
+    expect(window.localStorage.setItem).not.toHaveBeenCalled();
   });
 
   it("deletes account-backed scenarios by id and user", async () => {
@@ -161,6 +163,7 @@ describe("saveStore", () => {
     });
 
     expect(tables.saved_scenarios).toHaveLength(1);
+    if (!saved.data) throw new Error("Expected account save to succeed");
 
     const deleted = await deleteSavedScenario(String(saved.data.id));
 
@@ -168,17 +171,18 @@ describe("saveStore", () => {
     expect(tables.saved_scenarios).toHaveLength(0);
   });
 
-  it("shows device saves only when account listing fails", async () => {
-    await saveScenario({ title: "Device scenario" });
+  it("returns no device saves when account listing fails", async () => {
+    window.localStorage.setItem("aptSavedScenarios", JSON.stringify([{ id: "local-1", title: "Device scenario" }]));
 
     const { client } = createSupabaseMock({ selectError: true });
     mockState.client = client;
 
     const listed = await listSavedScenarios();
 
-    expect(listed.mode).toBe("local");
-    expect(listed.message).toBe("Could not load account saves. Showing device saves only.");
-    expect(listed.data).toHaveLength(1);
-    expect(listed.data[0]).toMatchObject({ title: "Device scenario", saveMode: "local" });
+    expect(listed).toMatchObject({
+      data: [],
+      mode: "account",
+      message: "Could not load account saves.",
+    });
   });
 });

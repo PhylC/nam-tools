@@ -1398,12 +1398,16 @@ export function RoiPlanner() {
       updated_at: now,
     };
     const result = await saveRoiPlan(snapshot);
+    if (!result.data) {
+      setSaveMessage(result.message ?? "Could not save comparison.");
+      return;
+    }
     await refreshSavedGroups();
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: comparisonName } : group)),
     }));
-    setSaveMessage(result.message ?? `Saved comparison "${comparisonName}" to your account.`);
+    setSaveMessage(`Saved comparison "${comparisonName}" to your account.`);
   }
 
   function openSaveScenario(scenario: RoiScenario) {
@@ -1438,8 +1442,15 @@ export function RoiPlanner() {
       defaults: {},
       sourcePath: "/roi-tool",
     });
+    if (!result.data) {
+      setSavedScenarioId("");
+      setScenarioSaveMessage(result.message ?? "Could not save scenario.");
+      setScenarioMessageId(scenario.id);
+      setSavingScenarioId("");
+      return;
+    }
     setSavedScenarioId(String(result.data.id ?? ""));
-    setScenarioSaveMessage(result.message ?? (result.mode === "account" ? "Scenario saved to your account." : "Scenario saved on this device."));
+    setScenarioSaveMessage("Scenario saved to your account.");
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
   }
@@ -1466,7 +1477,11 @@ export function RoiPlanner() {
     if (!saved) return;
     const now = new Date().toISOString();
     const result = await saveRoiPlan({ ...saved, name, group_name: name, savedAt: now, updatedAt: now, updated_at: now });
-    setSaveMessage(result.message ?? "");
+    if (!result.data) {
+      setSaveMessage(result.message ?? "Could not rename comparison.");
+      return;
+    }
+    setSaveMessage("");
     await refreshSavedGroups();
     setPlannerState((current) => ({
       ...current,

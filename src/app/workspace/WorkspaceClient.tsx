@@ -144,8 +144,8 @@ function SavedItemCard({
         ? `${sourcePath}?saved=${String(item.id)}`
         : sourcePath;
   const itemId = typeof item.id === "string" ? item.id : "";
-  const saveMode = item.saveMode === "account" ? "Saved to account" : item.saveMode === "local" ? "Saved on this device" : "";
-  const saveModeClass = item.saveMode === "account" ? "save-mode-badge save-mode-account" : item.saveMode === "local" ? "save-mode-badge save-mode-local" : "";
+  const saveMode = item.saveMode === "account" ? "Saved to account" : "";
+  const saveModeClass = item.saveMode === "account" ? "save-mode-badge save-mode-account" : "";
 
   return (
     <article className="saved-item-card">
