@@ -110,6 +110,17 @@ export function faqJsonLd(items: FaqItem[]) {
 }
 
 export function webApplicationJsonLd() {
+  const offers = [
+    { priceCurrency: "GBP", price: "9.99" },
+    { priceCurrency: "USD", price: "12.99" },
+    { priceCurrency: "EUR", price: "11.99" },
+  ].map((offer) => ({
+    "@type": "Offer",
+    url: `${SITE_URL}/pricing`,
+    availability: "https://schema.org/InStock",
+    ...offer,
+  }));
+
   return {
     "@type": "WebApplication",
     "@id": `${SITE_URL}/#webapp`,
@@ -119,15 +130,10 @@ export function webApplicationJsonLd() {
     operatingSystem: "Web",
     browserRequirements: "Requires JavaScript. Works in modern web browsers.",
     description:
-      "Commercial planning calculators and account planning tools for sales teams, account managers and retail supplier teams.",
+      "International commercial planning calculators and account planning tools for sales teams, account managers and retail supplier teams.",
     publisher: {
       "@id": `${SITE_URL}/#organization`,
     },
-    offers: {
-      "@type": "Offer",
-      url: `${SITE_URL}/pricing`,
-      priceCurrency: "GBP",
-      availability: "https://schema.org/InStock",
-    },
+    offers,
   };
 }

@@ -5,9 +5,9 @@ import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 import { RoiToolProduct } from "./RoiToolClient";
 
 export const metadata = seoMetadata({
-  title: "Promotion ROI Planner",
+  title: "Promotion ROI Planner for Trade Spend and Retail Support",
   description:
-    "Model promotion ROI, support investment, incremental revenue and profit for one SKU or a multi-line retail scenario.",
+    "Model promotion ROI, trade spend, support investment, incremental revenue and profit for one SKU or a multi-line retail scenario.",
   path: "/roi-tool",
 });
 
@@ -42,12 +42,12 @@ export default function RoiToolPage() {
         ]}
       />
       <Hero
-        eyebrow="ROI Tool"
-        title="ROI planner"
+        eyebrow="Promotion ROI tool"
+        title="Promotion ROI planner for trade spend and support."
       >
         <p>
           Model one SKU or a full multi-line promotion, compare scenarios and
-          export the numbers.
+          export the numbers for retailer, distributor or customer planning.
         </p>
       </Hero>
       <RoiToolProduct />

@@ -8,7 +8,7 @@ import { CalculatorsHubClient } from "./CalculatorsHubClient";
 export const metadata = seoMetadata({
   title: "Commercial Calculator Hub",
   description:
-    "Choose calculators for promo ROI, retailer margin, SOA support, invoice price and commercial planning questions.",
+    "Choose international calculators for promo ROI, retailer margin, trade support, invoice price, sales tax, VAT, IVA and commercial planning questions.",
   path: "/calculators",
 });
 
@@ -16,12 +16,17 @@ const calculatorFaqs = [
   {
     question: "Which commercial calculator should I start with?",
     answer:
-      "Use the ROI planner for a full promotion view. Use the quick calculators when you only need one answer, such as retail margin, invoice price or required support.",
+      "Use the ROI planner for a full promotion view. Use the quick calculators when you only need one answer, such as retail margin, invoice price, required support or tax conversion.",
   },
   {
     question: "Can I calculate retailer margin from invoice price?",
     answer:
-      "Yes. The retailer margin calculators help you check margin from invoice price, support, retail selling price and tax assumptions.",
+      "Yes. The retailer margin calculators help you check margin from invoice price, support, retail selling price and sales tax, VAT or IVA assumptions.",
+  },
+  {
+    question: "Can I use the calculators in different countries?",
+    answer:
+      "Yes. The calculators support configurable currency and tax assumptions, so you can model GBP, USD, EUR, sales tax, VAT or IVA planning scenarios.",
   },
   {
     question: "Can I work out the support or SOA needed for a promotion?",
@@ -57,7 +62,7 @@ export default function CalculatorsPage() {
       >
         <p>
           Start with the full ROI planner for a complete promotion view, or jump into a quick calculator when you only
-          need one answer.
+          need one answer for margin, invoice price, trade support, sales tax, VAT or IVA.
         </p>
       </Hero>
 

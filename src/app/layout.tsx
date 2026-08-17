@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "Run promo ROI, retailer margin, invoice price and SOA support calculators, then create clearer account plans and buyer-ready commercial summaries.",
+    "Run promo ROI, retailer margin, invoice price, sales tax / VAT / IVA and support calculators, then create clearer account plans and buyer-ready commercial summaries.",
   applicationName: SITE_NAME,
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     title: "Account Planning Tools | Commercial Planning Calculators for Sales & Account Teams",
     description:
-      "Run promo ROI, margin, invoice price and support checks with clearer outputs for retailer meetings, internal reviews and account planning.",
+      "Run promo ROI, margin, invoice price, tax and support checks with clearer outputs for retailer meetings, internal reviews and account planning.",
     images: [
       {
         url: OG_IMAGE,
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Account Planning Tools | Commercial Planning Calculators for Sales & Account Teams",
     description:
-      "Commercial planning tools for account managers, sales leads and commercial teams.",
+      "Commercial planning tools for account managers, sales leads and commercial teams working across GBP, USD and EUR markets.",
     images: [
       {
         url: OG_IMAGE,
@@ -98,7 +98,7 @@ const structuredData = {
         "@id": `${SITE_URL}/#organization`,
       },
       description:
-        "Commercial planning calculators and tools for account managers, sales teams and retail supplier teams.",
+        "International commercial planning calculators and tools for account managers, sales teams and retail supplier teams.",
     },
     webApplicationJsonLd(),
   ],

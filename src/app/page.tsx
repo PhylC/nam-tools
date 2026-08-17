@@ -5,17 +5,17 @@ import { Hero, SectionHeader } from "./components/Shell";
 import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "./seo";
 
 export const metadata = seoMetadata({
-  title: "Commercial Planning Calculators for Sales & Account Teams",
-  absoluteTitle: "Account Planning Tools | Commercial Planning Calculators for Sales & Account Teams",
+  title: "International Commercial Planning Calculators for Sales & Account Teams",
+  absoluteTitle: "Account Planning Tools | International Commercial Planning Calculators",
   description:
-    "Run promo ROI, retailer margin, invoice price and SOA support checks, then create clearer account plans and buyer-ready commercial summaries.",
+    "Run promo ROI, retailer margin, invoice price, sales tax / VAT / IVA and trade support checks for account teams working across markets.",
   path: "/",
 });
 
 const quickCheckCards = [
   {
     title: "Promo ROI",
-    description: "See whether the extra volume is enough to justify price investment and support.",
+    description: "See whether the extra volume is enough to justify price investment, trade spend and support.",
     href: "/tools/promotion-roi-calculator",
     cta: "Open Promo ROI",
     preview: "Spend £10k → Return £14k → ROI 1.4x",
@@ -29,7 +29,7 @@ const quickCheckCards = [
   },
   {
     title: "Support / SOA",
-    description: "Work out the supplier support needed for a promoted retailer price.",
+    description: "Work out the supplier support, allowance or funding needed for a promoted retailer price.",
     href: "/calculators/required-soa-calculator",
     cta: "Open Support Calculator",
     preview: "£199 → £169 needs £21 SOA/unit",
@@ -40,7 +40,7 @@ const planningCards = [
   {
     title: "Buyer Meeting Planner",
     description:
-      "Structure the objective, ask, risk, negotiation points and next steps for a retailer conversation.",
+      "Structure the objective, ask, risk, negotiation points and next steps for a retailer or customer conversation.",
     href: "/tools/buyer-meeting-prep",
     cta: "Plan a meeting",
     preview: "Objective → Ask → Risks → Next steps",
@@ -106,8 +106,9 @@ const mobilePlanSummaries = [
 
 const credibilityPoints = [
   "Built for account managers and sales leaders",
-  "Fast commercial checks without spreadsheet rebuilds",
-  "Clearer summaries for buyer and account conversations",
+  "GBP, USD and EUR pricing support",
+  "Sales tax, VAT and IVA friendly calculators",
+  "Clearer summaries for buyer and customer conversations",
 ];
 
 const heroWorkflowSteps = [
@@ -169,7 +170,7 @@ const homeFaqs = [
   {
     question: "What is Account Planning Tools for?",
     answer:
-      "APT helps account managers and commercial teams run promotion ROI, margin, support and planning checks before customer conversations.",
+      "APT helps account managers and commercial teams run promotion ROI, margin, support and planning checks before retailer, distributor or customer conversations.",
   },
   {
     question: "Do I need to build a spreadsheet first?",
@@ -181,6 +182,11 @@ const homeFaqs = [
     answer:
       "Use Pro when you need to save work, compare scenarios, manage repeat planning flows or export cleaner outputs for meetings.",
   },
+  {
+    question: "Can APT be used outside the UK?",
+    answer:
+      "Yes. APT supports GBP, USD and EUR pricing, and its calculators use configurable sales tax, VAT or IVA assumptions for international retail and customer planning.",
+  },
 ];
 
 export default function Home() {
@@ -188,7 +194,7 @@ export default function Home() {
     <div className="page-stack home-page">
       <JsonLd data={[breadcrumbJsonLd([{ name: "Home", path: "/" }]), faqJsonLd(homeFaqs)]} />
       <Hero
-        eyebrow="Commercial planning calculators for account teams"
+        eyebrow="International commercial planning calculators"
         title="Make account planning decisions with clearer numbers."
         actions={
           <>
@@ -241,8 +247,8 @@ export default function Home() {
         }
       >
         <p>
-          Account Planning Tools helps sales teams model ROI, margin, support and account conversations without
-          rebuilding spreadsheets every time.
+          Account Planning Tools helps sales teams model ROI, margin, trade support and account conversations across
+          markets without rebuilding spreadsheets every time.
         </p>
         <ol className="home-hero-workflow" aria-label="How APT works">
           {heroWorkflowSteps.map((step) => (
@@ -272,13 +278,13 @@ export default function Home() {
             <h2>Promotion ROI planner</h2>
             <p>
               Use this when you need the full deal view: sales uplift, support spend, revenue, gross profit, ROI and a
-              short summary you can use in the conversation.
+              short summary you can use in the retailer, distributor or customer conversation.
             </p>
             <div className="home-card-preview home-featured-preview" aria-label="Example ROI planner calculation">
               <span>Volume uplift</span>
               <strong>+12,000 units</strong>
               <span>Support spend</span>
-              <strong>£6,200</strong>
+              <strong>£ / $ / €</strong>
               <span>ROI</span>
               <strong>1.4x</strong>
             </div>
@@ -331,6 +337,33 @@ export default function Home() {
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="section shell">
+        <article className="card split-band">
+          <div>
+            <p className="eyebrow">International use</p>
+            <h2>Built for commercial teams working across markets.</h2>
+          </div>
+          <div className="copy-stack">
+            <p>
+              Use APT for UK, US, European and other market planning where the language changes but the commercial
+              questions stay familiar: promotion ROI, retailer margin, trade spend, invoice price, sales tax, VAT or IVA.
+            </p>
+            <p>
+              Set currency and tax assumptions in the calculators, then use the output as a planning estimate for buyer
+              meetings, distributor reviews, internal sign-off and joint business planning.
+            </p>
+            <div className="cta-row">
+              <Link className="button button-secondary" href="/calculators/quick-calculators">
+                Open tax and margin calculators
+              </Link>
+              <Link className="text-link" href="/pricing">
+                See international pricing
+              </Link>
+            </div>
+          </div>
+        </article>
       </section>
 
       <section className="section shell home-free-pro-summary" id="free-vs-pro">

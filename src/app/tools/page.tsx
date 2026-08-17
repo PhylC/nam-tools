@@ -7,7 +7,7 @@ import { breadcrumbJsonLd, seoMetadata } from "../seo";
 export const metadata = seoMetadata({
   title: "Commercial Planning Resources for Account Managers and KAMs",
   description:
-    "A resource hub for promo ROI planning, calculators and presentation outputs for retail supplier teams.",
+    "International resource hub for promo ROI planning, trade spend calculators, account plans and presentation outputs for retail supplier teams.",
   path: "/tools",
 });
 
@@ -38,7 +38,8 @@ export default function ToolsPage() {
       <Hero eyebrow="All resources" title="Commercial planning tools for retail supplier teams">
         <p>
           Choose the right tool for the job: build a promo ROI plan, run a quick
-          commercial calculation, or create a buyer-ready presentation.
+          commercial calculation, or create a buyer-ready presentation for UK, US,
+          European or international customer work.
         </p>
       </Hero>
       <section className="shell section">
@@ -51,7 +52,8 @@ export default function ToolsPage() {
             <p>
               Use Calculators for fast maths, the ROI Tool for promotion return
               planning, and Presentations for buyer-ready and internal sign-off
-              outputs.
+              outputs. Currency, tax and market assumptions can be adjusted for
+              different commercial contexts.
             </p>
             <div className="cta-row">
               <Link className="button" href="/calculators">

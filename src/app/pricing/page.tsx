@@ -9,9 +9,9 @@ import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
-  title: "Pricing - Free vs APT Pro",
+  title: "International Pricing - Free vs APT Pro",
   description:
-    "Compare Free and APT Pro. Use free calculators for quick checks, or upgrade to save, compare and export commercial scenarios.",
+    "Compare Free and APT Pro pricing for GBP, USD and EUR markets. Use free calculators or upgrade to save, compare and export commercial scenarios.",
   path: "/pricing",
 });
 
@@ -24,6 +24,7 @@ const plans = [
       "Core calculators",
       "Single-line ROI checks",
       "Basic summaries and CSVs",
+      "GBP, USD and EUR calculator defaults",
       "Saved calculator defaults with an account",
     ],
     href: "/calculators",
@@ -38,6 +39,7 @@ const plans = [
       "Compare deal versions and reopen saved work",
       "Plan multi-SKU ROI scenarios",
       "Upload or paste spreadsheet data",
+      "Use sales tax, VAT or IVA assumptions",
       "Save templates, branding and export preferences",
       "Export cleaner meeting-ready outputs",
     ],
@@ -101,6 +103,16 @@ const decisionCards = [
 ];
 
 const pricingFaqs = [
+  {
+    question: "Which currencies does APT support?",
+    answer:
+      "APT Pro pricing is shown in GBP, USD or EUR where supported. Calculators can also be set up for GBP, USD and EUR planning contexts.",
+  },
+  {
+    question: "Can I use APT outside the UK?",
+    answer:
+      "Yes. APT is designed for account managers and commercial teams working across markets. Retail price checks support configurable sales tax, VAT or IVA assumptions.",
+  },
   {
     question: "Can I cancel anytime?",
     answer: "Yes. You can manage or cancel your subscription from your Account page through Stripe billing.",
@@ -175,10 +187,10 @@ export default async function PricingPage({
           faqJsonLd(pricingFaqs),
         ]}
       />
-      <Hero eyebrow="Pricing" title="Start free. Move to Pro when the work repeats.">
+      <Hero eyebrow="International pricing" title="Start free. Move to Pro when the work repeats.">
         <p>
           Use Free for quick checks. Choose APT Pro when you need to save,
-          compare and export customer-ready planning work.
+          compare and export customer-ready planning work across GBP, USD or EUR markets.
         </p>
         {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
         {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
@@ -202,6 +214,10 @@ export default async function PricingPage({
       </section>
       <section className="shell section">
         <SectionHeader eyebrow="Plans" title="Simple plans for different levels of work." />
+        <p className="pricing-context-note">
+          Pricing is localised where available. UK visitors see GBP, US visitors see USD and many European visitors see EUR.
+          Other markets may see GBP at checkout.
+        </p>
         <div className="grid pricing-plan-grid">
           {plans.map((plan) => (
             <article className={plan.recommended ? "card pricing-card pricing-card-featured" : "card pricing-card"} id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
@@ -304,6 +320,24 @@ export default async function PricingPage({
             <p>Choose Pro when the calculation becomes a planning workflow.</p>
           </div>
           <PricingUpgradeActions location="pricing_comparison" variant="panel" />
+        </article>
+      </section>
+      <section className="shell section">
+        <article className="card split-band">
+          <div>
+            <p className="eyebrow">International teams</p>
+            <h2>Same commercial workflow, different market assumptions.</h2>
+          </div>
+          <div className="copy-stack">
+            <p>
+              APT is useful for account managers, key account managers, category teams and commercial leads working in
+              markets where pricing, tax and retailer terminology differ.
+            </p>
+            <p>
+              Use sales tax, VAT or IVA settings in calculators, save defaults for repeat work, and treat outputs as
+              planning estimates to validate with your local finance, legal and customer teams.
+            </p>
+          </div>
         </article>
       </section>
       <section className="shell section">
