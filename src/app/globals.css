@@ -1137,6 +1137,19 @@ p {
   grid-template-columns: repeat(2, 1fr);
 }
 
+.keyword-target-grid {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.keyword-target-card {
+  box-shadow: none;
+}
+
+.keyword-target-card h3 {
+  margin-top: 0;
+}
+
 .card {
   border: 1px solid var(--border);
   border-radius: 8px;

@@ -17,6 +17,7 @@ const footerResourceLinks = [
   { href: "/roi-tool", label: "ROI Tool" },
   { href: "/calculators", label: "Calculators" },
   { href: "/tools", label: "Planning tools" },
+  { href: "/international-account-planning-tools", label: "International planning" },
   { href: "/presentation-templates", label: "Presentations" },
   { href: "/tools/promotion-roi-calculator", label: "Promotion ROI" },
   { href: "/tools/buyer-meeting-prep", label: "Buyer Meeting Planner" },

@@ -358,6 +358,9 @@ export default function Home() {
               <Link className="button button-secondary" href="/calculators/quick-calculators">
                 Open tax and margin calculators
               </Link>
+              <Link className="button button-secondary" href="/international-account-planning-tools">
+                Explore international planning
+              </Link>
               <Link className="text-link" href="/pricing">
                 See international pricing
               </Link>

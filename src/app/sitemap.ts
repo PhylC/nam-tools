@@ -7,6 +7,7 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: "/calculators", priority: 0.95, changeFrequency: "weekly" },
   { path: "/calculators/quick-calculators", priority: 0.9, changeFrequency: "weekly" },
   { path: "/roi-tool", priority: 0.95, changeFrequency: "weekly" },
+  { path: "/international-account-planning-tools", priority: 0.9, changeFrequency: "monthly" },
   { path: "/presentation-templates", priority: 0.85, changeFrequency: "monthly" },
   { path: "/tools", priority: 0.85, changeFrequency: "weekly" },
   { path: "/tools/promotion-roi-calculator", priority: 0.85, changeFrequency: "weekly" },

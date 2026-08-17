@@ -20,14 +20,27 @@ type SeoMetadataInput = {
   absoluteTitle?: string;
   description: string;
   path: string;
+  keywords?: string[];
 };
 
-export function seoMetadata({ title, absoluteTitle, description, path }: SeoMetadataInput): Metadata {
+export const INTERNATIONAL_KEYWORD_TARGETS = [
+  "account planning tools",
+  "commercial planning calculator",
+  "trade spend calculator",
+  "promotional ROI calculator",
+  "retailer margin calculator",
+  "VAT sales tax pricing calculator",
+  "FMCG account planning software",
+  "CPG commercial planning tools",
+];
+
+export function seoMetadata({ title, absoluteTitle, description, path, keywords }: SeoMetadataInput): Metadata {
   const socialTitle = absoluteTitle ?? `${title} | ${SITE_NAME}`;
 
   return {
     title: absoluteTitle ? { absolute: absoluteTitle } : title,
     description,
+    keywords,
     alternates: {
       canonical: path,
     },
