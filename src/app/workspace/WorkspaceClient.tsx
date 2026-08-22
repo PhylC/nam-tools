@@ -464,12 +464,14 @@ function SavedWorkRow({
   return (
     <article className={isComparison ? "workspace-list-row workspace-list-row-comparison" : "workspace-list-row"}>
       <div className="workspace-list-main">
+        <span className="workspace-table-type">
+          {isComparison ? "Comparison group" : isStandaloneScenario ? "Standalone scenario" : item.type === "Analysis" ? "Calculator result" : "Deck brief"}
+        </span>
         <div className="workspace-list-copy">
-          <span className="saved-item-meta">{isComparison ? "Comparison group" : isStandaloneScenario ? "Standalone scenario" : item.type === "Analysis" ? "Calculator result" : "Deck brief"}</span>
           <h3>{title}</h3>
           <p>{getItemDescription(item.record, item.type)}</p>
-          <small>{getUpdatedDate(item.record)}</small>
         </div>
+        <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
           {isStandaloneScenario ? (
@@ -567,6 +569,12 @@ function WorkspaceSectionList({
       </div>
       {items.length ? (
         <div className="workspace-table-list">
+          <div className="workspace-table-header" aria-hidden="true">
+            <span>Type</span>
+            <span>Name</span>
+            <span>Updated</span>
+            <span>Actions</span>
+          </div>
           {items.map((item) => (
             <SavedWorkRow
               item={item}
