@@ -565,6 +565,59 @@ async function trimPresentationToSlideCount(zip: ZipLike, targetSlideCount: numb
   if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
 }
 
+async function trimUnusedTemplateLayouts(zip: ZipLike, packagePaths: string[]) {
+  const slidePaths = packagePaths.filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path));
+  const usedLayouts = new Set<string>();
+  await Promise.all(
+    slidePaths.map(async (slidePath) => {
+      const layoutPath = await findRelationshipTarget(zip, slidePath, "/slideLayout");
+      if (layoutPath) usedLayouts.add(layoutPath);
+    }),
+  );
+  if (!usedLayouts.size) return;
+
+  const masterRelPath = "ppt/slideMasters/_rels/slideMaster1.xml.rels";
+  const masterRelsXml = await zip.file(masterRelPath)?.async("text");
+  const masterXml = await zip.file("ppt/slideMasters/slideMaster1.xml")?.async("text");
+  const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
+  let nextMasterRelsXml = masterRelsXml ?? "";
+  let nextMasterXml = masterXml ?? "";
+  let nextContentTypesXml = contentTypesXml ?? "";
+
+  const layoutRelIdsToRemove = new Set<string>();
+  if (masterRelsXml) {
+    [...masterRelsXml.matchAll(/<Relationship\b[^>]*\/>/g)].forEach((match) => {
+      const relXml = match[0];
+      if (!relationshipAttribute(relXml, "Type").endsWith("/slideLayout")) return;
+      const relId = relationshipAttribute(relXml, "Id");
+      const target = relationshipAttribute(relXml, "Target");
+      const resolved = target ? resolveZipTarget("ppt/slideMasters/slideMaster1.xml", target) : "";
+      if (usedLayouts.has(resolved)) return;
+      layoutRelIdsToRemove.add(relId);
+      nextMasterRelsXml = nextMasterRelsXml.replace(relXml, "");
+      zip.remove(resolved);
+      zip.remove(relationshipPathFor(resolved));
+      const slideLayoutNumber = Number(resolved.match(/slideLayout(\d+)\.xml$/)?.[1] ?? 0);
+      if (slideLayoutNumber && nextContentTypesXml) {
+        nextContentTypesXml = nextContentTypesXml.replace(
+          new RegExp(`<Override\\b[^>]*PartName="/ppt/slideLayouts/slideLayout${slideLayoutNumber}\\.xml"[^>]*\\/>`),
+          "",
+        );
+      }
+    });
+  }
+
+  if (nextMasterXml && layoutRelIdsToRemove.size) {
+    layoutRelIdsToRemove.forEach((relId) => {
+      nextMasterXml = nextMasterXml.replace(new RegExp(`<p:sldLayoutId\\b[^>]*r:id="${relId}"[^>]*\\/>`, "g"), "");
+    });
+  }
+
+  if (masterRelsXml) zip.file(masterRelPath, nextMasterRelsXml);
+  if (masterXml) zip.file("ppt/slideMasters/slideMaster1.xml", nextMasterXml);
+  if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
+}
+
 function sanitizePowerPointXml(xml: string) {
   return xml
     .replace(/<a:ext uri="\{28A0092B-C50C-407E-A947-70E740481C1C\}">[\s\S]*?<\/a:ext>/g, "")
@@ -694,7 +747,9 @@ async function createDeckFromUploadedTemplate({
 
     const appXml = await zip.file("docProps/app.xml")?.async("text");
     if (appXml) zip.file("docProps/app.xml", updateExtendedPresentationProperties(appXml, contents));
-    await sanitizePowerPointPackage(zip, Object.keys(zip.files));
+    const packagePaths = Object.keys(zip.files);
+    await sanitizePowerPointPackage(zip, packagePaths);
+    await trimUnusedTemplateLayouts(zip, Object.keys(zip.files));
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
