@@ -78,6 +78,7 @@ type DeckSlideContent = {
   title: string;
   lines: string[];
 };
+type DeckInputValues = Record<string, string>;
 type DeckPlaybook = {
   proofPrompt: string;
   inputPrompts: string[];
@@ -184,6 +185,30 @@ function briefSentences(value: string) {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 5);
+}
+
+function deckInputPlaceholder(prompt: string) {
+  const cleaned = prompt.toLowerCase();
+  if (cleaned.includes("sales") || cleaned.includes("margin") || cleaned.includes("forecast") || cleaned.includes("roi")) {
+    return "Add the key numbers, assumptions or where the data is uploaded.";
+  }
+  if (cleaned.includes("risk") || cleaned.includes("objection") || cleaned.includes("guardrail")) {
+    return "Add known risks, objections, approval limits or watchouts.";
+  }
+  if (cleaned.includes("action") || cleaned.includes("next") || cleaned.includes("milestone")) {
+    return "Add owners, timings, decisions needed or follow-up actions.";
+  }
+  return "Add the specific details this deck should use.";
+}
+
+function normaliseDeckInputs(inputs: DeckInputValues, playbook: DeckPlaybook) {
+  return playbook.inputPrompts
+    .map((prompt) => ({ prompt, value: (inputs[prompt] ?? "").trim() }))
+    .filter((item) => item.value);
+}
+
+function activeDeckInputValues(inputs: DeckInputValues, playbook: DeckPlaybook) {
+  return Object.fromEntries(normaliseDeckInputs(inputs, playbook).map((item) => [item.prompt, item.value]));
 }
 
 const defaultDeckPlaybook: DeckPlaybook = {
@@ -455,6 +480,7 @@ function deckOutline(deckLabel: string, deckType: string, includeFinancialSummar
 function buildDeckContent({
   deckLabel,
   deckType,
+  deckInputs,
   brief,
   includeFinancialSummary,
   includeNextStepsSlide,
@@ -462,6 +488,7 @@ function buildDeckContent({
 }: {
   deckLabel: string;
   deckType: string;
+  deckInputs: DeckInputValues;
   brief: string;
   includeFinancialSummary: boolean;
   includeNextStepsSlide: boolean;
@@ -469,18 +496,34 @@ function buildDeckContent({
 }) {
   const playbook = getDeckPlaybook(deckType);
   const outline = deckOutline(deckLabel, deckType, includeFinancialSummary, includeNextStepsSlide);
+  const suppliedInputs = normaliseDeckInputs(deckInputs, playbook);
+  const suppliedInputLines = suppliedInputs.map((item) => `${item.prompt}: ${item.value}`);
   const briefPoints = briefSentences(brief);
+  const evidenceLines = suppliedInputLines.length
+    ? suppliedInputLines
+    : briefPoints.length
+      ? briefPoints
+      : playbook.fallbackBrief;
+  const coverSummary = brief || suppliedInputs.slice(0, 2).map((item) => item.value).join("\n") || "Generated from your custom deck inputs. Add more detail to sharpen the next version.";
   const sourceSummary = supportingFiles.length
     ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
     : ["No supporting files attached to this draft."];
   const contents: DeckSlideContent[] = [
-    { title: deckLabel, lines: brief ? [brief] : ["Generated from your custom deck brief. Add more detail to sharpen the next version."] },
+    { title: deckLabel, lines: [coverSummary] },
     { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`) },
-    { title: playbook.evidenceSlideTitle, lines: briefPoints.length ? briefPoints : playbook.fallbackBrief },
+    { title: playbook.evidenceSlideTitle, lines: evidenceLines },
     { title: "Supporting data used", lines: sourceSummary },
-    playbook.recommendationSlide,
-    ...(includeFinancialSummary && playbook.financialSlide ? [playbook.financialSlide] : []),
-    playbook.risksSlide,
+    {
+      title: playbook.recommendationSlide.title,
+      lines: [...playbook.recommendationSlide.lines, ...suppliedInputLines.slice(0, 2)].slice(0, 8),
+    },
+    ...(includeFinancialSummary && playbook.financialSlide
+      ? [{ title: playbook.financialSlide.title, lines: [...playbook.financialSlide.lines, ...suppliedInputLines.filter((line) => /sales|margin|forecast|roi|investment|support|commercial/i.test(line)).slice(0, 2)].slice(0, 8) }]
+      : []),
+    {
+      title: playbook.risksSlide.title,
+      lines: [...playbook.risksSlide.lines, ...suppliedInputLines.filter((line) => /risk|objection|guardrail|dependency|watchout/i.test(line)).slice(0, 2)].slice(0, 8),
+    },
     ...(includeNextStepsSlide ? [playbook.nextStepsSlide] : []),
   ];
   return { outline, contents };
@@ -864,10 +907,10 @@ function sanitizePowerPointXml(xml: string) {
     .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
 }
 
-function removeEmptyCustomGeometryShapes(xml: string) {
+function removeUnsupportedTemplateShapes(xml: string) {
   return xml.replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, (shape) => {
     if (!shape.includes("<a:custGeom")) return shape;
-    if (/<a:t\b/.test(shape)) return shape;
+    if (/<p:txBody\b[\s\S]*?<a:t(?:\s|>)/.test(shape)) return shape;
     return "";
   });
 }
@@ -884,8 +927,8 @@ async function sanitizePowerPointPackage(zip: ZipLike, xmlPaths: string[]) {
         const xml = await zip.file(path)?.async("text");
         if (!xml) return;
         const sanitized = path.startsWith("ppt/slideMasters/")
-          ? removeEmptyCustomGeometryShapes(sanitizePowerPointXml(xml).replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, ""))
-          : removeEmptyCustomGeometryShapes(sanitizePowerPointXml(xml));
+          ? removeUnsupportedTemplateShapes(sanitizePowerPointXml(xml).replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, ""))
+          : removeUnsupportedTemplateShapes(sanitizePowerPointXml(xml));
         zip.file(path, sanitized);
       }),
   );
@@ -1064,6 +1107,7 @@ function addTextBlock(slide: PptxGenJS.Slide, title: string, lines: string[], de
 async function createDeckFile({
   deckLabel,
   deckType,
+  deckInputs,
   brief,
   audience,
   tone,
@@ -1076,6 +1120,7 @@ async function createDeckFile({
 }: {
   deckLabel: string;
   deckType: string;
+  deckInputs: DeckInputValues;
   brief: string;
   audience: string;
   tone: string;
@@ -1095,7 +1140,7 @@ async function createDeckFile({
         mutedTextColor: mutedReadableTextColor(autoTextColor),
       }
     : templateDesign;
-  const { outline, contents } = buildDeckContent({ deckLabel, deckType, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
+  const { outline, contents } = buildDeckContent({ deckLabel, deckType, deckInputs, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
   if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
     const templatedDeck = await withTimeout(
       createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents }),
@@ -1266,6 +1311,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [basedOnDeckMessage, setBasedOnDeckMessage] = useState("");
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [supportingError, setSupportingError] = useState("");
+  const [deckInputs, setDeckInputs] = useState<DeckInputValues>({});
   const [brief, setBrief] = useState("");
   const [audience, setAudience] = useState("Retailer/customer meeting");
   const [tone, setTone] = useState("concise_commercial");
@@ -1359,6 +1405,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
 
       setDeckName(`New ${getText(saved.name ?? saved.deck_name, "custom deck")}`);
       setDeckType(matchedDeckType);
+      setDeckInputs(isRecord(saved.deckInputs) ? Object.fromEntries(Object.entries(saved.deckInputs).map(([key, value]) => [key, getText(value)])) : {});
       setBrief(getText(saved.brief));
       setAudience(getText(saved.audience, "Retailer/customer meeting"));
       setTone(getText(saved.tone, "concise_commercial"));
@@ -1474,6 +1521,11 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setRequestMessage("Choose a template option before creating the deck.");
         return;
       }
+      if (!brief.trim() && normaliseDeckInputs(deckInputs, selectedPlaybook).length === 0) {
+        setRequestMessage(`Add at least one ${selectedDeck.label.toLowerCase()} input before creating the deck.`);
+        return;
+      }
+      const activeDeckInputs = activeDeckInputValues(deckInputs, selectedPlaybook);
       setIsCreatingDeck(true);
       setRequestMessage("Checking deck setup...");
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
@@ -1515,6 +1567,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         createDeckFile({
           deckLabel: resolvedDeckName,
           deckType,
+          deckInputs: activeDeckInputs,
           brief,
           audience,
           tone,
@@ -1549,6 +1602,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         oneOffTemplateFileMeta: activeUploadedTemplate ? toFileMeta(activeUploadedTemplate) : null,
         googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
         supportingFilesMeta: supportingFiles.map(toFileMeta),
+        deckInputs: activeDeckInputs,
         brief,
         audience,
         tone,
@@ -1819,7 +1873,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             </section>
 
             <section className="custom-deck-form-section">
-              <h2>Deck brief</h2>
+              <h2>Deck-specific inputs</h2>
               <div className="custom-deck-brief-guide">
                 <strong>{selectedDeck.label} inputs</strong>
                 <ul className="compact-list">
@@ -1828,15 +1882,31 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                   ))}
                 </ul>
               </div>
+              <div className="deck-input-grid">
+                {selectedPlaybook.inputPrompts.map((prompt) => (
+                  <label className="field" key={prompt}>
+                    <span>{prompt}</span>
+                    <textarea
+                      className="deck-input-textarea"
+                      placeholder={deckInputPlaceholder(prompt)}
+                      value={deckInputs[prompt] ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setDeckInputs((current) => ({ ...current, [prompt]: value }));
+                      }}
+                    />
+                  </label>
+                ))}
+              </div>
               <label className="field">
-                <span>Brief</span>
+                <span>Extra brief or story notes</span>
                 <textarea
                   className="deck-brief-textarea"
                   placeholder={selectedPlaybook.briefPlaceholder}
                   value={brief}
                   onChange={(event) => setBrief(event.target.value)}
                 />
-                <small>The first draft will follow a {selectedDeck.label.toLowerCase()} story, then use your files and brief to fill the evidence.</small>
+                <small>Optional. Use this for anything that does not fit the structured inputs.</small>
               </label>
             </section>
 
