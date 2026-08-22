@@ -122,6 +122,7 @@ const freeTemplates: FreeTemplate[] = [
 ];
 
 function customDeckHref(template: FreeTemplate) {
+  if (template.slug === "joint-business-plan") return "/tools/joint-business-plan-builder";
   const queryBySlug: Record<string, string> = {
     "joint-business-plan": "jbp",
     "qbr-template": "qbr",
@@ -359,7 +360,7 @@ export function PresentationTemplatesFree() {
                   Download PowerPoint template
                 </a>
                 <Link className="button button-secondary" href={customDeckHref(template)}>
-                  Build custom deck
+                  {template.slug === "joint-business-plan" ? "Open JBP builder" : "Build custom deck"}
                 </Link>
                 <div className="template-outline-utility">
                   <span>Need the structure only?</span>

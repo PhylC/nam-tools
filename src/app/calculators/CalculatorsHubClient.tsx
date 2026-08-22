@@ -155,11 +155,11 @@ const toolGroups: ToolGroup[] = [
       },
       {
         title: "JBP Builder",
-        description: "Create a practical joint business planning structure for customer conversations.",
+        description: "Create a JBP deck workflow and tracker for customer conversations.",
         href: "/tools/joint-business-plan-builder",
         cta: "Build JBP",
-        preview: "Goals -> Initiatives -> Measures",
-        keywords: ["jbp", "joint business plan", "goals", "initiatives", "measures", "planning"],
+        preview: "Goals -> Deck -> Tracker",
+        keywords: ["jbp", "joint business plan", "goals", "initiatives", "measures", "planning", "deck", "tracker"],
       },
       {
         title: "Presentation templates",

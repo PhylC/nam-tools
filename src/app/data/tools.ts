@@ -113,12 +113,14 @@ export const tools: Tool[] = [
     title: "Joint Business Plan Builder",
     shortTitle: "JBP Builder",
     description:
-      "Draft a practical JBP structure with growth pillars, activation, investment and success measures.",
+      "Build a practical JBP workflow with growth pillars, activation, investment, success measures, deck output and a tracker.",
     category: "Planning",
     href: "/tools/joint-business-plan-builder",
     related: ["buyer-meeting-prep", "account-plan-generator", "commercial-deal-calculator"],
     useCases: [
       "Create the first draft of a customer JBP",
+      "Turn the JBP into a deck using saved or uploaded templates",
+      "Export a spreadsheet-style tracker for pillars, owners, investment and measures",
       "Align category opportunity, activation and investment",
       "Prepare a senior internal review before customer presentation",
     ],

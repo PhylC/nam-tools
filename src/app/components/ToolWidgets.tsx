@@ -60,12 +60,12 @@ type SalesDataSummary = {
   weakestProduct: string;
   summaryText: string;
 };
-type AccountPlanDeckDraft = {
+type PlanningDeckDraft = {
   deckName: string;
-  deckType: "account-plan";
+  deckType: "account-plan" | "jbp";
   deckInputs: Record<string, string>;
   brief: string;
-  audience: "Internal review";
+  audience: "Internal review" | "Retailer/customer meeting" | "Leadership review";
   tone: "detailed_analytical" | "concise_commercial" | "executive_polished";
 };
 type TaxLabel = "VAT" | "IVA" | "Sales tax" | "GST" | "TVA" | "MwSt" | "Custom";
@@ -625,14 +625,16 @@ function CopyButton({ text, label = "Copy output" }: { text: string; label?: str
 
 function DownloadCsvButton({
   filename,
+  label = "Download CSV",
   rows,
 }: {
   filename: string;
+  label?: string;
   rows: CsvRow[];
 }) {
   return (
     <button className="button button-secondary copy-button" type="button" onClick={() => downloadCsv(filename, rows)}>
-      Download CSV
+      {label}
     </button>
   );
 }
@@ -644,22 +646,22 @@ function rowsToRecord(rows: CsvRow[] | undefined) {
   }, {});
 }
 
-function BuildAccountPlanDeckAction({ deckDraft }: { deckDraft: AccountPlanDeckDraft }) {
+function BuildPlanningDeckAction({ deckDraft }: { deckDraft: PlanningDeckDraft }) {
   const [message, setMessage] = useState("");
 
   function openDeckBuilder() {
     try {
       window.localStorage.setItem(CUSTOM_DECK_DRAFT_STORAGE_KEY, JSON.stringify(deckDraft));
-      window.location.assign("/custom-deck?template=account-plan");
+      window.location.assign(`/custom-deck?template=${deckDraft.deckType}`);
     } catch {
-      setMessage("Could not prepare the deck builder. Please open Custom deck and choose Account Plan.");
+      setMessage("Could not prepare the deck builder. Please open Custom deck and choose the right deck type.");
     }
   }
 
   return (
     <div className="save-work-action">
       <button className="button copy-button" type="button" onClick={openDeckBuilder}>
-        Build account plan deck
+        Build deck
       </button>
       {message ? (
         <div className="save-work-message" role="status">
@@ -3206,6 +3208,39 @@ export function JbpBuilder() {
     ["Risks and dependencies", "Customer feature space, internal funding approval, availability, accurate baseline data and clear review ownership."],
     ["Next steps", "Confirm owners, validate the financial case, agree timings and schedule the first review checkpoint."],
   ];
+  const jbpDeckDraft: PlanningDeckDraft = {
+    deckName: `${customer} Joint Business Plan`,
+    deckType: "jbp",
+    deckInputs: {
+      "Customer growth ambition and planning period": `${customer}: ${opportunity} Planning period: next 12 months.`,
+      "Joint objectives, category roles and shopper opportunity": objective,
+      "Investment plan, trade-offs, asks and expected return": `${initiative} Investment ask: ${investment}. Trade-offs should be agreed through finance and customer governance before final commitment.`,
+      "Success measures, owners, milestones and governance": `${measure}. Owners to align: NAM, category, finance, shopper marketing and supply. Review quarterly against the shared scorecard.`,
+    },
+    brief: "Create this as a customer-ready Joint Business Plan deck, supported by a spreadsheet-style tracker for pillars, investment, owners and measures.",
+    audience: "Retailer/customer meeting",
+    tone: "executive_polished",
+  };
+  const jbpSpreadsheetRows: CsvRow[] = [
+    { label: "Customer", value: customer },
+    { label: "Planning period", value: "Next 12 months" },
+    { label: "Shared objective", value: objective },
+    { label: "Growth opportunity", value: opportunity },
+    { label: "Growth pillar 1", value: "Grow the priority shopper mission" },
+    { label: "Growth pillar 2", value: "Improve distribution and availability on priority SKUs" },
+    { label: "Growth pillar 3", value: "Execute fewer, stronger activations with clearer measures" },
+    { label: "Activation plan", value: initiative },
+    { label: "Investment ask", value: investment },
+    { label: "Success measures", value: measure },
+    { label: "Owner - NAM", value: "Customer alignment and JBP governance" },
+    { label: "Owner - Category", value: "Category evidence, shopper story and range logic" },
+    { label: "Owner - Finance", value: "Investment guardrails, return assumptions and sign-off" },
+    { label: "Owner - Supply", value: "Availability, execution readiness and risk management" },
+    { label: "Q1 milestone", value: "Validate size of prize, owners and first activation" },
+    { label: "Q2 milestone", value: "Execute priority activation and review early indicators" },
+    { label: "Q3 milestone", value: "Scale what works and fix availability or range gaps" },
+    { label: "Q4 milestone", value: "Review full-year impact and agree next annual priorities" },
+  ];
 
   return (
     <GeneratorShell
@@ -3223,6 +3258,9 @@ export function JbpBuilder() {
       toolId="joint-business-plan-builder"
       toolName="Joint business plan builder"
       proFeatures={["Full JBP pack", "Quarterly milestones", "Customer-specific action tracker", "PDF/export", "Internal sell-in version"]}
+      deckDraft={jbpDeckDraft}
+      spreadsheetFilename={`apt-${slugifyFilename(customer)}-jbp-tracker.csv`}
+      spreadsheetRows={jbpSpreadsheetRows}
     />
   );
 }
@@ -3251,7 +3289,7 @@ export function AccountPlanGenerator() {
     ["Internal support needed", "Pricing guardrails, trade spend envelope, supply readiness, category evidence and senior sponsorship."],
     ["Review cadence", "Weekly internal action check, monthly customer trading review and quarterly strategic review."],
   ];
-  const accountPlanDeckDraft: AccountPlanDeckDraft = {
+  const accountPlanDeckDraft: PlanningDeckDraft = {
     deckName: `${account} internal account plan`,
     deckType: "account-plan",
     deckInputs: {
@@ -3345,15 +3383,19 @@ function GeneratorShell({
   fields,
   sections,
   sourcePath,
+  spreadsheetFilename,
+  spreadsheetRows,
   toolId,
   toolName,
   proFeatures,
 }: {
   defaultTitle: string;
-  deckDraft?: AccountPlanDeckDraft;
+  deckDraft?: PlanningDeckDraft;
   fields: React.ReactNode;
   sections: [string, string][];
   sourcePath: string;
+  spreadsheetFilename?: string;
+  spreadsheetRows?: CsvRow[];
   toolId: string;
   toolName: string;
   proFeatures: string[];
@@ -3381,7 +3423,8 @@ function GeneratorShell({
               summaryText={proOutput}
               sourcePath={sourcePath}
             />
-            {deckDraft ? <BuildAccountPlanDeckAction deckDraft={deckDraft} /> : null}
+            {spreadsheetRows?.length ? <DownloadCsvButton filename={spreadsheetFilename ?? `apt-${slugifyFilename(defaultTitle)}-tracker.csv`} label="Download JBP tracker" rows={spreadsheetRows} /> : null}
+            {deckDraft ? <BuildPlanningDeckAction deckDraft={deckDraft} /> : null}
           </div>
         </aside>
       ) : (

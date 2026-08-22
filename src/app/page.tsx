@@ -54,10 +54,10 @@ const planningCards = [
   },
   {
     title: "JBP Builder",
-    description: "Create a practical joint business planning structure for customer conversations.",
+    description: "Create a JBP deck workflow and tracker for customer conversations.",
     href: "/tools/joint-business-plan-builder",
     cta: "Build JBP",
-    preview: "Goals → Initiatives → Measures",
+    preview: "Goals → Deck → Tracker",
   },
 ];
 

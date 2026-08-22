@@ -4,7 +4,7 @@ import { seoMetadata } from "../../seo";
 
 export const metadata = seoMetadata({
   title: "Joint Business Plan Builder",
-  description: "Create a concise joint business plan outline with objectives, growth initiatives, investment asks and success measures.",
+  description: "Create a joint business plan workflow with objectives, growth initiatives, investment asks, success measures, deck output and a tracker.",
   path: "/tools/joint-business-plan-builder",
 });
 
@@ -12,8 +12,8 @@ export default function Page() {
   return (
     <ToolPage
       slug="joint-business-plan-builder"
-      intro="Draft the core shape of a joint business plan before turning it into a full customer-facing document."
-      interpretation={<p>A credible JBP needs a shared commercial objective, a small number of growth pillars, practical activation plans and measures both sides can review honestly.</p>}
+      intro="Build the core JBP story, then turn it into a deck and spreadsheet-style tracker for customer planning."
+      interpretation={<p>A credible JBP usually needs both a presentation and a working tracker: shared objectives, growth pillars, investment, owners, milestones and measures both sides can review honestly.</p>}
     >
       <JbpBuilder />
     </ToolPage>
