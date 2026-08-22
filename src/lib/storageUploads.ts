@@ -29,6 +29,32 @@ export function uploadRoiSpreadsheet(file: File, userId: string) {
   return uploadPrivateFile("roi-spreadsheet-uploads", file, userId);
 }
 
-export function uploadGeneratedDeck(file: File, userId: string) {
-  return uploadPrivateFile("generated-decks", file, userId);
+export async function uploadGeneratedDeck(file: File, userId: string) {
+  void userId;
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) {
+    return { path: null, error: "File upload is temporarily unavailable." };
+  }
+
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    return { path: null, error: "Sign in again to save the generated deck file." };
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/storage/generated-deck", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+  const payload = (await response.json().catch(() => null)) as { ok?: boolean; path?: string; message?: string } | null;
+  if (!response.ok || !payload?.ok || !payload.path) {
+    return { path: null, error: payload?.message ?? "File storage is temporarily unavailable." };
+  }
+
+  return { path: payload.path, error: null };
 }
