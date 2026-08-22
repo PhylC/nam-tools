@@ -766,11 +766,11 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       : templateSource === "apt_default"
         ? "Simple blank template"
         : "Upload a .pptx or .potx template");
-  const activeTemplateKind = oneOffTemplateFiles[0]
+  const activeTemplateKind = templateSource === "one_off" && oneOffTemplateFiles[0]
     ? "Uploaded deck design template"
-    : basedOnDeckTemplateFile
+    : templateSource === "one_off" && basedOnDeckTemplateFile
       ? "Design from saved deck"
-    : supportingTemplateFile
+    : templateSource === "one_off" && supportingTemplateFile
       ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
       ? "Saved template"
@@ -894,6 +894,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       return;
     }
     setSupportingFiles(next);
+    if (next.some(isPowerPointTemplateFile) && !oneOffTemplateFiles.length) {
+      setTemplateSource("one_off");
+      setTemplateError("");
+    }
   }
 
   async function createAndSaveDeck() {
@@ -1295,7 +1299,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !canCreateDeck} type="submit">
+            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !isPro} type="button" onClick={() => void createAndSaveDeck()}>
               {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
             </button>
             {!canCreateDeck ? (
