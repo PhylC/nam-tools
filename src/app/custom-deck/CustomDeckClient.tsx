@@ -63,6 +63,10 @@ type TemplateDesign = {
   headFontFace: string;
   bodyFontFace: string;
 };
+type DeckSlideContent = {
+  title: string;
+  lines: string[];
+};
 
 function normaliseTemplate(value: string) {
   const aliases: Record<string, string> = {
@@ -132,6 +136,73 @@ function deckOutline(deckLabel: string, brief: string, includeFinancialSummary: 
   ];
 }
 
+function buildDeckContent({
+  deckLabel,
+  brief,
+  includeFinancialSummary,
+  includeNextStepsSlide,
+  supportingFiles,
+}: {
+  deckLabel: string;
+  brief: string;
+  includeFinancialSummary: boolean;
+  includeNextStepsSlide: boolean;
+  supportingFiles: File[];
+}) {
+  const outline = deckOutline(deckLabel, brief, includeFinancialSummary, includeNextStepsSlide);
+  const briefPoints = briefSentences(brief);
+  const sourceSummary = supportingFiles.length
+    ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
+    : ["No supporting files attached to this draft."];
+  const contents: DeckSlideContent[] = [
+    { title: deckLabel, lines: brief ? [brief] : ["Generated from your custom deck brief. Add more detail to sharpen the next version."] },
+    { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`) },
+    { title: "Brief and assumptions", lines: briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."] },
+    { title: "Supporting data used", lines: sourceSummary },
+    {
+      title: "Recommended story",
+      lines: [
+        "Lead with the customer opportunity and the decision needed.",
+        "Connect the commercial ask to the retailer or customer benefit.",
+        "Use the attached data to prove the size of prize, risk and payback.",
+      ],
+    },
+    ...(includeFinancialSummary
+      ? [
+          {
+            title: "Financial summary",
+            lines: [
+              "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
+              "Separate confirmed facts from assumptions.",
+              "Show the decision threshold or negotiation guardrail clearly.",
+            ],
+          },
+        ]
+      : []),
+    {
+      title: "Risks and watchouts",
+      lines: [
+        "Call out data gaps, approval dependencies and commercial assumptions.",
+        "Highlight where retailer/customer policy may affect final pricing or support treatment.",
+        "Use this draft as a working structure before customer-facing use.",
+      ],
+    },
+    ...(includeNextStepsSlide
+      ? [
+          {
+            title: "Next steps",
+            lines: [
+              "Confirm data sources and final commercial assumptions.",
+              "Replace placeholder bullets with account-specific evidence.",
+              "Agree the recommended ask, owner and timing.",
+            ],
+          },
+        ]
+      : []),
+  ];
+  return { outline, contents };
+}
+
 const defaultTemplateDesign: TemplateDesign = {
   sourceName: "APT default",
   backgroundColor: "F7FAF9",
@@ -168,6 +239,112 @@ function extractSchemeColor(xml: string, name: string, fallback: string) {
 function extractTypeface(xml: string, fontGroup: "majorFont" | "minorFont", fallback: string) {
   const block = new RegExp(`<a:${fontGroup}[^>]*>([\\s\\S]*?)<\\/a:${fontGroup}>`).exec(xml)?.[1] ?? "";
   return /<a:latin[^>]+typeface="([^"]+)"/.exec(block)?.[1] || fallback;
+}
+
+function xmlEscape(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function emu(inches: number) {
+  return Math.round(inches * 914400);
+}
+
+function maxShapeId(slideXml: string) {
+  const ids = [...slideXml.matchAll(/<p:cNvPr[^>]+id="(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
+  return ids.length ? Math.max(...ids) : 1000;
+}
+
+function textParagraph(text: string, fontFace: string, color: string, size: number, bold = false) {
+  return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
+}
+
+function templateTextBoxXml(id: number, name: string, x: number, y: number, w: number, h: number, paragraphs: string[], design: TemplateDesign, options?: { title?: boolean }) {
+  const size = options?.title ? 2600 : 1550;
+  const text = paragraphs.map((paragraph, index) => textParagraph(options?.title ? paragraph : `- ${paragraph}`, options?.title ? design.headFontFace : design.bodyFontFace, options?.title ? design.textColor : design.mutedTextColor, size, options?.title || index === 0)).join("");
+  return `
+    <p:sp>
+      <p:nvSpPr>
+        <p:cNvPr id="${id}" name="${xmlEscape(name)}"/>
+        <p:cNvSpPr txBox="1"/>
+        <p:nvPr/>
+      </p:nvSpPr>
+      <p:spPr>
+        <a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>
+        <a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>
+        <a:solidFill><a:srgbClr val="${design.panelFillColor}"><a:alpha val="94000"/></a:srgbClr></a:solidFill>
+        <a:ln w="12700"><a:solidFill><a:srgbClr val="${options?.title ? design.accentColor : design.borderColor}"/></a:solidFill></a:ln>
+      </p:spPr>
+      <p:txBody>
+        <a:bodyPr wrap="square" rtlCol="0"><a:spAutoFit/></a:bodyPr>
+        <a:lstStyle/>
+        ${text}
+      </p:txBody>
+    </p:sp>`;
+}
+
+function contentForTemplateSlide(contents: DeckSlideContent[], index: number, slideCount: number) {
+  if (slideCount >= contents.length) return contents[index] ?? contents[contents.length - 1];
+  if (index < slideCount - 1) return contents[index] ?? contents[contents.length - 1];
+  const remaining = contents.slice(index);
+  return {
+    title: remaining[0]?.title ?? "Additional content",
+    lines: remaining.flatMap((item) => [item.title, ...item.lines]).slice(0, 12),
+  };
+}
+
+async function createDeckFromUploadedTemplate({
+  deckLabel,
+  templateFile,
+  templateDesign,
+  outline,
+  contents,
+}: {
+  deckLabel: string;
+  templateFile: File;
+  templateDesign: TemplateDesign;
+  outline: string[];
+  contents: DeckSlideContent[];
+}): Promise<GeneratedDeckResult | null> {
+  if (![".pptx", ".potx"].includes(fileExtension(templateFile.name))) return null;
+
+  try {
+    const { default: JSZip } = await import("jszip");
+    const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
+    const slidePaths = Object.keys(zip.files)
+      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
+      .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0));
+    if (!slidePaths.length) return null;
+
+    await Promise.all(
+      slidePaths.map(async (path, index) => {
+        const slideXml = await zip.file(path)?.async("text");
+        if (!slideXml?.includes("</p:spTree>")) return;
+        const content = contentForTemplateSlide(contents, index, slidePaths.length);
+        const baseId = maxShapeId(slideXml) + 1;
+        const injected = [
+          templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], templateDesign, { title: true }),
+          templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), templateDesign),
+        ].join("");
+        zip.file(path, slideXml.replace("</p:spTree>", `${injected}</p:spTree>`));
+      }),
+    );
+
+    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+    const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
+    return {
+      file: new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
+      filename,
+      outline,
+      templateDesignApplied: true,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function extractTemplateDesign(file: File | null): Promise<TemplateDesign> {
@@ -220,6 +397,7 @@ async function createDeckFile({
   includeNextStepsSlide,
   supportingFiles,
   templateDesign,
+  templateFile,
 }: {
   deckLabel: string;
   brief: string;
@@ -229,9 +407,16 @@ async function createDeckFile({
   includeNextStepsSlide: boolean;
   supportingFiles: File[];
   templateDesign: TemplateDesign;
+  templateFile: File | null;
 }): Promise<GeneratedDeckResult> {
   const { default: PptxGenJS } = await import("pptxgenjs");
   const design = templateDesign;
+  const { outline, contents } = buildDeckContent({ deckLabel, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
+  const templatedDeck = templateFile
+    ? await createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents })
+    : null;
+  if (templatedDeck) return templatedDeck;
+
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "APT Account Planning Tools";
@@ -243,19 +428,13 @@ async function createDeckFile({
     bodyFontFace: design.bodyFontFace,
   };
 
-  const outline = deckOutline(deckLabel, brief, includeFinancialSummary, includeNextStepsSlide);
-  const briefPoints = briefSentences(brief);
-  const sourceSummary = supportingFiles.length
-    ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
-    : ["No supporting files attached to this draft."];
-
   const cover = pptx.addSlide();
   cover.background = { color: design.backgroundColor };
   cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: 0.18, fill: { color: design.accentColor }, line: { color: design.accentColor } });
   cover.addShape(pptx.ShapeType.rect, { x: 0, y: 7.22, w: 13.333, h: 0.28, fill: { color: design.secondaryColor }, line: { color: design.secondaryColor } });
   cover.addText(deckLabel, { x: 0.72, y: 1.35, w: 8.8, h: 0.7, fontFace: design.headFontFace, fontSize: 34, bold: true, color: design.textColor, margin: 0 });
   cover.addText(`Draft for ${audience}`, { x: 0.75, y: 2.18, w: 7.5, h: 0.35, fontFace: design.bodyFontFace, fontSize: 15, bold: true, color: design.accentColor, margin: 0 });
-  cover.addText(brief || "Generated from your custom deck brief. Add more detail to sharpen the next version.", {
+  cover.addText(contents[0]?.lines.join("\n") || "Generated from your custom deck brief. Add more detail to sharpen the next version.", {
     x: 0.75,
     y: 2.8,
     w: 6.5,
@@ -280,33 +459,7 @@ async function createDeckFile({
     margin: 0.06,
   });
 
-  addTextBlock(pptx.addSlide(), "Draft story flow", outline.map((item, index) => `${index + 1}. ${item}`), design);
-  addTextBlock(pptx.addSlide(), "Brief and assumptions", briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."], design);
-  addTextBlock(pptx.addSlide(), "Supporting data used", sourceSummary, design);
-  addTextBlock(pptx.addSlide(), "Recommended story", [
-    "Lead with the customer opportunity and the decision needed.",
-    "Connect the commercial ask to the retailer or customer benefit.",
-    "Use the attached data to prove the size of prize, risk and payback.",
-  ], design);
-  if (includeFinancialSummary) {
-    addTextBlock(pptx.addSlide(), "Financial summary", [
-      "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
-      "Separate confirmed facts from assumptions.",
-      "Show the decision threshold or negotiation guardrail clearly.",
-    ], design);
-  }
-  addTextBlock(pptx.addSlide(), "Risks and watchouts", [
-    "Call out data gaps, approval dependencies and commercial assumptions.",
-    "Highlight where retailer/customer policy may affect final pricing or support treatment.",
-    "Use this draft as a working structure before customer-facing use.",
-  ], design);
-  if (includeNextStepsSlide) {
-    addTextBlock(pptx.addSlide(), "Next steps", [
-      "Confirm data sources and final commercial assumptions.",
-      "Replace placeholder bullets with account-specific evidence.",
-      "Agree the recommended ask, owner and timing.",
-    ], design);
-  }
+  contents.slice(1).forEach((content) => addTextBlock(pptx.addSlide(), content.title, content.lines, design));
 
   const output = await pptx.write({ outputType: "blob" });
   const blob = output as Blob;
@@ -523,6 +676,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         includeNextStepsSlide: nextStepsSlide === "Yes",
         supportingFiles,
         templateDesign,
+        templateFile: templateFileForDesign,
       });
       const downloadUrl = URL.createObjectURL(generated.file);
       const uploaded = await uploadGeneratedDeck(generated.file, user.id);
@@ -574,7 +728,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       setRequestMessage(
         uploaded.path
           ? generated.templateDesignApplied
-            ? `Deck created and saved to your account using design cues from ${templateDesign.sourceName}.`
+            ? `Deck created and saved to your account using ${templateDesign.sourceName} as the design base.`
             : "Deck created and saved to your account."
           : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
       );
@@ -660,7 +814,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   />
                   <span>
                     <strong>Upload one-off template</strong>
-                    <small>PowerPoint files are read for theme colours and fonts. Keynote and PDF files are saved as references.</small>
+                    <small>PowerPoint files are used as the design base. Keynote and PDF files are saved as references.</small>
                   </span>
                 </label>
                 <label className="template-source-option">
@@ -713,7 +867,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     disabled={!isPro}
                     error={templateError}
                     files={oneOffTemplateFiles}
-                    helper="Best supported: PowerPoint .pptx or .potx for design cues. Keynote and PDF uploads are saved as reference files."
+                    helper="Best supported: PowerPoint .pptx or .potx. The generated content is added onto the uploaded deck's existing slide designs."
                     id="one-off-template-deck"
                     label="Upload one-off template"
                     onFilesSelected={validateOneOffTemplateFiles}
