@@ -26,27 +26,52 @@ export function uploadDeckTemplate(file: File, userId: string) {
 }
 
 export async function downloadDeckTemplate(path: string, filename: string) {
-  return downloadPrivateStorageFile("deck-template-uploads", path, filename, "Template download is temporarily unavailable.", "Could not download the saved template.");
+  return downloadPrivateFileViaApi(
+    "/api/storage/deck-template",
+    path,
+    filename,
+    "Template download is temporarily unavailable.",
+    "Saved template file could not be found. Re-upload it or use a one-off template.",
+  );
 }
 
 export async function downloadGeneratedDeck(path: string, filename: string) {
-  return downloadPrivateStorageFile("generated-decks", path, filename, "Deck download is temporarily unavailable.", "Could not download the saved deck.");
+  return downloadPrivateFileViaApi(
+    "/api/storage/generated-deck",
+    path,
+    filename,
+    "Deck download is temporarily unavailable.",
+    "Saved deck file could not be found. Create a new copy from the saved deck record.",
+  );
 }
 
-async function downloadPrivateStorageFile(bucket: string, path: string, filename: string, unavailableMessage: string, downloadErrorMessage: string) {
+async function downloadPrivateFileViaApi(endpoint: string, path: string, filename: string, unavailableMessage: string, downloadErrorMessage: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
     return { file: null, error: unavailableMessage };
   }
 
-  const { data, error } = await supabase.storage.from(bucket).download(path);
-  if (error || !data) {
-    return { file: null, error: error?.message ?? downloadErrorMessage };
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) {
+    return { file: null, error: "Sign in again to download the file." };
   }
 
+  const response = await fetch(`${endpoint}?path=${encodeURIComponent(path)}&filename=${encodeURIComponent(filename)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+    return { file: null, error: payload?.message ?? downloadErrorMessage };
+  }
+
+  const blob = await response.blob();
   return {
-    file: new File([data], filename, {
-      type: data.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    file: new File([blob], filename, {
+      type: blob.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     }),
     error: null,
   };

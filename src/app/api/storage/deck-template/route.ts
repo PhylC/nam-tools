@@ -15,6 +15,45 @@ function fileExtension(filename: string) {
   return dotIndex >= 0 ? filename.slice(dotIndex).toLowerCase() : "";
 }
 
+function requestedStoragePath(request: Request) {
+  const url = new URL(request.url);
+  return url.searchParams.get("path")?.trim() ?? "";
+}
+
+function downloadFilename(request: Request) {
+  const url = new URL(request.url);
+  return safeFilename(url.searchParams.get("filename") ?? "deck-template.pptx");
+}
+
+export async function GET(request: Request) {
+  const auth = await getAuthenticatedUser(request);
+  if (!auth.ok) {
+    return Response.json({ ok: false, message: auth.message }, { status: auth.status });
+  }
+
+  const supabase = getSupabaseServiceClient();
+  if (!supabase) {
+    return Response.json({ ok: false, message: "Template storage is temporarily unavailable." }, { status: 503 });
+  }
+
+  const path = requestedStoragePath(request);
+  if (!path || !path.startsWith(`${auth.user.id}/`)) {
+    return Response.json({ ok: false, message: "Template file could not be found for this account." }, { status: 404 });
+  }
+
+  const { data, error } = await supabase.storage.from(DECK_TEMPLATE_BUCKET).download(path);
+  if (error || !data) {
+    return Response.json({ ok: false, message: "Saved template file could not be found. Re-upload it or use a one-off template." }, { status: 404 });
+  }
+
+  return new Response(data, {
+    headers: {
+      "content-disposition": `attachment; filename="${downloadFilename(request)}"`,
+      "content-type": data.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    },
+  });
+}
+
 export async function POST(request: Request) {
   const auth = await getAuthenticatedUser(request);
   if (!auth.ok) {
