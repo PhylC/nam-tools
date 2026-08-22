@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
 import { buildUpgradeHref, useProAction } from "./ProActionGuard";
@@ -837,6 +837,118 @@ function ProPreview({ features }: { features: string[] }) {
         </span>
       </div>
     </aside>
+  );
+}
+
+function asLines(value: string) {
+  return value
+    .split("\n")
+    .map((line) => line.replace(/^\d+\.\s*/, "").trim())
+    .filter(Boolean);
+}
+
+function findSection(sections: [string, string][], names: string[]) {
+  const match = sections.find(([title]) => names.some((name) => title.toLowerCase().includes(name.toLowerCase())));
+  return match?.[1] ?? "";
+}
+
+function buildProWorkingPack(toolId: string, sections: [string, string][]) {
+  const objective = findSection(sections, ["objective", "shared objective", "commercial objective", "meeting objective"]);
+  const context = findSection(sections, ["context", "overview", "summary", "opportunity"]);
+  const risks = findSection(sections, ["risk"]);
+  const actions = findSection(sections, ["next steps", "30/60/90", "follow-up", "closing ask"]);
+  const asks = findSection(sections, ["ask", "investment", "proposed asks"]);
+  const measures = findSection(sections, ["measures", "success"]);
+
+  if (toolId === "buyer-meeting-prep") {
+    const objections = asLines(findSection(sections, ["Likely buyer objections"])).slice(0, 5);
+    const responses = asLines(findSection(sections, ["Suggested responses"])).slice(0, 5);
+    const questions = asLines(findSection(sections, ["Questions to ask"])).slice(0, 5);
+    return [
+      ["Meeting brief", objective],
+      ["Buyer opening", findSection(sections, ["5-minute opening"])],
+      ["Decision to secure", asks || actions],
+      ["Objection plan", objections.map((item, index) => `${item} -> ${responses[index] ?? "Ask what condition would make the proposal acceptable."}`).join("\n")],
+      ["Discovery questions", questions.join("\n")],
+      ["Follow-up email", findSection(sections, ["Follow-up email"])],
+    ] satisfies [string, string][];
+  }
+
+  if (toolId === "account-plan-generator") {
+    return [
+      ["Account narrative", context],
+      ["Growth bet", findSection(sections, ["Opportunity summary"]) || objective],
+      ["Priority risk", risks],
+      ["Commercial strategy", findSection(sections, ["Commercial strategy"])],
+      ["Owner plan", findSection(sections, ["Resource and ownership"])],
+      ["30/60/90 execution tracker", actions],
+      ["Review rhythm", findSection(sections, ["Review cadence"])],
+    ] satisfies [string, string][];
+  }
+
+  if (toolId === "joint-business-plan-builder") {
+    return [
+      ["Customer-ready JBP narrative", context],
+      ["Shared objective", objective],
+      ["Growth pillars", findSection(sections, ["Growth pillars"])],
+      ["Activation roadmap", findSection(sections, ["Activation plan"])],
+      ["Investment and support ask", asks],
+      ["Success scorecard", measures],
+      ["Governance and next steps", `${risks}\n${actions}`.trim()],
+    ] satisfies [string, string][];
+  }
+
+  return sections;
+}
+
+function ProWorkingPack({ sections, toolId }: { sections: [string, string][]; toolId: string }) {
+  const proSections = buildProWorkingPack(toolId, sections).filter(([, body]) => body.trim());
+  const actionText = asLines(findSection(sections, ["next steps", "30/60/90", "follow-up", "closing ask"]));
+  const output = proSections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
+
+  return (
+    <div className="pro-working-pack">
+      <div className="output-header">
+        <div>
+          <h2>Pro working output</h2>
+          <p>A fuller version you can use as a meeting pack, account plan or JBP first draft.</p>
+        </div>
+        <CopyButton text={output} label="Copy Pro output" />
+      </div>
+      <div className="pro-output-grid">
+        {proSections.map(([title, body]) => (
+          <section className="pro-output-section" key={title}>
+            <h3>{title}</h3>
+            {body.includes("\n") ? (
+              <ul>
+                {asLines(body).map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>{body}</p>
+            )}
+          </section>
+        ))}
+      </div>
+      {actionText.length ? (
+        <section className="pro-output-section pro-action-tracker">
+          <h3>Action tracker</h3>
+          <div className="pro-action-table">
+            <span>Action</span>
+            <span>Owner</span>
+            <span>Timing</span>
+            {actionText.slice(0, 5).map((line, index) => (
+              <Fragment key={`${line}-${index}`}>
+                <strong>{line}</strong>
+                <span>Assign owner</span>
+                <span>{index === 0 ? "Next 7 days" : "Next review"}</span>
+              </Fragment>
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -3182,23 +3294,8 @@ function GeneratorShell({
       </div>
       {isPro ? (
         <aside className="pro-panel">
-          <h2>Pro output</h2>
-          <div className="locked-grid locked-grid-three" aria-label="Pro output options">
-            <div className="locked-card">
-              <strong>Customer-ready draft</strong>
-              <span>Use the generated sections as the working review narrative.</span>
-            </div>
-            <div className="locked-card">
-              <strong>Workspace save</strong>
-              <span>Save this version to your Pro workspace for later editing or comparison.</span>
-            </div>
-            <div className="locked-card">
-              <strong>Exportable sections</strong>
-              <span>Download the section table for a deck, tracker or meeting pack.</span>
-            </div>
-          </div>
+          <ProWorkingPack sections={sections} toolId={toolId} />
           <div className="summary-actions">
-            <CopyButton text={output} label="Copy Pro output" />
             <DownloadCsvButton filename={`apt-${slugifyFilename(defaultTitle)}.csv`} rows={outputRows} />
             <SaveAnalysisAction
               calculatorId={toolId}

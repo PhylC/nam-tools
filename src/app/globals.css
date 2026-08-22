@@ -4628,6 +4628,90 @@ p {
   font-size: 1.25rem;
 }
 
+.pro-working-pack {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.pro-working-pack .output-header p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0.15rem 0 0;
+}
+
+.pro-output-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.pro-output-section {
+  display: grid;
+  gap: 0.42rem;
+  border: 1px solid rgba(170, 198, 194, 0.75);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.75rem;
+}
+
+.pro-output-section h3 {
+  font-size: 0.98rem;
+}
+
+.pro-output-section p,
+.pro-output-section li {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.pro-output-section ul {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.pro-action-tracker {
+  grid-column: 1 / -1;
+}
+
+.pro-action-table {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(110px, 0.55fr) minmax(110px, 0.55fr);
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.pro-action-table > * {
+  border-bottom: 1px solid var(--border);
+  padding: 0.52rem 0.6rem;
+}
+
+.pro-action-table > span:nth-child(-n + 3) {
+  background: var(--surface-soft);
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.pro-action-table strong,
+.pro-action-table span {
+  color: var(--foreground);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.pro-action-table > *:nth-last-child(-n + 3) {
+  border-bottom: 0;
+}
+
 .locked-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -8530,6 +8614,19 @@ p {
 
   .saved-bottom-row .summary-actions {
     width: 100%;
+  }
+
+  .pro-output-grid,
+  .pro-action-table {
+    grid-template-columns: 1fr;
+  }
+
+  .pro-action-table > * {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pro-action-table > span:nth-child(-n + 3) {
+    display: none;
   }
 
   .hero-copy,
