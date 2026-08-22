@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
@@ -63,6 +63,7 @@ type SavedRoiGroup = RoiGroup & {
 type SavedScenarioRecord = Record<string, unknown>;
 
 type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
+type SavedRoiSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
 
 type RoiFieldKey =
   | "sku"
@@ -360,9 +361,47 @@ function getRecordUpdatedDate(item: Record<string, unknown>) {
   return `Last updated ${new Date(time).toLocaleDateString("en-GB")}`;
 }
 
-function savedScenarioLineCount(item: SavedScenarioRecord) {
-  const scenarioData = isRecord(item.scenarioData) ? item.scenarioData : item;
-  return Array.isArray(scenarioData.lines) ? scenarioData.lines.length : 0;
+function getSavedScenarioRecord(item: SavedScenarioRecord) {
+  return isRecord(item.scenarioData) ? item.scenarioData : item;
+}
+
+function getSavedScenarioTitle(item: SavedScenarioRecord, fallback = "Saved scenario") {
+  const scenario = getSavedScenarioRecord(item);
+  return getRecordText(item.title ?? item.name ?? scenario.name, fallback);
+}
+
+function getComparisonTitle(item: SavedRoiGroup) {
+  return getRecordText(item.name ?? item.group_name, "Saved comparison");
+}
+
+function getScenarioSummaryText(value: unknown) {
+  const scenario = isRecord(value) ? value : {};
+  const lines = Array.isArray(scenario.lines) ? scenario.lines.filter(isRecord) : [];
+  const names = lines
+    .map((line) => getRecordText(line.product ?? line.sku, ""))
+    .filter(Boolean)
+    .slice(0, 2);
+  const lineText = `${lines.length} product line${lines.length === 1 ? "" : "s"}`;
+  return names.length ? `${lineText} · ${names.join(", ")}` : lineText;
+}
+
+function savedRoiSearchText(comparisons: SavedRoiGroup[], scenarios: SavedScenarioRecord[]) {
+  const chunks: string[] = [];
+  comparisons.forEach((comparison) => {
+    chunks.push(getComparisonTitle(comparison), getRecordUpdatedDate(comparison));
+    comparison.scenarios.forEach((scenario) => {
+      chunks.push(scenario.name, getScenarioSummaryText(scenario));
+      scenario.lines.forEach((line) => chunks.push(line.sku, line.product, line.notes));
+    });
+  });
+  scenarios.forEach((item) => {
+    const scenario = getSavedScenarioRecord(item);
+    chunks.push(getSavedScenarioTitle(item), getRecordUpdatedDate(item), getScenarioSummaryText(scenario));
+    if (Array.isArray(scenario.lines)) {
+      scenario.lines.filter(isRecord).forEach((line) => chunks.push(getRecordText(line.sku, ""), getRecordText(line.product, ""), getRecordText(line.notes, "")));
+    }
+  });
+  return chunks.join(" ").toLowerCase();
 }
 
 function limitGroupsForFree(nextGroups: RoiGroup[]) {
@@ -1346,60 +1385,155 @@ function SavedRoiBottomPanel({
   scenarios: SavedScenarioRecord[];
   onLoadComparison: (id: string) => void | Promise<void>;
 }) {
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SavedRoiSort>("updated-desc");
   const hasSavedItems = comparisons.length || scenarios.length;
+  const query = search.trim().toLowerCase();
+  const visibleComparisons = useMemo(() => {
+    return comparisons
+      .filter((comparison) => !query || savedRoiSearchText([comparison], []).includes(query))
+      .toSorted((left, right) => {
+        if (sort === "name-asc" || sort === "name-desc") {
+          const direction = sort === "name-asc" ? 1 : -1;
+          return direction * getComparisonTitle(left).localeCompare(getComparisonTitle(right), "en-GB", { sensitivity: "base" });
+        }
+        const direction = sort === "updated-desc" ? -1 : 1;
+        return direction * (getRecordTimestamp(left) - getRecordTimestamp(right));
+      });
+  }, [comparisons, query, sort]);
+  const visibleScenarios = useMemo(() => {
+    return scenarios
+      .filter((scenario) => !query || savedRoiSearchText([], [scenario]).includes(query))
+      .toSorted((left, right) => {
+        if (sort === "name-asc" || sort === "name-desc") {
+          const direction = sort === "name-asc" ? 1 : -1;
+          return direction * getSavedScenarioTitle(left).localeCompare(getSavedScenarioTitle(right), "en-GB", { sensitivity: "base" });
+        }
+        const direction = sort === "updated-desc" ? -1 : 1;
+        return direction * (getRecordTimestamp(left) - getRecordTimestamp(right));
+      });
+  }, [query, scenarios, sort]);
 
   return (
     <aside className="card saved-bottom-panel" aria-label="Previously saved ROI work">
       <div className="saved-bottom-header">
         <div>
           <h2>Previously saved comparisons & scenarios</h2>
-          <p>Return to recent ROI work from here, or open Workspace for the full searchable list.</p>
+          <p>Return to saved ROI work from here, or open Workspace for the full management view.</p>
         </div>
         <Link className="button button-secondary button-small" href="/workspace#comparison-scenarios">
           View all
         </Link>
       </div>
       {hasSavedItems ? (
-        <div className="saved-bottom-list">
-          {comparisons.slice(0, 4).map((comparison) => (
-            <div className="saved-bottom-row" key={`comparison-${comparison.id}`}>
-              <div>
-                <strong>{comparison.name || comparison.group_name || "Saved comparison"}</strong>
-                <span>{comparison.scenarios.length} scenario(s)</span>
-              </div>
-              <span>{getRecordUpdatedDate(comparison)}</span>
-              <div className="summary-actions">
-                <button className="button button-secondary button-small" onClick={() => onLoadComparison(comparison.id)} type="button">
-                  Load
-                </button>
-                <Link className="button button-secondary button-small" href={`/roi-tool?comparison=${comparison.id}`}>
-                  Edit
-                </Link>
-              </div>
+        <>
+          <div className="saved-bottom-controls">
+            <label className="field">
+              <span>Search saved ROI work</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search comparison, scenario, SKU or product" />
+            </label>
+            <label className="field">
+              <span>Sort by</span>
+              <select value={sort} onChange={(event) => setSort(event.target.value as SavedRoiSort)}>
+                <option value="updated-desc">Newest first</option>
+                <option value="updated-asc">Oldest first</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </select>
+            </label>
+          </div>
+          <div className="saved-bottom-table-scroll">
+            <div className="saved-bottom-table-head" aria-hidden="true">
+              <span>Saved item</span>
+              <span>Last updated</span>
+              <span>Actions</span>
             </div>
-          ))}
-          {scenarios.slice(0, 4).map((scenario) => {
-            const id = String(scenario.id ?? "");
-            const title = getRecordText(scenario.title ?? scenario.name, "Saved scenario");
-            return (
-              <div className="saved-bottom-row" key={`scenario-${id}`}>
-                <div>
-                  <strong>{title}</strong>
-                  <span>{savedScenarioLineCount(scenario)} product line(s)</span>
+            <div className="saved-bottom-grouped-list">
+              {visibleComparisons.map((comparison) => {
+                const title = getComparisonTitle(comparison);
+                return (
+                  <article className="saved-bottom-group" key={`comparison-${comparison.id}`}>
+                    <div className="saved-bottom-group-row">
+                      <div>
+                        <strong>{title}</strong>
+                        <span>
+                          {comparison.scenarios.length} scenario{comparison.scenarios.length === 1 ? "" : "s"}
+                        </span>
+                      </div>
+                      <small>{getRecordUpdatedDate(comparison)}</small>
+                      <div className="saved-bottom-actions">
+                        <button className="button button-secondary button-small" onClick={() => onLoadComparison(comparison.id)} type="button">
+                          Load
+                        </button>
+                        <Link className="button button-secondary button-small" href={`/roi-tool?comparison=${comparison.id}`}>
+                          Edit
+                        </Link>
+                      </div>
+                    </div>
+                    <div className="saved-bottom-subrows">
+                      {comparison.scenarios.length ? (
+                        comparison.scenarios.map((scenario, index) => {
+                          const scenarioId = scenario.id || `${comparison.id}-scenario-${index}`;
+                          return (
+                            <div className="saved-bottom-subrow" key={scenarioId}>
+                              <div>
+                                <strong>{scenario.name || `Scenario ${index + 1}`}</strong>
+                                <span>{getScenarioSummaryText(scenario)}</span>
+                              </div>
+                              <small>{getRecordUpdatedDate(comparison)}</small>
+                              <div className="saved-bottom-actions">
+                                <Link className="workspace-icon-button" href={`/roi-tool?comparison=${comparison.id}&scenario=${scenarioId}`} aria-label={`Open ${scenario.name || `Scenario ${index + 1}`}`} title="Open">
+                                  <span aria-hidden="true">↗</span>
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="saved-bottom-subrow saved-bottom-subrow-empty">No scenarios in this comparison yet.</div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              <article className="saved-bottom-group">
+                <div className="saved-bottom-group-row saved-bottom-standalone-row">
+                  <div>
+                    <strong>Standalone scenarios</strong>
+                    <span>
+                      {visibleScenarios.length} scenario{visibleScenarios.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
                 </div>
-                <span>{getRecordUpdatedDate(scenario)}</span>
-                <div className="summary-actions">
-                  <Link className="button button-secondary button-small" href={`/roi-tool?saved=${id}`}>
-                    Edit
-                  </Link>
-                  <Link className="button button-secondary button-small" href="/workspace#comparison-scenarios">
-                    Details
-                  </Link>
+                <div className="saved-bottom-subrows">
+                  {visibleScenarios.length ? (
+                    visibleScenarios.map((scenario) => {
+                      const id = String(scenario.id ?? "");
+                      const scenarioRecord = getSavedScenarioRecord(scenario);
+                      const title = getSavedScenarioTitle(scenario);
+                      return (
+                        <div className="saved-bottom-subrow" key={`scenario-${id}`}>
+                          <div>
+                            <strong>{title}</strong>
+                            <span>{getScenarioSummaryText(scenarioRecord)}</span>
+                          </div>
+                          <small>{getRecordUpdatedDate(scenario)}</small>
+                          <div className="saved-bottom-actions">
+                            <Link className="workspace-icon-button" href={`/roi-tool?saved=${id}`} aria-label={`Open ${title}`} title="Open">
+                              <span aria-hidden="true">↗</span>
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="saved-bottom-subrow saved-bottom-subrow-empty">No standalone scenarios match this search.</div>
+                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              </article>
+            </div>
+          </div>
+        </>
       ) : (
         <div className="saved-panel-empty">
           <strong>No saved ROI work yet.</strong>
