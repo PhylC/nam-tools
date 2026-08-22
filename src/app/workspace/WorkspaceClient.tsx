@@ -17,6 +17,8 @@ import {
   listRoiPlans,
   listSavedAnalyses,
   listSavedScenarios,
+  saveAnalysis,
+  saveDeckBrief,
   saveRoiPlan,
   saveScenario,
 } from "../../lib/saveStore";
@@ -96,6 +98,10 @@ function getAnalysisDescription(item: SavedRecord) {
 
 function getComparisonScenarios(item: SavedRecord) {
   return Array.isArray(item.scenarios) ? item.scenarios.filter(isRecord) : [];
+}
+
+function getComparisonScenarioId(comparisonId: string, scenario: SavedRecord, index: number) {
+  return getText(scenario.id, `${comparisonId}-scenario-${index}`);
 }
 
 function getScenarioLineCount(scenario: SavedRecord) {
@@ -652,16 +658,21 @@ function WorkspaceBulkActions({
 function GeneralItemMenu({
   id,
   type,
+  onRename,
   onDuplicate,
   onDelete,
 }: {
   id: string;
   type: SavedItemType;
+  onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
 }) {
   return (
     <WorkspaceMenuShell>
+      <button className="workspace-menu-action" onClick={() => onRename(id, type)} type="button">
+        Rename
+      </button>
       <button className="workspace-menu-action" onClick={() => onDuplicate(id, type)} type="button">
         Duplicate
       </button>
@@ -676,6 +687,7 @@ function ScenarioItemMenu({
   scenarioId,
   comparisonId,
   comparisons,
+  onRenameScenario,
   onDuplicateScenario,
   onDelete,
   onMoveScenarioIntoComparison,
@@ -686,6 +698,7 @@ function ScenarioItemMenu({
   scenarioId: string;
   comparisonId?: string;
   comparisons: SavedRecord[];
+  onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete?: (id: string, type: SavedItemType) => void | Promise<void>;
   onMoveScenarioIntoComparison?: (scenarioId: string, comparisonId: string) => void | Promise<void>;
@@ -699,6 +712,10 @@ function ScenarioItemMenu({
 
   return (
     <WorkspaceMenuShell>
+      <button className="workspace-menu-action" onClick={() => onRenameScenario(scenarioId, comparisonId)} type="button">
+        Rename
+      </button>
+
       <div className="workspace-menu-field">
         <label htmlFor={`duplicate-${comparisonId ?? "standalone"}-${scenarioId}`}>Duplicate to</label>
         <select id={`duplicate-${comparisonId ?? "standalone"}-${scenarioId}`} value={duplicateTarget} onChange={(event) => setDuplicateTarget(event.target.value)}>
@@ -767,6 +784,7 @@ function ScenarioItemMenu({
 
 function SavedWorkRow({
   item,
+  onRename,
   onDuplicate,
   onDelete,
   selected,
@@ -774,6 +792,7 @@ function SavedWorkRow({
   onToggleSelected,
 }: {
   item: SavedWorkItem;
+  onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
   selected?: boolean;
@@ -805,7 +824,7 @@ function SavedWorkRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          <GeneralItemMenu id={item.id} type={item.type} onDelete={onDelete} onDuplicate={onDuplicate} />
+          <GeneralItemMenu id={item.id} type={item.type} onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
         </div>
       </div>
 
@@ -822,6 +841,7 @@ function ScenarioSubRow({
   comparisons,
   sourceComparisonId,
   savedRecord,
+  onRenameScenario,
   onDelete,
   onDuplicateScenario,
   onMoveScenarioIntoComparison,
@@ -841,6 +861,7 @@ function ScenarioSubRow({
   sourceComparisonId?: string;
   savedRecord?: SavedRecord;
   updatedDate: string;
+  onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
@@ -889,6 +910,7 @@ function ScenarioSubRow({
             comparisonId={sourceComparisonId}
             comparisons={comparisons}
             onDelete={sourceComparisonId ? undefined : onDelete}
+            onRenameScenario={onRenameScenario}
             onDuplicateScenario={onDuplicateScenario}
             onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
             onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
@@ -905,8 +927,10 @@ function ScenarioSubRow({
 function ComparisonGroupRow({
   item,
   comparisons,
+  onRename,
   onDuplicate,
   onDelete,
+  onRenameScenario,
   onDuplicateScenario,
   onMoveScenarioOut,
   onMoveScenarioBetweenComparisons,
@@ -916,8 +940,10 @@ function ComparisonGroupRow({
 }: {
   item: SavedWorkItem;
   comparisons: SavedRecord[];
+  onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
@@ -939,13 +965,13 @@ function ComparisonGroupRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          <GeneralItemMenu id={item.id} type="Comparison" onDelete={onDelete} onDuplicate={onDuplicate} />
+          <GeneralItemMenu id={item.id} type="Comparison" onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
         </div>
       </div>
       <div className="workspace-subrows">
         {scenarios.length ? (
           scenarios.map((scenario, index) => {
-            const scenarioId = getText(scenario.id, `${item.id}-scenario-${index}`);
+            const scenarioId = getComparisonScenarioId(item.id, scenario, index);
             const scenarioTitle = getText(scenario.name, `Scenario ${index + 1}`);
             const selectionKey = comparisonScenarioSelectionKey(item.id, scenarioId);
             return (
@@ -961,6 +987,7 @@ function ComparisonGroupRow({
                 selectionKey={selectionKey}
                 updatedDate={getUpdatedDate(item.record)}
                 onDelete={onDelete}
+                onRenameScenario={onRenameScenario}
                 onDuplicateScenario={onDuplicateScenario}
                 onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
                 onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
@@ -981,6 +1008,7 @@ function ComparisonGroupRow({
 function StandaloneScenarioGroup({
   items,
   comparisons,
+  onRenameScenario,
   onDelete,
   onDuplicateScenario,
   onMoveScenarioIntoComparison,
@@ -992,6 +1020,7 @@ function StandaloneScenarioGroup({
 }: {
   items: SavedWorkItem[];
   comparisons: SavedRecord[];
+  onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
@@ -1029,6 +1058,7 @@ function StandaloneScenarioGroup({
               selectionKey={selectionKey}
               updatedDate={getUpdatedDate(item.record)}
               onDelete={onDelete}
+              onRenameScenario={onRenameScenario}
               onDuplicateScenario={onDuplicateScenario}
               onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
               onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
@@ -1049,6 +1079,7 @@ function WorkspaceSectionList({
   description,
   action,
   items,
+  onRename,
   onDuplicate,
   onDelete,
   selectedKeys,
@@ -1061,6 +1092,7 @@ function WorkspaceSectionList({
   description: string;
   action?: ReactNode;
   items: SavedWorkItem[];
+  onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
   selectedKeys?: Set<string>;
@@ -1103,6 +1135,7 @@ function WorkspaceSectionList({
               selectionKey={onToggleSelected ? deckSelectionKey(item.id) : undefined}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
+              onRename={onRename}
               onToggleSelected={onToggleSelected}
             />
           ))}
@@ -1123,6 +1156,8 @@ function ComparisonScenarioList({
   allComparisons,
   standaloneScenarios,
   analyses,
+  onRename,
+  onRenameScenario,
   onDuplicate,
   onDuplicateScenario,
   onDelete,
@@ -1143,6 +1178,8 @@ function ComparisonScenarioList({
   allComparisons: SavedRecord[];
   standaloneScenarios: SavedWorkItem[];
   analyses: SavedWorkItem[];
+  onRename: (id: string, type: SavedItemType) => void | Promise<void>;
+  onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
@@ -1159,7 +1196,7 @@ function ComparisonScenarioList({
   const visibleScenarioKeys = [
     ...comparisons.flatMap((item) =>
       getComparisonScenarios(item.record).map((scenario, index) =>
-        comparisonScenarioSelectionKey(item.id, getText(scenario.id, `${item.id}-scenario-${index}`)),
+        comparisonScenarioSelectionKey(item.id, getComparisonScenarioId(item.id, scenario, index)),
       ),
     ),
     ...standaloneScenarios.map((item) => standaloneScenarioSelectionKey(item.id)),
@@ -1198,6 +1235,8 @@ function ComparisonScenarioList({
               comparisons={allComparisons}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
+              onRename={onRename}
+              onRenameScenario={onRenameScenario}
               onDuplicateScenario={onDuplicateScenario}
               onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
               onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
@@ -1210,6 +1249,7 @@ function ComparisonScenarioList({
             items={standaloneScenarios}
             comparisons={allComparisons}
             onDelete={onDelete}
+            onRenameScenario={onRenameScenario}
             onDuplicateScenario={onDuplicateScenario}
             onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
             onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
@@ -1226,6 +1266,7 @@ function ComparisonScenarioList({
                   key={`${item.type}-${item.id}`}
                   onDelete={onDelete}
                   onDuplicate={onDuplicate}
+                  onRename={onRename}
                 />
               ))}
             </div>
@@ -1338,7 +1379,7 @@ export function WorkspaceClient() {
       visibleStandaloneScenarioItems.forEach((item) => next.add(standaloneScenarioSelectionKey(item.id)));
       visibleComparisonItems.forEach((item) => {
         getComparisonScenarios(item.record).forEach((scenario, index) => {
-          next.add(comparisonScenarioSelectionKey(item.id, getText(scenario.id, `${item.id}-scenario-${index}`)));
+          next.add(comparisonScenarioSelectionKey(item.id, getComparisonScenarioId(item.id, scenario, index)));
         });
       });
       return next;
@@ -1385,7 +1426,12 @@ export function WorkspaceClient() {
       [...byComparison.entries()].map(async ([comparisonId, scenarioIds]) => {
         const comparison = savedComparisons.find((group) => group.id === comparisonId);
         if (!comparison) return false;
-        const updated = await saveRoiPlan(buildUpdatedComparison(comparison, getComparisonScenarios(comparison).filter((scenario) => !scenarioIds.has(String(scenario.id)))));
+        const updated = await saveRoiPlan(
+          buildUpdatedComparison(
+            comparison,
+            getComparisonScenarios(comparison).filter((scenario, index) => !scenarioIds.has(getComparisonScenarioId(comparisonId, scenario, index))),
+          ),
+        );
         return Boolean(updated.data);
       }),
     );
@@ -1421,10 +1467,79 @@ export function WorkspaceClient() {
     await refreshSavedWork();
   }
 
+  async function renameSavedItem(id: string, type: SavedItemType) {
+    const source =
+      type === "Analysis"
+        ? savedAnalyses.find((item) => item.id === id)
+        : type === "Comparison"
+          ? savedComparisons.find((item) => item.id === id)
+          : type === "Scenario"
+            ? savedScenarios.find((item) => item.id === id)
+            : deckBriefs.find((item) => item.id === id);
+    if (!source) return;
+
+    const currentName = getSavedItemTitle(source, type);
+    const nextName = window.prompt(`Rename ${type === "Analysis" ? "calculator result" : type.toLowerCase()}`, currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+
+    const now = nowIso();
+    if (type === "Analysis") {
+      const result = await saveAnalysis({ ...source, id, title: nextName, name: nextName, updatedAt: now, updated_at: now });
+      setLoadMessage(result.data ? "Calculator result renamed." : result.message ?? "Could not rename calculator result.");
+    }
+    if (type === "Comparison") {
+      const result = await saveRoiPlan({ ...source, id, name: nextName, group_name: nextName, savedAt: now, updatedAt: now, updated_at: now });
+      setLoadMessage(result.data ? "Comparison renamed." : result.message ?? "Could not rename comparison.");
+    }
+    if (type === "Scenario") {
+      const scenarioData = getScenarioRecord(source);
+      const result = await saveScenario({
+        ...source,
+        id,
+        title: nextName,
+        name: nextName,
+        scenarioData: { ...scenarioData, name: nextName },
+        savedAt: now,
+        updatedAt: now,
+        updated_at: now,
+      });
+      setLoadMessage(result.data ? "Scenario renamed." : result.message ?? "Could not rename scenario.");
+    }
+    if (type === "Deck") {
+      const result = await saveDeckBrief({ ...source, id, name: nextName, deck_name: nextName, savedAt: now, updatedAt: now, updated_at: now });
+      setLoadMessage(result.data ? "Deck renamed." : result.message ?? "Could not rename deck.");
+    }
+    await refreshSavedWork();
+  }
+
+  async function renameScenario(scenarioId: string, sourceComparisonId?: string) {
+    if (!sourceComparisonId) {
+      await renameSavedItem(scenarioId, "Scenario");
+      return;
+    }
+
+    const comparison = savedComparisons.find((group) => group.id === sourceComparisonId);
+    if (!comparison) return;
+    const scenarios = getComparisonScenarios(comparison);
+    const scenarioIndex = scenarios.findIndex((scenario, index) => getComparisonScenarioId(sourceComparisonId, scenario, index) === scenarioId);
+    if (scenarioIndex < 0) return;
+
+    const currentName = getText(scenarios[scenarioIndex].name, `Scenario ${scenarioIndex + 1}`);
+    const nextName = window.prompt("Rename scenario", currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+
+    const updatedScenarios = scenarios.map((scenario, index) =>
+      index === scenarioIndex ? { ...scenario, id: getComparisonScenarioId(sourceComparisonId, scenario, index), name: nextName } : scenario,
+    );
+    const result = await saveRoiPlan(buildUpdatedComparison(comparison, updatedScenarios));
+    setLoadMessage(result.data ? "Scenario renamed." : result.message ?? "Could not rename scenario.");
+    await refreshSavedWork();
+  }
+
   async function duplicateScenarioToDestination(scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) {
     const sourceComparison = sourceComparisonId ? savedComparisons.find((group) => group.id === sourceComparisonId) : null;
     const sourceScenario = sourceComparison
-      ? getComparisonScenarios(sourceComparison).find((scenario) => scenario.id === scenarioId)
+      ? getComparisonScenarios(sourceComparison).find((scenario, index) => getComparisonScenarioId(String(sourceComparison.id), scenario, index) === scenarioId)
       : savedScenarios.find((scenario) => scenario.id === scenarioId);
     if (!sourceScenario) return;
 
@@ -1511,7 +1626,7 @@ export function WorkspaceClient() {
     const comparison = savedComparisons.find((group) => group.id === comparisonId);
     if (!comparison) return;
     const scenarios = getComparisonScenarios(comparison);
-    const scenario = scenarios.find((item) => item.id === scenarioId);
+    const scenario = scenarios.find((item, index) => getComparisonScenarioId(comparisonId, item, index) === scenarioId);
     if (!scenario) return;
     const title = getText(scenario.name, "ROI scenario");
     const saved = await saveScenario(buildStandaloneScenarioSave(scenario, title));
@@ -1519,7 +1634,7 @@ export function WorkspaceClient() {
       setLoadMessage(saved.message ?? "Could not save standalone scenario.");
       return;
     }
-    const nextComparison = buildUpdatedComparison(comparison, scenarios.filter((item) => item.id !== scenarioId));
+    const nextComparison = buildUpdatedComparison(comparison, scenarios.filter((item, index) => getComparisonScenarioId(comparisonId, item, index) !== scenarioId));
     const updated = await saveRoiPlan(nextComparison);
     setLoadMessage(updated.data ? "Scenario moved out as standalone." : updated.message ?? "Standalone scenario saved, but comparison could not be updated.");
     await refreshSavedWork();
@@ -1530,10 +1645,10 @@ export function WorkspaceClient() {
     const target = savedComparisons.find((group) => group.id === targetComparisonId);
     if (!source || !target) return;
     const sourceScenarios = getComparisonScenarios(source);
-    const scenario = sourceScenarios.find((item) => item.id === scenarioId);
+    const scenario = sourceScenarios.find((item, index) => getComparisonScenarioId(fromComparisonId, item, index) === scenarioId);
     if (!scenario) return;
-    const updatedSource = buildUpdatedComparison(source, sourceScenarios.filter((item) => item.id !== scenarioId));
-    const updatedTarget = buildUpdatedComparison(target, [...getComparisonScenarios(target), scenario]);
+    const updatedSource = buildUpdatedComparison(source, sourceScenarios.filter((item, index) => getComparisonScenarioId(fromComparisonId, item, index) !== scenarioId));
+    const updatedTarget = buildUpdatedComparison(target, [...getComparisonScenarios(target), { ...scenario, id: getText(scenario.id, scenarioId) }]);
     const [sourceResult, targetResult] = await Promise.all([saveRoiPlan(updatedSource), saveRoiPlan(updatedTarget)]);
     setLoadMessage(sourceResult.data && targetResult.data ? "Scenario moved between comparisons." : sourceResult.message ?? targetResult.message ?? "Could not move scenario.");
     await refreshSavedWork();
@@ -1545,7 +1660,7 @@ export function WorkspaceClient() {
     const comparison = savedComparisons.find((group) => group.id === comparisonId);
     if (!comparison) return;
     const scenarios = getComparisonScenarios(comparison);
-    const updated = await saveRoiPlan(buildUpdatedComparison(comparison, scenarios.filter((scenario) => scenario.id !== scenarioId)));
+    const updated = await saveRoiPlan(buildUpdatedComparison(comparison, scenarios.filter((scenario, index) => getComparisonScenarioId(comparisonId, scenario, index) !== scenarioId)));
     setLoadMessage(updated.data ? "Scenario deleted from comparison." : updated.message ?? "Could not delete scenario from comparison.");
     await refreshSavedWork();
   }
@@ -1664,6 +1779,8 @@ export function WorkspaceClient() {
             onBulkDeleteScenarios={bulkDeleteScenarios}
             onDuplicate={duplicateSavedItem}
             onDuplicateScenario={duplicateScenarioToDestination}
+            onRename={renameSavedItem}
+            onRenameScenario={renameScenario}
             onMoveScenarioBetweenComparisons={moveScenarioBetweenComparisons}
             onMoveScenarioIntoComparison={moveStandaloneScenarioIntoComparison}
             onMoveScenarioOut={moveScenarioOutOfComparison}
@@ -1686,6 +1803,7 @@ export function WorkspaceClient() {
             onBulkDelete={bulkDeleteDecks}
             onDelete={deleteSavedItem}
             onDuplicate={duplicateSavedItem}
+            onRename={renameSavedItem}
             onSelectVisible={selectVisibleDecks}
             onToggleSelected={toggleSelected}
           />
