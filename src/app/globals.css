@@ -5604,6 +5604,90 @@ p {
   padding: 0.18rem 0.45rem;
 }
 
+.workspace-scenario-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.workspace-scenario-summary-grid div {
+  display: grid;
+  gap: 0.12rem;
+  border: 1px solid #e3ecea;
+  border-radius: 7px;
+  background: #f8fcfb;
+  padding: 0.45rem 0.5rem;
+}
+
+.workspace-scenario-summary-grid span,
+.workspace-scenario-line-header span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.workspace-scenario-summary-grid strong {
+  color: var(--foreground);
+  font-size: 0.84rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
+
+.workspace-scenario-line-table {
+  display: grid;
+  overflow-x: auto;
+  border: 1px solid #d7e6e3;
+  border-radius: 8px;
+}
+
+.workspace-scenario-line-header,
+.workspace-scenario-line-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(130px, 1.2fr) minmax(90px, 0.75fr) minmax(120px, 1fr) minmax(95px, 0.8fr) minmax(100px, 0.9fr) minmax(64px, 0.55fr);
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 850px;
+  padding: 0.45rem 0.55rem;
+}
+
+.workspace-scenario-line-header {
+  background: #edf7f5;
+  border-bottom: 1px solid #d7e6e3;
+}
+
+.workspace-scenario-line-row {
+  color: var(--foreground);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.workspace-scenario-line-row + .workspace-scenario-line-row {
+  border-top: 1px solid #edf3f1;
+}
+
+.workspace-scenario-line-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-scenario-line-row small {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.workspace-scenario-line-table p {
+  margin: 0;
+  border-top: 1px solid #edf3f1;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+  padding: 0.45rem 0.55rem;
+}
+
 .workspace-subrow-empty {
   color: var(--muted);
   font-size: 0.82rem;
@@ -7175,6 +7259,10 @@ p {
   .workspace-subrow-detail-panel dl div {
     grid-template-columns: 1fr;
     gap: 0.15rem;
+  }
+
+  .workspace-scenario-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workspace-subrow::before {
