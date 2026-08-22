@@ -311,7 +311,7 @@ function maxRelationshipId(relsXml: string) {
 }
 
 function textParagraph(text: string, fontFace: string, color: string, size: number, bold = false) {
-  return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
+  return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t xml:space="preserve">${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
 }
 
 function templateTextBodyXml(paragraphs: string[], design: TemplateDesign, options?: { title?: boolean; combined?: boolean }) {
@@ -433,6 +433,29 @@ function ensureSlideContentTypes(contentTypesXml: string, slideNumbers: number[]
   return nextXml;
 }
 
+function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
+  const elementPattern = new RegExp(`<${tagName}>[\\s\\S]*?<\\/${tagName}>`);
+  if (elementPattern.test(xml)) return xml.replace(elementPattern, replacement);
+  return xml.replace(closingTag, `${replacement}${closingTag}`);
+}
+
+function updateExtendedPresentationProperties(appXml: string, contents: DeckSlideContent[]) {
+  const slideTitles = contents.map((content, index) => content.title || `Slide ${index + 1}`);
+  const headingPairs =
+    '<HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Slide Titles</vt:lpstr></vt:variant><vt:variant><vt:i4>' +
+    slideTitles.length +
+    "</vt:i4></vt:variant></vt:vector></HeadingPairs>";
+  const titlesOfParts =
+    `<TitlesOfParts><vt:vector size="${slideTitles.length}" baseType="lpstr">` +
+    slideTitles.map((title) => `<vt:lpstr>${xmlEscape(title)}</vt:lpstr>`).join("") +
+    "</vt:vector></TitlesOfParts>";
+
+  let nextXml = replaceOrInsertBeforeClosing(appXml, "Slides", `<Slides>${slideTitles.length}</Slides>`, "</Properties>");
+  nextXml = replaceOrInsertBeforeClosing(nextXml, "HeadingPairs", headingPairs, "</Properties>");
+  nextXml = replaceOrInsertBeforeClosing(nextXml, "TitlesOfParts", titlesOfParts, "</Properties>");
+  return nextXml;
+}
+
 function contentForTemplateSlide(contents: DeckSlideContent[], index: number, slideCount: number) {
   if (slideCount >= contents.length) return contents[index] ?? contents[contents.length - 1];
   if (index < slideCount - 1) return contents[index] ?? contents[contents.length - 1];
@@ -504,6 +527,9 @@ async function createDeckFromUploadedTemplate({
         zip.file(path, populateTemplateSlide(slideXml, content, templateDesign));
       }),
     );
+
+    const appXml = await zip.file("docProps/app.xml")?.async("text");
+    if (appXml) zip.file("docProps/app.xml", updateExtendedPresentationProperties(appXml, contents));
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
