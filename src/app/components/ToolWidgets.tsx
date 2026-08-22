@@ -2758,6 +2758,7 @@ export function BuyerMeetingPrepTool() {
 
   return (
     <GeneratorShell
+      defaultTitle={`${customer} buyer meeting prep`}
       fields={<>
         <TextInput label="Customer name" help="Retailer, channel or buyer group." value={customer} onChange={setCustomer} />
         <TextInput label="Meeting objective" help="The decision you want from the meeting." value={objective} onChange={setObjective} multiline />
@@ -2767,6 +2768,9 @@ export function BuyerMeetingPrepTool() {
         <TextInput label="Desired next step" help="The action you want agreed." value={nextStep} onChange={setNextStep} multiline />
       </>}
       sections={sections}
+      sourcePath="/tools/buyer-meeting-prep"
+      toolId="buyer-meeting-prep"
+      toolName="Buyer meeting prep"
       proFeatures={["Full meeting pack", "Objection handling library", "Senior stakeholder version", "Follow-up email variations", "Negotiation plan"]}
     />
   );
@@ -2793,6 +2797,7 @@ export function JbpBuilder() {
 
   return (
     <GeneratorShell
+      defaultTitle={`${customer} JBP`}
       fields={<>
         <TextInput label="Customer" help="Customer or account name." value={customer} onChange={setCustomer} />
         <TextInput label="Category opportunity" help="The category or shopper growth prize." value={opportunity} onChange={setOpportunity} multiline />
@@ -2802,6 +2807,9 @@ export function JbpBuilder() {
         <TextInput label="Success measure" help="How success will be judged." value={measure} onChange={setMeasure} multiline />
       </>}
       sections={sections}
+      sourcePath="/tools/joint-business-plan-builder"
+      toolId="joint-business-plan-builder"
+      toolName="Joint business plan builder"
       proFeatures={["Full JBP pack", "Quarterly milestones", "Customer-specific action tracker", "PDF/export", "Internal sell-in version"]}
     />
   );
@@ -2827,6 +2835,7 @@ export function AccountPlanGenerator() {
 
   return (
     <GeneratorShell
+      defaultTitle={`${account} account plan`}
       fields={<>
         <TextInput label="Account name" help="Retailer, customer or channel." value={account} onChange={setAccount} />
         <TextInput label="Current performance" help="What is happening now?" value={performance} onChange={setPerformance} multiline />
@@ -2836,6 +2845,9 @@ export function AccountPlanGenerator() {
         <TextInput label="Next commercial action" help="The next real action." value={action} onChange={setAction} multiline />
       </>}
       sections={sections}
+      sourcePath="/tools/account-plan-generator"
+      toolId="account-plan-generator"
+      toolName="Account plan generator"
       proFeatures={["Full account plan template", "Range review prep", "Annual customer plan", "Saved account plans", "Team sharing"]}
     />
   );
@@ -2861,6 +2873,7 @@ export function CustomerReviewTemplate() {
 
   return (
     <GeneratorShell
+      defaultTitle={`${customer} ${period} customer review`}
       fields={<>
         <TextInput label="Customer" help="Customer or account name." value={customer} onChange={setCustomer} />
         <TextInput label="Review period" help="Quarter, half year or trading period." value={period} onChange={setPeriod} />
@@ -2870,21 +2883,35 @@ export function CustomerReviewTemplate() {
         <TextInput label="Next priority" help="The main focus for the next period." value={priority} onChange={setPriority} multiline />
       </>}
       sections={sections}
+      sourcePath="/tools/customer-review-template"
+      toolId="customer-review-template"
+      toolName="Customer review template"
       proFeatures={["Full QBR pack", "Customer-ready review deck structure", "Promo performance review", "Action tracker", "PDF/export"]}
     />
   );
 }
 
 function GeneratorShell({
+  defaultTitle,
   fields,
   sections,
+  sourcePath,
+  toolId,
+  toolName,
   proFeatures,
 }: {
+  defaultTitle: string;
   fields: React.ReactNode;
   sections: [string, string][];
+  sourcePath: string;
+  toolId: string;
+  toolName: string;
   proFeatures: string[];
 }) {
+  const { plan } = useSupabaseAuth();
+  const isPro = plan === "pro" || plan === "team";
   const output = sections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
+  const outputRows = sections.map(([label, value]) => ({ label, value }));
 
   return (
     <article className="card tool-form">
@@ -2918,7 +2945,39 @@ function GeneratorShell({
           </ul>
         </InfoPanel>
       </div>
-      <ProPreview features={proFeatures} />
+      {isPro ? (
+        <aside className="pro-panel">
+          <h2>Pro output</h2>
+          <div className="locked-grid locked-grid-three" aria-label="Pro output options">
+            <div className="locked-card">
+              <strong>Customer-ready draft</strong>
+              <span>Use the generated sections as the working review narrative.</span>
+            </div>
+            <div className="locked-card">
+              <strong>Workspace save</strong>
+              <span>Save this version to your Pro workspace for later editing or comparison.</span>
+            </div>
+            <div className="locked-card">
+              <strong>Exportable sections</strong>
+              <span>Download the section table for a deck, tracker or meeting pack.</span>
+            </div>
+          </div>
+          <div className="summary-actions">
+            <CopyButton text={output} label="Copy Pro output" />
+            <DownloadCsvButton filename={`apt-${slugifyFilename(defaultTitle)}.csv`} rows={outputRows} />
+            <SaveAnalysisAction
+              calculatorId={toolId}
+              calculatorName={toolName}
+              defaultTitle={defaultTitle}
+              outputs={outputRows}
+              summaryText={output}
+              sourcePath={sourcePath}
+            />
+          </div>
+        </aside>
+      ) : (
+        <ProPreview features={proFeatures} />
+      )}
     </article>
   );
 }
