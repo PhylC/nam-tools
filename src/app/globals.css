@@ -5369,6 +5369,38 @@ p {
   font-weight: 800;
 }
 
+.workspace-compact-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.workspace-compact-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: 0;
+}
+
+.workspace-compact-header p {
+  margin: 0.18rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.workspace-compact-status {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .workspace-sync-note {
   display: flex;
   align-items: center;
@@ -7488,6 +7520,16 @@ p {
 
   .workspace-controls {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-compact-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .workspace-compact-status {
+    justify-content: flex-start;
   }
 
   .comparison-group-actions {

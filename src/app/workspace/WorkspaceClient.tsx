@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -525,6 +524,27 @@ function WorkspaceControls({
           <option value="name-desc">Name Z-A</option>
         </select>
       </label>
+    </div>
+  );
+}
+
+function WorkspaceSavedHeader({
+  savedItemCount,
+  loadMessage,
+}: {
+  savedItemCount: number;
+  loadMessage: string;
+}) {
+  return (
+    <div className="workspace-compact-header" aria-label="Saved workspace summary">
+      <div>
+        <h1>Saved work</h1>
+        <p>{savedItemCount} saved item(s) across decks, comparisons, scenarios and calculator results.</p>
+      </div>
+      <div className="workspace-compact-status">
+        <span className="save-mode-badge save-mode-account">Account saves</span>
+        {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
+      </div>
     </div>
   );
 }
@@ -1735,28 +1755,7 @@ export function WorkspaceClient() {
     <section className="shell section">
       <div className="account-section-layout">
         <div className="settings-layout">
-          <article className="card workspace-message">
-            <div className="workspace-message-copy">
-              <h2>Your Pro workspace</h2>
-              <p>
-                Search all saved items from one place. ROI comparisons are groups of scenarios, and standalone scenarios
-                can be moved into groups when plans evolve.
-              </p>
-              <div className="workspace-sync-note">
-                <span className="save-mode-badge save-mode-account">Account saves</span>
-                <span>{savedItemCount} saved item(s) across decks, comparisons, scenarios and calculator results.</span>
-              </div>
-              {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
-            </div>
-            <Image
-              alt="APT workspace showing saved analyses, scenarios, decks and exports"
-              className="workspace-preview-image"
-              height={270}
-              loading="lazy"
-              src="/images/apt/apt-workspace-dashboard-preview.webp"
-              width={547}
-            />
-          </article>
+          <WorkspaceSavedHeader savedItemCount={savedItemCount} loadMessage={loadMessage} />
 
           <WorkspaceControls search={search} sort={sort} onSearch={setSearch} onSort={setSort} />
 
