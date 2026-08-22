@@ -658,18 +658,25 @@ function WorkspaceBulkActions({
 function GeneralItemMenu({
   id,
   type,
+  editHref,
   onRename,
   onDuplicate,
   onDelete,
 }: {
   id: string;
   type: SavedItemType;
+  editHref?: string;
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
 }) {
   return (
     <WorkspaceMenuShell>
+      {editHref ? (
+        <Link className="workspace-menu-action" href={editHref}>
+          Edit
+        </Link>
+      ) : null}
       <button className="workspace-menu-action" onClick={() => onRename(id, type)} type="button">
         Rename
       </button>
@@ -686,6 +693,7 @@ function GeneralItemMenu({
 function ScenarioItemMenu({
   scenarioId,
   comparisonId,
+  editHref,
   comparisons,
   onRenameScenario,
   onDuplicateScenario,
@@ -697,6 +705,7 @@ function ScenarioItemMenu({
 }: {
   scenarioId: string;
   comparisonId?: string;
+  editHref: string;
   comparisons: SavedRecord[];
   onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
@@ -712,6 +721,9 @@ function ScenarioItemMenu({
 
   return (
     <WorkspaceMenuShell>
+      <Link className="workspace-menu-action" href={editHref}>
+        Edit
+      </Link>
       <button className="workspace-menu-action" onClick={() => onRenameScenario(scenarioId, comparisonId)} type="button">
         Rename
       </button>
@@ -824,7 +836,14 @@ function SavedWorkRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          <GeneralItemMenu id={item.id} type={item.type} onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
+          <GeneralItemMenu
+            id={item.id}
+            type={item.type}
+            editHref={item.type === "Comparison" || item.type === "Scenario" ? href : undefined}
+            onDelete={onDelete}
+            onDuplicate={onDuplicate}
+            onRename={onRename}
+          />
         </div>
       </div>
 
@@ -908,6 +927,7 @@ function ScenarioSubRow({
           <ScenarioItemMenu
             scenarioId={scenarioId}
             comparisonId={sourceComparisonId}
+            editHref={href}
             comparisons={comparisons}
             onDelete={sourceComparisonId ? undefined : onDelete}
             onRenameScenario={onRenameScenario}
@@ -965,7 +985,7 @@ function ComparisonGroupRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          <GeneralItemMenu id={item.id} type="Comparison" onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
+          <GeneralItemMenu id={item.id} type="Comparison" editHref={href} onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
         </div>
       </div>
       <div className="workspace-subrows">
