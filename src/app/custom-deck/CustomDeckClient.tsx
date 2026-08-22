@@ -13,6 +13,9 @@ import { downloadDeckTemplate, downloadGeneratedDeck, uploadGeneratedDeck } from
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SUPPORTING_FILES = 5;
+const SAVED_TEMPLATE_DOWNLOAD_TIMEOUT_MS = 12000;
+const GENERATED_DECK_UPLOAD_TIMEOUT_MS = 15000;
+const WORKSPACE_SAVE_TIMEOUT_MS = 12000;
 const deckTemplateExtensions = [".pptx", ".potx"];
 const supportingFileExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt", ".pptx", ".key", ".numbers", ".pages"];
 
@@ -937,9 +940,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setRequestMessage("Sign in to create and save a deck.");
       return;
     }
-    setRequestMessage("Checking deck setup...");
     setTemplateError("");
     setGoogleSlidesError("");
+    let pendingDownloadUrl = "";
+    let pendingDownloadFilename = "";
     try {
       if (!deckName.trim()) {
         setRequestMessage("Name the deck before creating it so it is easy to find in Workspace.");
@@ -950,18 +954,31 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setRequestMessage("Check the optional Google Slides reference link, or leave it blank.");
         return;
       }
+      if (!canCreateDeck) {
+        setTemplateError("Upload or choose a PowerPoint template, or select the simple blank template.");
+        setRequestMessage("Choose a template option before creating the deck.");
+        return;
+      }
       setIsCreatingDeck(true);
+      setRequestMessage("Checking deck setup...");
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
       let templateFileForDesign = activeUploadedTemplate ?? null;
       if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate) {
-        const downloaded = await downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename);
+        setRequestMessage("Downloading saved template...");
+        await waitForBrowserPaint();
+        const downloaded = await withTimeout(
+          downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename),
+          SAVED_TEMPLATE_DOWNLOAD_TIMEOUT_MS,
+          "Saved template download timed out. Re-upload the template as a one-off file or choose the simple blank template.",
+        );
         if (downloaded.file) {
           templateFileForDesign = downloaded.file;
         } else {
           setTemplateError(downloaded.error ?? "Could not download the selected saved template.");
+          setRequestMessage(downloaded.error ?? "Could not download the selected saved template.");
           return;
         }
       }
@@ -997,7 +1014,13 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setRequestMessage("Saving generated deck...");
       await waitForBrowserPaint();
       const downloadUrl = URL.createObjectURL(generated.file);
-      const uploaded = await uploadGeneratedDeck(generated.file, user.id);
+      pendingDownloadUrl = downloadUrl;
+      pendingDownloadFilename = generated.filename;
+      const uploaded = await withTimeout(
+        uploadGeneratedDeck(generated.file, user.id),
+        GENERATED_DECK_UPLOAD_TIMEOUT_MS,
+        "Generated deck upload timed out. The deck was created, but storage did not respond. Use the download link below.",
+      ).catch((error) => ({ path: null, error: error instanceof Error ? error.message : "Generated deck upload timed out." }));
       const requestPayload = {
         id: crypto.randomUUID ? crypto.randomUUID() : `deck-request-${Date.now()}`,
         name: resolvedDeckName,
@@ -1037,9 +1060,15 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       };
       setRequestMessage("Saving deck to Workspace...");
       await waitForBrowserPaint();
-      const result = await saveDeckBrief(requestPayload);
+      const result = await withTimeout(
+        saveDeckBrief(requestPayload),
+        WORKSPACE_SAVE_TIMEOUT_MS,
+        "Workspace save timed out. The deck file was created, but the saved record did not complete.",
+      );
       if (!result.data) {
         URL.revokeObjectURL(downloadUrl);
+        pendingDownloadUrl = "";
+        pendingDownloadFilename = "";
         setRequestMessage(result.message ?? "Could not save deck brief.");
         return;
       }
@@ -1053,6 +1082,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
       );
     } catch (error) {
+      if (pendingDownloadUrl) {
+        setGeneratedDeckUrl(pendingDownloadUrl);
+        setGeneratedDeckFilename(pendingDownloadFilename);
+      }
       setRequestMessage(error instanceof Error ? error.message : "Could not create the deck. Please try again.");
     } finally {
       setIsCreatingDeck(false);
