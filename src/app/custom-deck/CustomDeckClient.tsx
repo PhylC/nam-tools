@@ -940,16 +940,17 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     setRequestMessage("Checking deck setup...");
     setTemplateError("");
     setGoogleSlidesError("");
-    if (!deckName.trim()) {
-      setRequestMessage("Name the deck before creating it so it is easy to find in Workspace.");
-      return;
-    }
-    if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
-      setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
-      return;
-    }
-    setIsCreatingDeck(true);
     try {
+      if (!deckName.trim()) {
+        setRequestMessage("Name the deck before creating it so it is easy to find in Workspace.");
+        return;
+      }
+      if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
+        setGoogleSlidesError("Paste a shareable Google Slides presentation link, or leave this optional field blank.");
+        setRequestMessage("Check the optional Google Slides reference link, or leave it blank.");
+        return;
+      }
+      setIsCreatingDeck(true);
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
@@ -1227,7 +1228,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               <label className="field">
                 <span>Google Slides reference link</span>
                 <input
-                  placeholder="https://docs.google.com/presentation/..."
+                  placeholder="Optional: https://docs.google.com/presentation/..."
                   type="url"
                   value={googleSlidesTemplateUrl}
                   onChange={(event) => {
