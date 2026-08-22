@@ -6279,6 +6279,12 @@ p {
   font-size: 1.08rem;
 }
 
+.custom-deck-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.7fr);
+  gap: 0.9rem;
+}
+
 .custom-deck-form-section:last-child {
   border-bottom: 0;
   padding-bottom: 0;
@@ -6408,6 +6414,29 @@ p {
 .template-source-group {
   display: grid;
   gap: 0.65rem;
+}
+
+.active-template-banner {
+  display: grid;
+  gap: 0.18rem;
+  border: 1px solid rgba(15, 118, 110, 0.26);
+  border-radius: 8px;
+  background: #f3fbf9;
+  padding: 0.65rem 0.75rem;
+}
+
+.active-template-banner span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.active-template-banner strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
 }
 
 .template-source-option {
@@ -7242,6 +7271,7 @@ p {
     position: static;
   }
 
+  .custom-deck-setup-grid,
   .output-preferences-grid,
   .output-format-field {
     grid-template-columns: 1fr;

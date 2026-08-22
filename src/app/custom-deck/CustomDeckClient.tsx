@@ -13,7 +13,7 @@ import { downloadDeckTemplate, uploadGeneratedDeck } from "../../lib/storageUplo
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
 const MAX_SUPPORTING_FILES = 5;
-const deckTemplateExtensions = [".pptx", ".potx", ".pdf", ".key"];
+const deckTemplateExtensions = [".pptx", ".potx"];
 const supportingFileExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt", ".pptx", ".key", ".numbers", ".pages"];
 
 const deckTypes = [
@@ -722,6 +722,17 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],
   );
+  const selectedSavedTemplate = useMemo(
+    () => savedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
+    [savedTemplates, selectedSavedTemplateId],
+  );
+  const activeTemplateName = oneOffTemplateFiles[0]?.name
+    ?? (templateSource === "saved" && selectedSavedTemplate ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename : "APT default");
+  const activeTemplateKind = oneOffTemplateFiles[0]
+    ? "Uploaded PowerPoint template"
+    : templateSource === "saved" && selectedSavedTemplate
+      ? "Saved template"
+      : "APT default template";
 
   useEffect(() => {
     let isMounted = true;
@@ -754,10 +765,11 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     }
     if (!deckTemplateExtensions.includes(fileExtension(file.name)) || file.size > DECK_TEMPLATE_MAX_FILE_BYTES) {
       setOneOffTemplateFiles([]);
-      setTemplateError("Please upload a .pptx, .potx, .pdf or .key file under 20MB.");
+      setTemplateError("Please upload a .pptx or .potx PowerPoint template under 20MB.");
       return;
     }
     setOneOffTemplateFiles([file]);
+    setTemplateSource("one_off");
   }
 
   function validateSupportingFiles(files: File[]) {
@@ -803,9 +815,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
-      const selectedSavedTemplate = savedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null;
-      let templateFileForDesign = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? null : null;
-      if (templateSource === "saved" && selectedSavedTemplate?.storagePathOrUrl) {
+      let templateFileForDesign = oneOffTemplateFiles[0] ?? null;
+      if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate?.storagePathOrUrl) {
         const downloaded = await downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename);
         if (downloaded.file) {
           templateFileForDesign = downloaded.file;
@@ -834,9 +845,9 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         deck_name: resolvedDeckName,
         template_type: selectedDeck.label,
         deckType,
-        templateSource,
-        savedTemplateId: templateSource === "saved" ? selectedSavedTemplateId : "",
-        oneOffTemplateFileMeta: templateSource === "one_off" && oneOffTemplateFiles[0] ? toFileMeta(oneOffTemplateFiles[0]) : null,
+        templateSource: oneOffTemplateFiles[0] ? "one_off" : templateSource,
+        savedTemplateId: !oneOffTemplateFiles[0] && templateSource === "saved" ? selectedSavedTemplateId : "",
+        oneOffTemplateFileMeta: oneOffTemplateFiles[0] ? toFileMeta(oneOffTemplateFiles[0]) : null,
         googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
         supportingFilesMeta: supportingFiles.map(toFileMeta),
         brief,
@@ -918,39 +929,55 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
 
           <fieldset className="settings-fieldset" disabled={!isPro}>
             <section className="custom-deck-form-section custom-deck-name-section">
-              <h2>Name your deck</h2>
-              <label className="field">
-                <span>Deck name</span>
-                <input
-                  required
-                  placeholder={`${selectedDeck.label} for Tesco Q3`}
-                  value={deckName}
-                  onChange={(event) => setDeckName(event.target.value)}
-                />
-                <small>This is the name shown in Workspace and used for the generated file.</small>
-              </label>
-            </section>
-
-            <section className="custom-deck-form-section">
               <h2>Deck setup</h2>
-              <label className="field">
-                <span>Deck type</span>
-                <select value={deckType} onChange={(event) => setDeckType(event.target.value)}>
-                  {deckTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <p className="helper-note">Selected template: {selectedDeck.label}</p>
+              <div className="custom-deck-setup-grid">
+                <label className="field">
+                  <span>Deck name</span>
+                  <input
+                    required
+                    placeholder={`${selectedDeck.label} for Tesco Q3`}
+                    value={deckName}
+                    onChange={(event) => setDeckName(event.target.value)}
+                  />
+                  <small>Shown in Workspace and used for the generated file.</small>
+                </label>
+                <label className="field">
+                  <span>Deck type</span>
+                  <select value={deckType} onChange={(event) => setDeckType(event.target.value)}>
+                    {deckTypes.map((type) => (
+                      <option key={type.value} value={type.value}>
+                        {type.label}
+                      </option>
+                    ))}
+                  </select>
+                  <small>Controls the first-draft story structure.</small>
+                </label>
+              </div>
             </section>
 
             <section className="custom-deck-form-section">
               <h2>Deck template</h2>
               <p className="helper-note">
-                Use a saved template, upload a one-off deck file, paste a Google Slides reference or start from the APT default layout.
+                Upload a PowerPoint template to make the generated deck use that design. If you upload a file here, it overrides the saved/default options.
               </p>
+              <DeckFileDropzone
+                accept=".pptx,.potx"
+                disabled={!isPro}
+                error={templateError}
+                files={oneOffTemplateFiles}
+                helper="Best supported: PowerPoint .pptx or .potx. The generated deck is created inside this uploaded file's slide design."
+                id="one-off-template-deck"
+                label="Upload deck design template"
+                onFilesSelected={validateOneOffTemplateFiles}
+                onRemoveFile={() => {
+                  setOneOffTemplateFiles([]);
+                  setTemplateError("");
+                }}
+              />
+              <div className="active-template-banner">
+                <span>{activeTemplateKind}</span>
+                <strong>{activeTemplateName}</strong>
+              </div>
               <div className="template-source-group" role="radiogroup" aria-label="Template source">
                 <label className="template-source-option">
                   <input
@@ -976,7 +1003,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   />
                   <span>
                     <strong>Upload one-off template</strong>
-                    <small>PowerPoint files are used as the design base. Keynote and PDF files are saved as references.</small>
+                    <small>The uploaded file above will be used as the design base.</small>
                   </span>
                 </label>
                 <label className="template-source-option">
@@ -1022,33 +1049,15 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   ) : null}
                 </label>
               ) : null}
-              {templateSource === "one_off" ? (
-                <div className="template-one-off-fields">
-                  <DeckFileDropzone
-                    accept=".pptx,.potx,.pdf,.key"
-                    disabled={!isPro}
-                    error={templateError}
-                    files={oneOffTemplateFiles}
-                    helper="Best supported: PowerPoint .pptx or .potx. The generated content is added onto the uploaded deck's existing slide designs."
-                    id="one-off-template-deck"
-                    label="Upload one-off template"
-                    onFilesSelected={validateOneOffTemplateFiles}
-                    onRemoveFile={() => {
-                      setOneOffTemplateFiles([]);
-                      setTemplateError("");
-                    }}
-                  />
-                  <label className="checkbox-row checkbox-row-disabled">
-                    <input disabled type="checkbox" />
-                    <span>Also save this to my template library</span>
-                  </label>
-                  <small className="helper-note">
-                    {savedTemplates.length >= 3
-                      ? "You already have 3 saved templates. Remove one in Settings to save another."
-                      : "Save reusable templates from Settings for now."}
-                  </small>
-                </div>
-              ) : null}
+              <label className="checkbox-row checkbox-row-disabled">
+                <input disabled type="checkbox" />
+                <span>Also save this to my template library</span>
+              </label>
+              <small className="helper-note">
+                {savedTemplates.length >= 3
+                  ? "You already have 3 saved templates. Remove one in Settings to save another."
+                  : "Save reusable templates from Settings for now."}
+              </small>
               <label className="field">
                 <span>Google Slides link</span>
                 <input
