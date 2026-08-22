@@ -134,6 +134,26 @@ function safeFilename(value: string) {
     .slice(0, 80) || "custom-deck";
 }
 
+function waitForBrowserPaint() {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, 0);
+  });
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: number | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+}
+
 function briefSentences(value: string) {
   return value
     .split(/[\n.]+/)
@@ -562,9 +582,12 @@ async function createDeckFile({
   const design = templateDesign;
   const { outline, contents } = buildDeckContent({ deckLabel, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
   if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
-    const templatedDeck = await createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents });
+    const templatedDeck = await withTimeout(
+      createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents }),
+      15000,
+      "The uploaded template took too long to transform.",
+    ).catch(() => null);
     if (templatedDeck) return templatedDeck;
-    throw new Error("The uploaded PowerPoint template could not be used. Please try a .pptx or .potx file with editable slides.");
   }
 
   const pptx = new PptxGenJS();
@@ -925,7 +948,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
       return;
     }
-    setRequestMessage("Creating deck...");
     setIsCreatingDeck(true);
     try {
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
@@ -951,18 +973,28 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setRequestMessage("A reusable PowerPoint template is required so the generated deck uses your design instead of the APT default.");
         return;
       }
-      const templateDesign = await extractTemplateDesign(templateFileForDesign);
-      const generated = await createDeckFile({
-        deckLabel: resolvedDeckName,
-        brief,
-        audience,
-        tone,
-        includeFinancialSummary: financialSummary === "Yes",
-        includeNextStepsSlide: nextStepsSlide === "Yes",
-        supportingFiles,
-        templateDesign,
-        templateFile: templateFileForDesign,
-      });
+      setRequestMessage("Reading template design...");
+      await waitForBrowserPaint();
+      const templateDesign = await withTimeout(extractTemplateDesign(templateFileForDesign), 10000, "Template design reading timed out.");
+      setRequestMessage("Creating deck file...");
+      await waitForBrowserPaint();
+      const generated = await withTimeout(
+        createDeckFile({
+          deckLabel: resolvedDeckName,
+          brief,
+          audience,
+          tone,
+          includeFinancialSummary: financialSummary === "Yes",
+          includeNextStepsSlide: nextStepsSlide === "Yes",
+          supportingFiles,
+          templateDesign,
+          templateFile: templateFileForDesign,
+        }),
+        25000,
+        "Deck file creation timed out.",
+      );
+      setRequestMessage("Saving generated deck...");
+      await waitForBrowserPaint();
       const downloadUrl = URL.createObjectURL(generated.file);
       const uploaded = await uploadGeneratedDeck(generated.file, user.id);
       const requestPayload = {
@@ -1002,6 +1034,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         },
         createdAt: new Date().toISOString(),
       };
+      setRequestMessage("Saving deck to Workspace...");
+      await waitForBrowserPaint();
       const result = await saveDeckBrief(requestPayload);
       if (!result.data) {
         URL.revokeObjectURL(downloadUrl);
