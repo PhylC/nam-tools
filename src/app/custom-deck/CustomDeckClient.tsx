@@ -54,6 +54,14 @@ type GeneratedDeckResult = {
   outline: string[];
   templateDesignApplied: boolean;
 };
+
+type ZipLike = {
+  file: {
+    (path: string): { async: (type: "text") => Promise<string> } | null;
+    (path: string, data: string): unknown;
+  };
+  remove: (path: string) => void;
+};
 type TemplateDesign = {
   sourceName: string;
   backgroundColor: string;
@@ -338,6 +346,23 @@ function templateTextBodyXml(paragraphs: string[], design: TemplateDesign, optio
   return `<p:txBody><a:bodyPr wrap="square" rtlCol="0"><a:spAutoFit/></a:bodyPr><a:lstStyle/>${text}</p:txBody>`;
 }
 
+function designForSlideReadability(slideXml: string, design: TemplateDesign) {
+  const backgroundColor =
+    /<p:bg[\s\S]*?<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1] ??
+    /<p:spPr[\s\S]*?<a:solidFill>\s*<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1] ??
+    design.backgroundColor;
+  const hasImageFill = /<p:bg[\s\S]*?<a:blipFill[\s\S]*?<\/p:bg>/.test(slideXml);
+  const hasLargePicture = /<p:pic\b/.test(slideXml) && /<a:off x="0" y="0"\/>/.test(slideXml);
+  const hasDarkInheritedBackground = /<p:bgRef\b[\s\S]*?<a:schemeClr val="bg2"/.test(slideXml) || /<a:gradFill\b[\s\S]*?<a:schemeClr val="bg2"/.test(slideXml);
+  const needsLightText = hasImageFill || hasLargePicture || hasDarkInheritedBackground || colorLuminance(backgroundColor) < 0.38;
+  if (!needsLightText) return design;
+  return {
+    ...design,
+    textColor: "FFFFFF",
+    mutedTextColor: "EAF3F2",
+  };
+}
+
 function templateTextBoxXml(id: number, name: string, x: number, y: number, w: number, h: number, paragraphs: string[], design: TemplateDesign, options?: { title?: boolean }) {
   return `
     <p:sp>
@@ -374,27 +399,30 @@ function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideCon
     if (replacementIndex >= replacementBodies.length || !shape.includes("<p:txBody")) return shape;
     const nextBody = replacementBodies[replacementIndex];
     replacementIndex += 1;
-    return shape.replace(/<p:txBody>[\s\S]*?<\/p:txBody>/, nextBody);
+    return shape.replace(/<p:txBody\b[\s\S]*?<\/p:txBody>/, nextBody);
   });
 
   return { xml, replacementCount: replacementIndex };
 }
 
-function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign) {
-  const replaced = replaceTemplateTextPlaceholders(slideXml, content, design);
+function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign, readabilityXml = slideXml) {
+  const slideDesign = designForSlideReadability(readabilityXml, design);
+  const replaced = replaceTemplateTextPlaceholders(slideXml, content, slideDesign);
   if (replaced.replacementCount > 0) return removeDuplicatedPowerPointCreationIds(replaced.xml);
 
   if (!slideXml.includes("</p:spTree>")) return removeDuplicatedPowerPointCreationIds(slideXml);
   const baseId = maxShapeId(slideXml) + 1;
   const injected = [
-    templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], design, { title: true }),
-    templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), design),
+    templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], slideDesign, { title: true }),
+    templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), slideDesign),
   ].join("");
   return removeDuplicatedPowerPointCreationIds(slideXml.replace("</p:spTree>", `${injected}</p:spTree>`));
 }
 
 function removeDuplicatedPowerPointCreationIds(slideXml: string) {
   return slideXml
+    .replace(/<p14:creationId\b[^>]*\/>/g, "")
+    .replace(/<a16:creationId\b[^>]*\/>/g, "")
     .replace(/<a:ext uri="\{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236\}">[\s\S]*?<\/a:ext>/g, "")
     .replace(/<p:ext uri="\{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E\}">[\s\S]*?<\/p:ext>/g, "")
     .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
@@ -444,6 +472,88 @@ function ensureSlideContentTypes(contentTypesXml: string, slideNumbers: number[]
     nextXml = nextXml.replace("</Types>", `<Override PartName="${partName}" ContentType="${overrideType}"/></Types>`);
   });
   return nextXml;
+}
+
+function relationshipPathFor(partPath: string) {
+  const segments = partPath.split("/");
+  const filename = segments.pop();
+  return `${segments.join("/")}/_rels/${filename}.rels`;
+}
+
+function resolveZipTarget(sourcePartPath: string, target: string) {
+  if (target.startsWith("/")) return target.slice(1);
+  const base = sourcePartPath.split("/").slice(0, -1);
+  target.split("/").forEach((segment) => {
+    if (!segment || segment === ".") return;
+    if (segment === "..") {
+      base.pop();
+      return;
+    }
+    base.push(segment);
+  });
+  return base.join("/");
+}
+
+function relationshipAttribute(xml: string, attribute: string) {
+  return new RegExp(`\\b${attribute}="([^"]+)"`).exec(xml)?.[1] ?? "";
+}
+
+async function findRelationshipTarget(zip: ZipLike, sourcePartPath: string, relationshipType: string) {
+  const relsXml = await zip.file(relationshipPathFor(sourcePartPath))?.async("text");
+  if (!relsXml) return "";
+  const relationship = [...relsXml.matchAll(/<Relationship\b[^>]*\/>/g)]
+    .map((match) => match[0])
+    .find((xml) => relationshipAttribute(xml, "Type").endsWith(relationshipType));
+  const target = relationship ? relationshipAttribute(relationship, "Target") : "";
+  return target ? resolveZipTarget(sourcePartPath, target) : "";
+}
+
+async function loadSlideReadabilityXml(zip: ZipLike, slidePath: string, slideXml: string) {
+  const layoutPath = await findRelationshipTarget(zip, slidePath, "/slideLayout");
+  const layoutXml = layoutPath ? (await zip.file(layoutPath)?.async("text")) ?? "" : "";
+  const masterPath = layoutPath ? await findRelationshipTarget(zip, layoutPath, "/slideMaster") : "";
+  const masterXml = masterPath ? (await zip.file(masterPath)?.async("text")) ?? "" : "";
+  return [slideXml, layoutXml, masterXml].join("\n");
+}
+
+async function trimPresentationToSlideCount(zip: ZipLike, targetSlideCount: number) {
+  const presentationXml = await zip.file("ppt/presentation.xml")?.async("text");
+  const presentationRelsXml = await zip.file("ppt/_rels/presentation.xml.rels")?.async("text");
+  const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
+  if (!presentationXml || !presentationRelsXml || targetSlideCount < 1) return;
+
+  const slideRefs = [...presentationXml.matchAll(/<p:sldId\b[^>]*\br:id="([^"]+)"[^>]*\/>/g)].map((match) => ({
+    xml: match[0],
+    relId: match[1],
+  }));
+  if (slideRefs.length <= targetSlideCount) return;
+
+  const relTargets = new Map(
+    [...presentationRelsXml.matchAll(/<Relationship\b[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g)].map((match) => [match[1], match[2]]),
+  );
+  const removedRefs = slideRefs.slice(targetSlideCount);
+  let nextPresentationXml = presentationXml;
+  let nextPresentationRelsXml = presentationRelsXml;
+  let nextContentTypesXml = contentTypesXml ?? "";
+
+  removedRefs.forEach((ref) => {
+    nextPresentationXml = nextPresentationXml.replace(ref.xml, "");
+    const target = relTargets.get(ref.relId);
+    nextPresentationRelsXml = nextPresentationRelsXml.replace(new RegExp(`<Relationship\\b[^>]*Id="${ref.relId}"[^>]*\\/>`), "");
+    if (!target) return;
+    const slidePath = target.startsWith("/") ? target.slice(1) : `ppt/${target.replace(/^\.\.\//, "")}`;
+    const normalizedSlidePath = slidePath.replace("ppt/slides/", "ppt/slides/");
+    const slideNumber = Number(normalizedSlidePath.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
+    zip.remove(normalizedSlidePath);
+    zip.remove(normalizedSlidePath.replace("ppt/slides/", "ppt/slides/_rels/") + ".rels");
+    if (nextContentTypesXml && slideNumber) {
+      nextContentTypesXml = nextContentTypesXml.replace(new RegExp(`<Override\\b[^>]*PartName="/ppt/slides/slide${slideNumber}\\.xml"[^>]*\\/>`), "");
+    }
+  });
+
+  zip.file("ppt/presentation.xml", nextPresentationXml);
+  zip.file("ppt/_rels/presentation.xml.rels", nextPresentationRelsXml);
+  if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
 }
 
 function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
@@ -528,6 +638,8 @@ async function createDeckFromUploadedTemplate({
       if (contentTypesXml) zip.file("[Content_Types].xml", ensureSlideContentTypes(contentTypesXml, []));
     }
 
+    await trimPresentationToSlideCount(zip, contents.length);
+
     const generatedSlidePaths = Object.keys(zip.files)
       .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
       .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
@@ -538,7 +650,8 @@ async function createDeckFromUploadedTemplate({
         const slideXml = await zip.file(path)?.async("text");
         if (!slideXml) return;
         const content = contentForTemplateSlide(contents, index, generatedSlidePaths.length);
-        zip.file(path, populateTemplateSlide(slideXml, content, templateDesign));
+        const readabilityXml = await loadSlideReadabilityXml(zip, path, slideXml);
+        zip.file(path, populateTemplateSlide(slideXml, content, templateDesign, readabilityXml));
       }),
     );
 
