@@ -46,6 +46,19 @@ const SUPPORT_HELP =
   "Supplier-funded support per unit, such as off-invoice support, allowance or trade funding.";
 
 type CsvRow = { label: string; value: string | number };
+type UploadedSalesRow = Record<string, string>;
+type SalesDataSummary = {
+  fileName: string;
+  rowCount: number;
+  totalSales: number;
+  priorSales: number;
+  totalUnits: number;
+  priorUnits: number;
+  averageMargin: number | null;
+  topProduct: string;
+  weakestProduct: string;
+  summaryText: string;
+};
 type TaxLabel = "VAT" | "IVA" | "Sales tax" | "GST" | "TVA" | "MwSt" | "Custom";
 type ToolDefaults = {
   market: string;
@@ -129,6 +142,119 @@ function downloadCsv(filename: string, rows: CsvRow[]) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function splitCsvRow(row: string) {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < row.length; index += 1) {
+    const char = row[index];
+    const next = row[index + 1];
+    if (char === "\"" && next === "\"") {
+      current += "\"";
+      index += 1;
+    } else if (char === "\"") {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current.trim());
+  return cells;
+}
+
+function normalizeCsvHeader(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
+}
+
+function parseSimpleCsv(text: string) {
+  const rows = text
+    .replace(/^\uFEFF/, "")
+    .split(/\r?\n/)
+    .filter((row) => row.trim().length > 0)
+    .map(splitCsvRow);
+  const [headers = [], ...body] = rows;
+  return body.map((row) =>
+    headers.reduce<UploadedSalesRow>((record, header, index) => {
+      record[normalizeCsvHeader(header)] = row[index] ?? "";
+      return record;
+    }, {}),
+  );
+}
+
+function parseUploadedNumber(value: string | undefined) {
+  if (!value) return 0;
+  const parsed = Number(value.replace(/[£€$,\s%]/g, ""));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function firstPresent(row: UploadedSalesRow, keys: string[]) {
+  const found = keys.find((key) => row[key] !== undefined && row[key] !== "");
+  return found ? row[found] : "";
+}
+
+function summarizeSalesRows(fileName: string, rows: UploadedSalesRow[]): SalesDataSummary {
+  const enriched = rows.map((row, index) => {
+    const product = firstPresent(row, ["product", "product_name", "sku", "item", "range", "brand"]) || `Row ${index + 1}`;
+    const sales = parseUploadedNumber(firstPresent(row, ["sales", "current_sales", "revenue", "current_revenue", "value", "current_value"]));
+    const priorSales = parseUploadedNumber(firstPresent(row, ["prior_sales", "last_year_sales", "ly_sales", "previous_sales", "baseline_sales"]));
+    const units = parseUploadedNumber(firstPresent(row, ["units", "current_units", "volume", "current_volume"]));
+    const priorUnits = parseUploadedNumber(firstPresent(row, ["prior_units", "last_year_units", "ly_units", "previous_units", "baseline_units"]));
+    const margin = parseUploadedNumber(firstPresent(row, ["margin", "margin_percent", "gross_margin", "gm_percent"]));
+    return { product, sales, priorSales, units, priorUnits, margin };
+  });
+
+  const totalSales = enriched.reduce((total, row) => total + row.sales, 0);
+  const priorSales = enriched.reduce((total, row) => total + row.priorSales, 0);
+  const totalUnits = enriched.reduce((total, row) => total + row.units, 0);
+  const priorUnits = enriched.reduce((total, row) => total + row.priorUnits, 0);
+  const margins = enriched.map((row) => row.margin).filter((value) => value > 0);
+  const averageMargin = margins.length ? margins.reduce((total, value) => total + value, 0) / margins.length : null;
+  const topProduct = enriched.toSorted((left, right) => right.sales - left.sales)[0]?.product ?? "Top product not identified";
+  const weakestProduct =
+    enriched
+      .filter((row) => row.priorSales > 0)
+      .toSorted((left, right) => (left.sales - left.priorSales) / left.priorSales - (right.sales - right.priorSales) / right.priorSales)[0]?.product ??
+    "Underperformer not identified";
+  const salesChange = priorSales ? safePercent((totalSales - priorSales) / priorSales) : "prior sales not supplied";
+  const unitsChange = priorUnits ? safePercent((totalUnits - priorUnits) / priorUnits) : "prior units not supplied";
+  const marginText = averageMargin === null ? "margin not supplied" : `${averageMargin.toFixed(1)}% average margin`;
+
+  return {
+    fileName,
+    rowCount: rows.length,
+    totalSales,
+    priorSales,
+    totalUnits,
+    priorUnits,
+    averageMargin,
+    topProduct,
+    weakestProduct,
+    summaryText: `${rows.length} rows uploaded. Sales change: ${salesChange}. Units change: ${unitsChange}. ${marginText}. Top product: ${topProduct}. Watch item: ${weakestProduct}.`,
+  };
+}
+
+function downloadSalesUploadTemplate() {
+  const csv = [
+    ["product", "sales", "prior_sales", "units", "prior_units", "margin_percent"],
+    ["Core range", "125000", "112000", "52000", "49000", "31.5"],
+    ["Launch SKU", "42000", "30000", "16000", "11000", "28.2"],
+  ]
+    .map((row) => row.map(csvEscape).join(","))
+    .join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "apt-sales-data-template.csv";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -347,6 +473,82 @@ function TextInput({
         <input className="calc-input" required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </Field>
+  );
+}
+
+function SalesDataUpload({
+  value,
+  onChange,
+}: {
+  value: SalesDataSummary | null;
+  onChange: (value: SalesDataSummary | null) => void;
+}) {
+  const { plan } = useSupabaseAuth();
+  const { requirePro } = useProAction({ from: "tool", feature: "sales-data-upload" });
+  const isPro = plan === "pro" || plan === "team";
+  const [message, setMessage] = useState("");
+
+  function promptUpgrade() {
+    requirePro(() => undefined, {
+      feature: "sales-data-upload",
+      location: "generator_sales_upload",
+    });
+  }
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    if (!isPro) {
+      promptUpgrade();
+      return;
+    }
+    try {
+      const text = await file.text();
+      const rows = parseSimpleCsv(text);
+      if (!rows.length) {
+        onChange(null);
+        setMessage("No rows found in that CSV.");
+        return;
+      }
+      const summary = summarizeSalesRows(file.name, rows);
+      onChange(summary);
+      setMessage(summary.summaryText);
+    } catch {
+      onChange(null);
+      setMessage("Could not read that CSV. Use the template format and try again.");
+    }
+  }
+
+  return (
+    <div className="sales-upload-panel">
+      <div>
+        <span>Actual sales data</span>
+        <p>Upload CSV columns such as product, sales, prior_sales, units, prior_units and margin_percent.</p>
+      </div>
+      <div className="summary-actions">
+        {isPro ? (
+          <label className="button button-secondary button-small">
+            Upload CSV
+            <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => handleFile(event.target.files?.[0])} />
+          </label>
+        ) : (
+          <button className="button button-secondary button-small" onClick={promptUpgrade} type="button">
+            Upload CSV
+            <span className="roi-pro-badge">APT Pro</span>
+          </button>
+        )}
+        <button className="button button-secondary button-small" onClick={downloadSalesUploadTemplate} type="button">
+          Download template
+        </button>
+        {value ? (
+          <button className="text-button" onClick={() => { onChange(null); setMessage(""); }} type="button">
+            Clear data
+          </button>
+        ) : null}
+      </div>
+      {message || value ? (
+        <p className="sales-upload-status">{message || value?.summaryText}</p>
+      ) : null}
+    </div>
   );
 }
 
@@ -2743,12 +2945,19 @@ export function BuyerMeetingPrepTool() {
   const [issue, setIssue] = useState("The buyer needs stronger value perception without adding range complexity.");
   const [ask, setAsk] = useState("Approve a 6-week feature and display plan on the core range.");
   const [evidence, setEvidence] = useState("Last event delivered +18% units, 94% availability and positive shopper feedback.");
+  const [buyerPriority, setBuyerPriority] = useState("Value perception, availability and profitable category growth.");
+  const [tradeOff, setTradeOff] = useState("We can narrow the range or shorten the event if investment becomes the blocker.");
+  const [stakeholders, setStakeholders] = useState("Buyer, category manager, supply contact and internal finance owner.");
   const [nextStep, setNextStep] = useState("Agree the mechanic, timing and approval route this week.");
+  const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
+  const evidenceBase = salesData ? `${evidence} Uploaded data: ${salesData.summaryText}` : evidence;
 
   const sections: [string, string][] = [
     ["Meeting objective", `For ${customer}, the objective is to ${objective.toLowerCase()}. Desired next step: ${nextStep}`],
-    ["5-minute opening", `Thanks for making the time. I want to focus on ${issue.toLowerCase()} and show a practical way forward: ${ask}`],
-    ["Commercial story", `The case is built on this evidence: ${evidence}. The recommendation is to keep the plan focused, measurable and easy to execute.`],
+    ["Buyer context", `The buyer priority is ${buyerPriority.toLowerCase()} The current issue is: ${issue}`],
+    ["5-minute opening", `Thanks for making the time. I want to focus on ${issue.toLowerCase()} and show a practical way forward: ${ask}. I have kept the recommendation tied to ${buyerPriority.toLowerCase()}`],
+    ["Commercial story", `The case is built on this evidence: ${evidenceBase}. The recommendation is to keep the plan focused, measurable and easy to execute.`],
+    ["Negotiation guardrails", `Primary ask: ${ask}\nTrade-off available: ${tradeOff}\nStakeholders to align: ${stakeholders}`],
     ["Likely buyer objections", "The investment is too high.\nThe timing is difficult.\nThe uplift is not proven.\nThe plan adds store workload.\nThere is not enough space or support."],
     ["Suggested responses", "Link the investment to the customer objective.\nOffer a controlled test if full approval is hard.\nUse the evidence and define success measures.\nShow how execution is kept simple.\nAsk what condition would make the plan acceptable."],
     ["Questions to ask the buyer", "What would make this worth approving?\nWhich measure matters most for this event?\nWhat execution risk worries you?\nWhat internal approval is needed?\nWhat timing would work best?"],
@@ -2765,7 +2974,11 @@ export function BuyerMeetingPrepTool() {
         <TextInput label="Current issue/opportunity" help="The buyer pressure point or growth opportunity." value={issue} onChange={setIssue} multiline />
         <TextInput label="Proposed ask" help="The specific commitment you want." value={ask} onChange={setAsk} multiline />
         <TextInput label="Evidence or numbers" help="The proof you will bring." value={evidence} onChange={setEvidence} multiline />
+        <TextInput label="Buyer priority" help="What the buyer is measured on or cares about most." value={buyerPriority} onChange={setBuyerPriority} multiline />
+        <TextInput label="Negotiation trade-off" help="What you can flex if the buyer challenges the ask." value={tradeOff} onChange={setTradeOff} multiline />
+        <TextInput label="Stakeholders" help="People who need to approve, support or execute the plan." value={stakeholders} onChange={setStakeholders} multiline />
         <TextInput label="Desired next step" help="The action you want agreed." value={nextStep} onChange={setNextStep} multiline />
+        <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
       sourcePath="/tools/buyer-meeting-prep"
@@ -2821,13 +3034,20 @@ export function AccountPlanGenerator() {
   const [opportunity, setOpportunity] = useState("Improve distribution on priority SKUs and sharpen promotional mix.");
   const [risk, setRisk] = useState("Margin pressure and competitor space gains.");
   const [products, setProducts] = useState("Core range, premium formats and seasonal packs.");
+  const [objective, setObjective] = useState("Grow profitable revenue while improving availability and execution quality.");
+  const [investment, setInvestment] = useState("Trade spend, category evidence and supply planning support.");
+  const [owners, setOwners] = useState("NAM owns customer alignment; category owns evidence; finance owns guardrails; supply owns availability.");
   const [action, setAction] = useState("Book buyer meeting to agree range and promo recommendations.");
+  const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
+  const dataNarrative = salesData ? `Uploaded sales evidence: ${salesData.summaryText}` : "No actual sales data uploaded yet; validate priorities against customer scorecard before sharing.";
 
   const sections: [string, string][] = [
-    ["Account overview", `${account}: ${performance}`],
-    ["Opportunity summary", opportunity],
+    ["Account overview", `${account}: ${performance} ${dataNarrative}`],
+    ["Commercial objective", objective],
+    ["Opportunity summary", `${opportunity}${salesData ? ` Prioritise ${salesData.topProduct} and investigate ${salesData.weakestProduct}.` : ""}`],
     ["Risk summary", risk],
-    ["Commercial strategy", `Prioritise ${products}. Focus investment on actions that improve rate of sale, distribution quality and margin.`],
+    ["Commercial strategy", `Prioritise ${products}. Focus investment on actions that improve rate of sale, distribution quality and margin. Required support: ${investment}`],
+    ["Resource and ownership", owners],
     ["30/60/90 day plan", `30 days: validate numbers and align internal owners.\n60 days: present recommendation and secure customer agreement.\n90 days: review execution and scale what works. Next action: ${action}`],
     ["Internal support needed", "Pricing guardrails, trade spend envelope, supply readiness, category evidence and senior sponsorship."],
     ["Review cadence", "Weekly internal action check, monthly customer trading review and quarterly strategic review."],
@@ -2842,7 +3062,11 @@ export function AccountPlanGenerator() {
         <TextInput label="Biggest growth opportunity" help="Where growth is most likely." value={opportunity} onChange={setOpportunity} multiline />
         <TextInput label="Biggest risk" help="What could derail the plan." value={risk} onChange={setRisk} multiline />
         <TextInput label="Priority products/ranges" help="The range or products to focus on." value={products} onChange={setProducts} multiline />
+        <TextInput label="Commercial objective" help="The measurable outcome the plan should deliver." value={objective} onChange={setObjective} multiline />
+        <TextInput label="Investment and support" help="Funding, evidence, supply or internal resource needed." value={investment} onChange={setInvestment} multiline />
+        <TextInput label="Owners and roles" help="Who owns the customer, evidence, finance and execution work." value={owners} onChange={setOwners} multiline />
         <TextInput label="Next commercial action" help="The next real action." value={action} onChange={setAction} multiline />
+        <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
       sourcePath="/tools/account-plan-generator"
@@ -2860,15 +3084,22 @@ export function CustomerReviewTemplate() {
   const [worked, setWorked] = useState("Distribution gains, better feature compliance and improved availability.");
   const [missed, setMissed] = useState("Promotion margin was below target and one launch missed the timing window.");
   const [priority, setPriority] = useState("Improve base rate of sale, protect margin and tighten launch planning.");
+  const [customerObjective, setCustomerObjective] = useState("Grow the category profitably while improving availability and shopper value.");
+  const [decisionNeeded, setDecisionNeeded] = useState("Agree the next period priorities, support levels and owners.");
+  const [actions, setActions] = useState("Confirm promotion mechanics, fix launch timeline, agree base-rate actions and schedule monthly scorecard reviews.");
+  const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
+  const evidenceNarrative = salesData ? `Actual data uploaded from ${salesData.fileName}: ${salesData.summaryText}` : "Actual sales data has not been uploaded yet; add customer scorecard data before final use.";
 
   const sections: [string, string][] = [
-    ["Executive summary", `${customer} ${period}: ${performance} The next priority is to ${priority.toLowerCase()}`],
-    ["Performance narrative", performance],
+    ["Executive summary", `${customer} ${period}: ${performance} The next priority is to ${priority.toLowerCase()} Decision needed: ${decisionNeeded}`],
+    ["Performance evidence", evidenceNarrative],
+    ["Customer objective", customerObjective],
+    ["Performance narrative", `${performance}${salesData ? ` Top contributor: ${salesData.topProduct}. Watch item: ${salesData.weakestProduct}.` : ""}`],
     ["Wins", worked],
     ["Misses", missed],
     ["Recommended actions", `Focus the next period on: ${priority}`],
-    ["Proposed asks", "Agree the priority actions, confirm support levels, align success measures and remove execution blockers."],
-    ["Follow-up actions", "Send agreed numbers, owners and timings within 24 hours. Schedule the next checkpoint and document decisions."],
+    ["Proposed asks", `Agree the priority actions, confirm support levels, align success measures and remove execution blockers. Specific decision: ${decisionNeeded}`],
+    ["Follow-up actions", actions],
   ];
 
   return (
@@ -2881,6 +3112,10 @@ export function CustomerReviewTemplate() {
         <TextInput label="What worked" help="What went well and why." value={worked} onChange={setWorked} multiline />
         <TextInput label="What missed" help="What underperformed or caused friction." value={missed} onChange={setMissed} multiline />
         <TextInput label="Next priority" help="The main focus for the next period." value={priority} onChange={setPriority} multiline />
+        <TextInput label="Customer objective" help="What the customer is trying to achieve commercially." value={customerObjective} onChange={setCustomerObjective} multiline />
+        <TextInput label="Decision needed" help="The decision or commitment the review should secure." value={decisionNeeded} onChange={setDecisionNeeded} multiline />
+        <TextInput label="Follow-up actions" help="Actions, owners or meeting commitments to capture." value={actions} onChange={setActions} multiline />
+        <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
       sourcePath="/tools/customer-review-template"
