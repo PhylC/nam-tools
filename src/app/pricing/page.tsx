@@ -5,6 +5,7 @@ import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
 import { TrackedUpgradeLink } from "../components/TrackedLinks";
 import { getAptProPriceLabels } from "../../lib/pricingConfig";
 import { LocalizedFreePrice, LocalizedProPrice } from "./LocalizedProPrice";
+import { PricingPlanGate } from "./PricingPlanGate";
 import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 
@@ -187,33 +188,86 @@ export default async function PricingPage({
           faqJsonLd(pricingFaqs),
         ]}
       />
-      <Hero eyebrow="International pricing" title="Start free. Move to Pro when the work repeats.">
-        <p>
-          Use Free for quick checks. Choose APT Pro when you need to save,
-          compare and export customer-ready planning work across GBP, USD or EUR markets.
-        </p>
-        {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
-        {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
-      </Hero>
+      <PricingPlanGate
+        free={
+          <Hero eyebrow="International pricing" title="Start free. Move to Pro when the work repeats.">
+            <p>
+              Use Free for quick checks. Choose APT Pro when you need to save,
+              compare and export customer-ready planning work across GBP, USD or EUR markets.
+            </p>
+            {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
+            {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
+          </Hero>
+        }
+        pro={
+          <Hero eyebrow="Plan and billing" title="Manage your plan or explore custom options.">
+            <p>
+              You already have APT Pro access. Use this page to check what is included,
+              compare plan levels and explore custom or team workflows.
+            </p>
+            {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
+          </Hero>
+        }
+      />
+      <PricingPlanGate
+        free={
+          <section className="shell section">
+            <SectionHeader eyebrow="Choose" title="Pick the path that matches the job.">
+              <p>
+                Most people start free. Pro becomes useful when the same customer,
+                deal or planning question comes back again.
+              </p>
+            </SectionHeader>
+            <div className="pricing-decision-grid">
+              {decisionCards.map((card) => (
+                <article className="pricing-decision-card" key={card.title}>
+                  <h3>{card.title}</h3>
+                  <p>{card.body}</p>
+                  <Link className="text-link" href={card.href}>{card.cta}</Link>
+                </article>
+              ))}
+            </div>
+          </section>
+        }
+        pro={
+          <section className="shell section">
+            <SectionHeader eyebrow="Use Pro" title="Go straight to the work.">
+              <p>
+                The upgrade decision is done. These shortcuts take you to the Pro areas people use most often.
+              </p>
+            </SectionHeader>
+            <div className="pricing-decision-grid">
+              <article className="pricing-decision-card">
+                <h3>Open saved work</h3>
+                <p>Review saved decks, comparisons and standalone scenarios.</p>
+                <Link className="text-link" href="/workspace">Go to Workspace</Link>
+              </article>
+              <article className="pricing-decision-card">
+                <h3>Build a deck</h3>
+                <p>Create a custom deck from a brief, data and your presentation template.</p>
+                <Link className="text-link" href="/custom-deck">Create custom deck</Link>
+              </article>
+              <article className="pricing-decision-card">
+                <h3>Plan ROI</h3>
+                <p>Create, compare and save multi-SKU commercial scenarios.</p>
+                <Link className="text-link" href="/roi-tool">Open ROI tool</Link>
+              </article>
+            </div>
+          </section>
+        }
+      />
       <section className="shell section">
-        <SectionHeader eyebrow="Choose" title="Pick the path that matches the job.">
-          <p>
-            Most people start free. Pro becomes useful when the same customer,
-            deal or planning question comes back again.
-          </p>
-        </SectionHeader>
-        <div className="pricing-decision-grid">
-          {decisionCards.map((card) => (
-            <article className="pricing-decision-card" key={card.title}>
-              <h3>{card.title}</h3>
-              <p>{card.body}</p>
-              <Link className="text-link" href={card.href}>{card.cta}</Link>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="shell section">
-        <SectionHeader eyebrow="Plans" title="Simple plans for different levels of work." />
+        <PricingPlanGate
+          free={<SectionHeader eyebrow="Plans" title="Simple plans for different levels of work." />}
+          pro={
+            <SectionHeader eyebrow="Plans" title="Your plan and custom options.">
+              <p>
+                APT Pro is your current self-serve plan. Team or custom support can add branded templates,
+                shared workflows or customised tools.
+              </p>
+            </SectionHeader>
+          }
+        />
         <div className="grid pricing-plan-grid">
           {plans.map((plan) => (
             <article className={plan.recommended ? "card pricing-card pricing-card-featured" : "card pricing-card"} id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
@@ -296,27 +350,49 @@ export default async function PricingPage({
             </div>
           ))}
         </div>
-        <article className="card comparison-cta mobile-comparison-cta">
-          <div>
-            <h3>Ready to save the work?</h3>
-            <p>Choose Pro when the calculation becomes a planning workflow.</p>
-          </div>
-          <div className="cta-row">
-            <Link className="button button-secondary" href="/calculators">
-              Use free calculators
-            </Link>
-            <Link className="button" href="#apt-pro-plan">
-              See APT Pro
-            </Link>
-          </div>
-        </article>
-        <article className="card comparison-cta comparison-cta-desktop">
-          <div>
-            <h3>Ready to save the work?</h3>
-            <p>Choose Pro when the calculation becomes a planning workflow.</p>
-          </div>
-          <PricingUpgradeActions location="pricing_comparison" variant="panel" />
-        </article>
+        <PricingPlanGate
+          free={
+            <>
+              <article className="card comparison-cta mobile-comparison-cta">
+                <div>
+                  <h3>Ready to save the work?</h3>
+                  <p>Choose Pro when the calculation becomes a planning workflow.</p>
+                </div>
+                <div className="cta-row">
+                  <Link className="button button-secondary" href="/calculators">
+                    Use free calculators
+                  </Link>
+                  <Link className="button" href="#apt-pro-plan">
+                    See APT Pro
+                  </Link>
+                </div>
+              </article>
+              <article className="card comparison-cta comparison-cta-desktop">
+                <div>
+                  <h3>Ready to save the work?</h3>
+                  <p>Choose Pro when the calculation becomes a planning workflow.</p>
+                </div>
+                <PricingUpgradeActions location="pricing_comparison" variant="panel" />
+              </article>
+            </>
+          }
+          pro={
+            <article className="card comparison-cta">
+              <div>
+                <h3>Your Pro access is active.</h3>
+                <p>Use Workspace for saved work, or contact us if you need custom tools, team workflows or branded standards.</p>
+              </div>
+              <div className="cta-row">
+                <Link className="button button-secondary" href="/workspace">
+                  Open Workspace
+                </Link>
+                <Link className="button" href="/contact">
+                  Discuss custom setup
+                </Link>
+              </div>
+            </article>
+          }
+        />
       </section>
       <section className="shell section">
         <article className="card split-band">
@@ -336,36 +412,71 @@ export default async function PricingPage({
           </div>
         </article>
       </section>
-      <section className="shell section">
-        <article className="card split-band">
-          <div>
-            <p className="eyebrow">Onboarding</p>
-            <h2>After you join, start with one real customer question.</h2>
-          </div>
-          <div className="copy-stack">
-            <p>
-              Create an account, set your defaults, then run the calculator or
-              ROI scenario you need for the next conversation.
-            </p>
-            <p>
-              If that work needs to be saved, compared or exported, Pro turns it
-              into a repeatable planning flow inside My workspace.
-            </p>
-          </div>
-          <div className="pricing-workflow-visual">
-            <ProductVisual
-              alt="APT workspace showing saved analyses, scenarios, decks and exports"
-              aspectRatio="547 / 270"
-              description="Saved analyses, scenarios, decks and exports in one workspace."
-              filename="/images/apt/apt-workspace-dashboard-preview.webp"
-              height={270}
-              title="My workspace"
-              width={547}
-            />
-          </div>
-        </article>
-      </section>
-      <FaqSection title="Before you upgrade." faqs={pricingFaqs} />
+      <PricingPlanGate
+        free={
+          <section className="shell section">
+            <article className="card split-band">
+              <div>
+                <p className="eyebrow">Onboarding</p>
+                <h2>After you join, start with one real customer question.</h2>
+              </div>
+              <div className="copy-stack">
+                <p>
+                  Create an account, set your defaults, then run the calculator or
+                  ROI scenario you need for the next conversation.
+                </p>
+                <p>
+                  If that work needs to be saved, compared or exported, Pro turns it
+                  into a repeatable planning flow inside My workspace.
+                </p>
+              </div>
+              <div className="pricing-workflow-visual">
+                <ProductVisual
+                  alt="APT workspace showing saved analyses, scenarios, decks and exports"
+                  aspectRatio="547 / 270"
+                  description="Saved analyses, scenarios, decks and exports in one workspace."
+                  filename="/images/apt/apt-workspace-dashboard-preview.webp"
+                  height={270}
+                  title="My workspace"
+                  width={547}
+                />
+              </div>
+            </article>
+          </section>
+        }
+        pro={
+          <section className="shell section">
+            <article className="card split-band">
+              <div>
+                <p className="eyebrow">Custom workflows</p>
+                <h2>Need more than self-serve Pro?</h2>
+              </div>
+              <div className="copy-stack">
+                <p>
+                  Custom support can cover branded deck standards, team libraries,
+                  workflow changes, shared planning routines or customised calculators.
+                </p>
+                <p>
+                  Use Pro for day-to-day planning. Use custom or team support when the workflow
+                  needs to fit a wider commercial process.
+                </p>
+              </div>
+              <div className="cta-row">
+                <Link className="button button-secondary" href="/account">
+                  Manage account
+                </Link>
+                <Link className="button" href="/contact">
+                  Discuss custom setup
+                </Link>
+              </div>
+            </article>
+          </section>
+        }
+      />
+      <PricingPlanGate
+        free={<FaqSection title="Before you upgrade." faqs={pricingFaqs} />}
+        pro={<FaqSection title="Plan and billing FAQs." faqs={pricingFaqs} />}
+      />
     </div>
   );
 }
