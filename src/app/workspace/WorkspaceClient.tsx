@@ -470,36 +470,21 @@ function ScenarioItemMenu({
 
 function SavedWorkRow({
   item,
-  comparisons,
   onDuplicate,
-  onDuplicateScenario,
   onDelete,
-  onMoveScenarioIntoComparison,
-  onMoveScenarioOut,
-  onMoveScenarioBetweenComparisons,
-  onDeleteScenarioFromComparison,
 }: {
   item: SavedWorkItem;
-  comparisons: SavedRecord[];
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
-  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
-  onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
-  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
-  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
-  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
 }) {
   const title = getSavedItemTitle(item.record, item.type);
   const href = getItemHref(item.record, item.type);
-  const isComparison = item.type === "Comparison";
-  const isStandaloneScenario = item.type === "Scenario";
-  const scenarios = isComparison ? getComparisonScenarios(item.record) : [];
 
   return (
-    <article className={isComparison ? "workspace-list-row workspace-list-row-comparison" : "workspace-list-row"}>
+    <article className="workspace-list-row">
       <div className="workspace-list-main">
         <span className="workspace-table-type">
-          {isComparison ? "Comparison group" : isStandaloneScenario ? "Standalone scenario" : item.type === "Analysis" ? "Calculator result" : "Deck brief"}
+          {item.type === "Analysis" ? "Calculator result" : "Deck brief"}
         </span>
         <div className="workspace-list-copy">
           <h3>{title}</h3>
@@ -508,57 +493,189 @@ function SavedWorkRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          {isStandaloneScenario ? (
-            <ScenarioItemMenu
-              scenarioId={item.id}
-              comparisons={comparisons}
-              onDelete={onDelete}
-              onDuplicateScenario={onDuplicateScenario}
-              onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
-            />
-          ) : (
-            <GeneralItemMenu id={item.id} type={item.type} onDelete={onDelete} onDuplicate={onDuplicate} />
-          )}
+          <GeneralItemMenu id={item.id} type={item.type} onDelete={onDelete} onDuplicate={onDuplicate} />
         </div>
       </div>
 
       <SavedItemDetails item={item.record} type={item.type} />
+    </article>
+  );
+}
 
-      {isComparison ? (
-        <details className="comparison-scenario-list" open>
-          <summary>Scenarios in this comparison</summary>
-          {scenarios.length ? (
-            <div className="comparison-scenario-rows">
-              {scenarios.map((scenario, index) => {
-                const scenarioId = getText(scenario.id, `${item.id}-scenario-${index}`);
-                const scenarioHref = `${href}&scenario=${scenarioId}`;
-                return (
-                  <div className="comparison-scenario-row" key={scenarioId}>
-                    <div>
-                      <strong>{getText(scenario.name, `Scenario ${index + 1}`)}</strong>
-                      <span>{getScenarioSummary(scenario)}</span>
-                    </div>
-                    <div className="comparison-scenario-actions">
-                      <WorkspaceIconLink href={scenarioHref} label={`Open ${getText(scenario.name, `Scenario ${index + 1}`)}`} />
-                      <ScenarioItemMenu
-                        scenarioId={scenarioId}
-                        comparisonId={item.id}
-                        comparisons={comparisons}
-                        onDuplicateScenario={onDuplicateScenario}
-                        onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
-                        onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-                        onMoveScenarioOut={onMoveScenarioOut}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="empty-state">No scenarios saved inside this comparison.</p>
-          )}
-        </details>
-      ) : null}
+function ScenarioSubRow({
+  scenario,
+  scenarioId,
+  title,
+  href,
+  comparisons,
+  sourceComparisonId,
+  savedRecord,
+  onDelete,
+  onDuplicateScenario,
+  onMoveScenarioIntoComparison,
+  onMoveScenarioOut,
+  onMoveScenarioBetweenComparisons,
+  onDeleteScenarioFromComparison,
+}: {
+  scenario: SavedRecord;
+  scenarioId: string;
+  title: string;
+  href: string;
+  comparisons: SavedRecord[];
+  sourceComparisonId?: string;
+  savedRecord?: SavedRecord;
+  onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
+  onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
+  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
+  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+}) {
+  return (
+    <div className="workspace-subrow">
+      <div className="workspace-subrow-title">
+        <strong>{title}</strong>
+        <span>{getScenarioSummary(scenario)}</span>
+      </div>
+      <small className="workspace-table-date">{savedRecord ? getUpdatedDate(savedRecord) : ""}</small>
+      <div className="workspace-subrow-actions">
+        {savedRecord ? <SavedItemDetails item={savedRecord} type="Scenario" /> : null}
+        <WorkspaceIconLink href={href} label={`Open ${title}`} />
+        <ScenarioItemMenu
+          scenarioId={scenarioId}
+          comparisonId={sourceComparisonId}
+          comparisons={comparisons}
+          onDelete={sourceComparisonId ? undefined : onDelete}
+          onDuplicateScenario={onDuplicateScenario}
+          onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+          onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+          onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+          onMoveScenarioOut={onMoveScenarioOut}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ComparisonGroupRow({
+  item,
+  comparisons,
+  onDuplicate,
+  onDelete,
+  onDuplicateScenario,
+  onMoveScenarioOut,
+  onMoveScenarioBetweenComparisons,
+  onDeleteScenarioFromComparison,
+}: {
+  item: SavedWorkItem;
+  comparisons: SavedRecord[];
+  onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
+  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
+  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+}) {
+  const title = getSavedItemTitle(item.record, "Comparison");
+  const href = getItemHref(item.record, "Comparison");
+  const scenarios = getComparisonScenarios(item.record);
+
+  return (
+    <article className="workspace-group-block">
+      <div className="workspace-group-row">
+        <div className="workspace-group-title">
+          <h3>{title}</h3>
+          <span>{getComparisonDescription(item.record)}</span>
+        </div>
+        <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
+        <div className="workspace-list-actions">
+          <WorkspaceIconLink href={href} label={`Open ${title}`} />
+          <GeneralItemMenu id={item.id} type="Comparison" onDelete={onDelete} onDuplicate={onDuplicate} />
+        </div>
+      </div>
+      <div className="workspace-subrows">
+        {scenarios.length ? (
+          scenarios.map((scenario, index) => {
+            const scenarioId = getText(scenario.id, `${item.id}-scenario-${index}`);
+            const scenarioTitle = getText(scenario.name, `Scenario ${index + 1}`);
+            return (
+              <ScenarioSubRow
+                key={scenarioId}
+                scenario={scenario}
+                scenarioId={scenarioId}
+                title={scenarioTitle}
+                href={`${href}&scenario=${scenarioId}`}
+                comparisons={comparisons}
+                sourceComparisonId={item.id}
+                onDelete={onDelete}
+                onDuplicateScenario={onDuplicateScenario}
+                onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+                onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+                onMoveScenarioIntoComparison={() => undefined}
+                onMoveScenarioOut={onMoveScenarioOut}
+              />
+            );
+          })
+        ) : (
+          <div className="workspace-subrow workspace-subrow-empty">No scenarios in this comparison yet.</div>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function StandaloneScenarioGroup({
+  items,
+  comparisons,
+  onDelete,
+  onDuplicateScenario,
+  onMoveScenarioIntoComparison,
+  onMoveScenarioOut,
+  onMoveScenarioBetweenComparisons,
+  onDeleteScenarioFromComparison,
+}: {
+  items: SavedWorkItem[];
+  comparisons: SavedRecord[];
+  onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
+  onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
+  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
+  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+}) {
+  if (!items.length) return null;
+
+  return (
+    <article className="workspace-group-block">
+      <div className="workspace-group-row workspace-standalone-group-row">
+        <div className="workspace-group-title">
+          <h3>Standalone scenarios</h3>
+          <span>{items.length} scenario(s) not assigned to a comparison</span>
+        </div>
+      </div>
+      <div className="workspace-subrows">
+        {items.map((item) => {
+          const scenario = getScenarioRecord(item.record);
+          const title = getSavedItemTitle(item.record, "Scenario");
+          return (
+            <ScenarioSubRow
+              key={item.id}
+              scenario={scenario}
+              scenarioId={item.id}
+              title={title}
+              href={getItemHref(item.record, "Scenario")}
+              comparisons={comparisons}
+              savedRecord={item.record}
+              onDelete={onDelete}
+              onDuplicateScenario={onDuplicateScenario}
+              onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+              onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+              onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+              onMoveScenarioOut={onMoveScenarioOut}
+            />
+          );
+        })}
+      </div>
     </article>
   );
 }
@@ -569,28 +686,16 @@ function WorkspaceSectionList({
   description,
   action,
   items,
-  comparisons,
   onDuplicate,
-  onDuplicateScenario,
   onDelete,
-  onMoveScenarioIntoComparison,
-  onMoveScenarioOut,
-  onMoveScenarioBetweenComparisons,
-  onDeleteScenarioFromComparison,
 }: {
   id: string;
   title: string;
   description: string;
   action?: ReactNode;
   items: SavedWorkItem[];
-  comparisons: SavedRecord[];
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
-  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
-  onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
-  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
-  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
-  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
 }) {
   return (
     <article className="card workspace-card workspace-saved-work-card" id={id}>
@@ -613,16 +718,104 @@ function WorkspaceSectionList({
             <SavedWorkRow
               item={item}
               key={`${item.type}-${item.id}`}
-              comparisons={comparisons}
+              onDelete={onDelete}
+              onDuplicate={onDuplicate}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState />
+      )}
+    </article>
+  );
+}
+
+function ComparisonScenarioList({
+  id,
+  title,
+  description,
+  action,
+  comparisons,
+  allComparisons,
+  standaloneScenarios,
+  analyses,
+  onDuplicate,
+  onDuplicateScenario,
+  onDelete,
+  onMoveScenarioIntoComparison,
+  onMoveScenarioOut,
+  onMoveScenarioBetweenComparisons,
+  onDeleteScenarioFromComparison,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+  comparisons: SavedWorkItem[];
+  allComparisons: SavedRecord[];
+  standaloneScenarios: SavedWorkItem[];
+  analyses: SavedWorkItem[];
+  onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
+  onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
+  onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
+  onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+}) {
+  const hasItems = comparisons.length || standaloneScenarios.length || analyses.length;
+
+  return (
+    <article className="card workspace-card workspace-saved-work-card" id={id}>
+      <div className="workspace-card-header">
+        <div>
+          <h2>{title}</h2>
+          <p>{description}</p>
+        </div>
+        {action}
+      </div>
+      {hasItems ? (
+        <div className="workspace-grouped-list">
+          <div className="workspace-grouped-header" aria-hidden="true">
+            <span>Name</span>
+            <span>Updated</span>
+            <span>Actions</span>
+          </div>
+          {comparisons.map((item) => (
+            <ComparisonGroupRow
+              item={item}
+              key={`${item.type}-${item.id}`}
+              comparisons={allComparisons}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
               onDuplicateScenario={onDuplicateScenario}
               onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
               onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-              onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
               onMoveScenarioOut={onMoveScenarioOut}
             />
           ))}
+          <StandaloneScenarioGroup
+            items={standaloneScenarios}
+            comparisons={allComparisons}
+            onDelete={onDelete}
+            onDuplicateScenario={onDuplicateScenario}
+            onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+            onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+            onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+            onMoveScenarioOut={onMoveScenarioOut}
+          />
+          {analyses.length ? (
+            <div className="workspace-analysis-rows">
+              {analyses.map((item) => (
+                <SavedWorkRow
+                  item={item}
+                  key={`${item.type}-${item.id}`}
+                  onDelete={onDelete}
+                  onDuplicate={onDuplicate}
+                />
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : (
         <EmptyState />
@@ -653,7 +846,18 @@ export function WorkspaceClient() {
     () => deckBriefs.map((record) => ({ id: String(record.id), type: "Deck" as const, record })).filter((item) => item.id && item.id !== "undefined"),
     [deckBriefs],
   );
-  const visibleCommercialItems = useMemo(() => filterAndSortItems(commercialItems, search, sort), [commercialItems, search, sort]);
+  const visibleComparisonItems = useMemo(
+    () => filterAndSortItems(savedComparisons.map((record) => ({ id: String(record.id), type: "Comparison" as const, record })).filter((item) => item.id && item.id !== "undefined"), search, sort),
+    [savedComparisons, search, sort],
+  );
+  const visibleStandaloneScenarioItems = useMemo(
+    () => filterAndSortItems(savedScenarios.map((record) => ({ id: String(record.id), type: "Scenario" as const, record })).filter((item) => item.id && item.id !== "undefined"), search, sort),
+    [savedScenarios, search, sort],
+  );
+  const visibleAnalysisItems = useMemo(
+    () => filterAndSortItems(savedAnalyses.map((record) => ({ id: String(record.id), type: "Analysis" as const, record })).filter((item) => item.id && item.id !== "undefined"), search, sort),
+    [savedAnalyses, search, sort],
+  );
   const visibleDeckItems = useMemo(() => filterAndSortItems(deckItems, search, sort), [deckItems, search, sort]);
   const savedItemCount = commercialItems.length + deckItems.length;
 
@@ -935,7 +1139,7 @@ export function WorkspaceClient() {
 
           <WorkspaceControls search={search} sort={sort} onSearch={setSearch} onSort={setSort} />
 
-          <WorkspaceSectionList
+          <ComparisonScenarioList
             id="comparison-scenarios"
             title="Comparisons & scenarios"
             description="Comparison groups, standalone ROI scenarios and saved calculator results. Expand a comparison to manage the scenarios inside it."
@@ -947,8 +1151,10 @@ export function WorkspaceClient() {
                 </Link>
               </div>
             }
-            items={visibleCommercialItems}
-            comparisons={savedComparisons}
+            comparisons={visibleComparisonItems}
+            allComparisons={savedComparisons}
+            standaloneScenarios={visibleStandaloneScenarioItems}
+            analyses={visibleAnalysisItems}
             onDelete={deleteSavedItem}
             onDeleteScenarioFromComparison={deleteScenarioFromComparison}
             onDuplicate={duplicateSavedItem}
@@ -968,14 +1174,8 @@ export function WorkspaceClient() {
               </Link>
             }
             items={visibleDeckItems}
-            comparisons={savedComparisons}
             onDelete={deleteSavedItem}
-            onDeleteScenarioFromComparison={deleteScenarioFromComparison}
             onDuplicate={duplicateSavedItem}
-            onDuplicateScenario={duplicateScenarioToDestination}
-            onMoveScenarioBetweenComparisons={moveScenarioBetweenComparisons}
-            onMoveScenarioIntoComparison={moveStandaloneScenarioIntoComparison}
-            onMoveScenarioOut={moveScenarioOutOfComparison}
           />
         </div>
         <AccountMenu active="workspace" actualPlan={plan} />
