@@ -1221,7 +1221,6 @@ function ComparisonScenarioList({
   comparisons,
   allComparisons,
   standaloneScenarios,
-  analyses,
   onRename,
   onRenameScenario,
   onDuplicate,
@@ -1243,7 +1242,6 @@ function ComparisonScenarioList({
   comparisons: SavedWorkItem[];
   allComparisons: SavedRecord[];
   standaloneScenarios: SavedWorkItem[];
-  analyses: SavedWorkItem[];
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
@@ -1258,7 +1256,7 @@ function ComparisonScenarioList({
   onSelectVisibleScenarios: () => void;
   onToggleSelected: (key: string) => void;
 }) {
-  const hasItems = comparisons.length || standaloneScenarios.length || analyses.length;
+  const hasItems = comparisons.length || standaloneScenarios.length;
   const visibleScenarioKeys = [
     ...comparisons.flatMap((item) =>
       getComparisonScenarios(item.record).map((scenario, index) =>
@@ -1324,19 +1322,6 @@ function ComparisonScenarioList({
             selectedKeys={selectedKeys}
             onToggleSelected={onToggleSelected}
           />
-          {analyses.length ? (
-            <div className="workspace-analysis-rows">
-              {analyses.map((item) => (
-                <SavedWorkRow
-                  item={item}
-                  key={`${item.type}-${item.id}`}
-                  onDelete={onDelete}
-                  onDuplicate={onDuplicate}
-                  onRename={onRename}
-                />
-              ))}
-            </div>
-          ) : null}
         </div>
       ) : (
         <EmptyState />
@@ -1825,7 +1810,7 @@ export function WorkspaceClient() {
           <ComparisonScenarioList
             id="comparison-scenarios"
             title="Comparisons & scenarios"
-            description="Comparison groups, standalone ROI scenarios and saved calculator results. Expand a comparison to manage the scenarios inside it."
+            description="Comparison groups and standalone ROI scenarios. Expand a comparison to manage the scenarios inside it."
             action={
               <div className="workspace-header-actions">
                 <CreateComparisonGroup onCreate={createComparisonGroup} />
@@ -1837,7 +1822,6 @@ export function WorkspaceClient() {
             comparisons={visibleComparisonItems}
             allComparisons={savedComparisons}
             standaloneScenarios={visibleStandaloneScenarioItems}
-            analyses={visibleAnalysisItems}
             onDelete={deleteSavedItem}
             onDeleteScenarioFromComparison={deleteScenarioFromComparison}
             onBulkDeleteScenarios={bulkDeleteScenarios}
@@ -1851,6 +1835,21 @@ export function WorkspaceClient() {
             onSelectVisibleScenarios={selectVisibleScenarios}
             onToggleSelected={toggleSelected}
             selectedKeys={selectedKeys}
+          />
+
+          <WorkspaceSectionList
+            id="analyses"
+            title="Saved calculator results"
+            description="Saved calculator outputs from commercial tools and planning generators."
+            action={
+              <Link className="button button-secondary button-small" href="/calculators">
+                Open calculators
+              </Link>
+            }
+            items={visibleAnalysisItems}
+            onDelete={deleteSavedItem}
+            onDuplicate={duplicateSavedItem}
+            onRename={renameSavedItem}
           />
 
           <WorkspaceSectionList
