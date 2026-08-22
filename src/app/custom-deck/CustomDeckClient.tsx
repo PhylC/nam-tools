@@ -8,7 +8,7 @@ import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
 import { saveDeckBrief } from "../../lib/saveStore";
-import { uploadGeneratedDeck } from "../../lib/storageUploads";
+import { downloadDeckTemplate, uploadGeneratedDeck } from "../../lib/storageUploads";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
@@ -263,9 +263,26 @@ function textParagraph(text: string, fontFace: string, color: string, size: numb
   return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
 }
 
+function templateTextBodyXml(paragraphs: string[], design: TemplateDesign, options?: { title?: boolean; combined?: boolean }) {
+  const text = paragraphs
+    .filter(Boolean)
+    .map((paragraph, index) => {
+      const isTitle = Boolean(options?.title || (options?.combined && index === 0));
+      const bodyText = isTitle || options?.combined ? paragraph : `- ${paragraph}`;
+      return textParagraph(
+        bodyText,
+        isTitle ? design.headFontFace : design.bodyFontFace,
+        isTitle ? design.textColor : design.mutedTextColor,
+        isTitle ? 2600 : 1550,
+        isTitle || index === 0,
+      );
+    })
+    .join("");
+
+  return `<p:txBody><a:bodyPr wrap="square" rtlCol="0"><a:spAutoFit/></a:bodyPr><a:lstStyle/>${text}</p:txBody>`;
+}
+
 function templateTextBoxXml(id: number, name: string, x: number, y: number, w: number, h: number, paragraphs: string[], design: TemplateDesign, options?: { title?: boolean }) {
-  const size = options?.title ? 2600 : 1550;
-  const text = paragraphs.map((paragraph, index) => textParagraph(options?.title ? paragraph : `- ${paragraph}`, options?.title ? design.headFontFace : design.bodyFontFace, options?.title ? design.textColor : design.mutedTextColor, size, options?.title || index === 0)).join("");
   return `
     <p:sp>
       <p:nvSpPr>
@@ -275,16 +292,35 @@ function templateTextBoxXml(id: number, name: string, x: number, y: number, w: n
       </p:nvSpPr>
       <p:spPr>
         <a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>
-        <a:prstGeom prst="roundRect"><a:avLst/></a:prstGeom>
-        <a:solidFill><a:srgbClr val="${design.panelFillColor}"><a:alpha val="94000"/></a:srgbClr></a:solidFill>
-        <a:ln w="12700"><a:solidFill><a:srgbClr val="${options?.title ? design.accentColor : design.borderColor}"/></a:solidFill></a:ln>
+        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
+        <a:noFill/>
+        <a:ln><a:noFill/></a:ln>
       </p:spPr>
-      <p:txBody>
-        <a:bodyPr wrap="square" rtlCol="0"><a:spAutoFit/></a:bodyPr>
-        <a:lstStyle/>
-        ${text}
-      </p:txBody>
+      ${templateTextBodyXml(paragraphs, design, options)}
     </p:sp>`;
+}
+
+function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideContent, design: TemplateDesign) {
+  const shapeRegex = /<p:sp\b[\s\S]*?<\/p:sp>/g;
+  const textShapes = [...slideXml.matchAll(shapeRegex)].filter((match) => match[0].includes("<p:txBody"));
+  if (!textShapes.length) return { xml: slideXml, replacementCount: 0 };
+
+  const replacementBodies =
+    textShapes.length === 1
+      ? [templateTextBodyXml([content.title, ...content.lines.slice(0, 9)], design, { combined: true })]
+      : [
+          templateTextBodyXml([content.title], design, { title: true }),
+          templateTextBodyXml(content.lines.slice(0, 9), design),
+        ];
+  let replacementIndex = 0;
+  const xml = slideXml.replace(shapeRegex, (shape) => {
+    if (replacementIndex >= replacementBodies.length || !shape.includes("<p:txBody")) return shape;
+    const nextBody = replacementBodies[replacementIndex];
+    replacementIndex += 1;
+    return shape.replace(/<p:txBody>[\s\S]*?<\/p:txBody>/, nextBody);
+  });
+
+  return { xml, replacementCount: replacementIndex };
 }
 
 function contentForTemplateSlide(contents: DeckSlideContent[], index: number, slideCount: number) {
@@ -325,6 +361,11 @@ async function createDeckFromUploadedTemplate({
         const slideXml = await zip.file(path)?.async("text");
         if (!slideXml?.includes("</p:spTree>")) return;
         const content = contentForTemplateSlide(contents, index, slidePaths.length);
+        const replaced = replaceTemplateTextPlaceholders(slideXml, content, templateDesign);
+        if (replaced.replacementCount > 0) {
+          zip.file(path, replaced.xml);
+          return;
+        }
         const baseId = maxShapeId(slideXml) + 1;
         const injected = [
           templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], templateDesign, { title: true }),
@@ -565,6 +606,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [deckType, setDeckType] = useState(
     deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
   );
+  const [deckName, setDeckName] = useState("");
   const [savedTemplates, setSavedTemplates] = useState<SavedPresentationTemplate[]>([]);
   const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
   const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
@@ -655,6 +697,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       return;
     }
     setRequestMessage("");
+    setTemplateError("");
     setGoogleSlidesError("");
     if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
       setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
@@ -665,10 +708,21 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
-      const templateFileForDesign = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? null : null;
+      const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
+      const selectedSavedTemplate = savedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null;
+      let templateFileForDesign = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? null : null;
+      if (templateSource === "saved" && selectedSavedTemplate?.storagePathOrUrl) {
+        const downloaded = await downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename);
+        if (downloaded.file) {
+          templateFileForDesign = downloaded.file;
+        } else {
+          setTemplateError(downloaded.error ?? "Could not download the selected saved template.");
+          return;
+        }
+      }
       const templateDesign = await extractTemplateDesign(templateFileForDesign);
       const generated = await createDeckFile({
-        deckLabel: selectedDeck.label,
+        deckLabel: resolvedDeckName,
         brief,
         audience,
         tone,
@@ -682,8 +736,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       const uploaded = await uploadGeneratedDeck(generated.file, user.id);
       const requestPayload = {
         id: crypto.randomUUID ? crypto.randomUUID() : `deck-request-${Date.now()}`,
-        name: `${selectedDeck.label} generated deck`,
-        deck_name: `${selectedDeck.label} generated deck`,
+        name: resolvedDeckName,
+        deck_name: resolvedDeckName,
         template_type: selectedDeck.label,
         deckType,
         templateSource,
@@ -780,6 +834,15 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     </option>
                   ))}
                 </select>
+              </label>
+              <label className="field">
+                <span>Deck name</span>
+                <input
+                  placeholder={`${selectedDeck.label} for Tesco Q3`}
+                  value={deckName}
+                  onChange={(event) => setDeckName(event.target.value)}
+                />
+                <small>This is the name shown in Workspace and used for the generated file.</small>
               </label>
               <p className="helper-note">Selected template: {selectedDeck.label}</p>
             </section>

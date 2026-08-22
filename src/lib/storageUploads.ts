@@ -25,6 +25,25 @@ export function uploadDeckTemplate(file: File, userId: string) {
   return uploadPrivateFile("deck-template-uploads", file, userId);
 }
 
+export async function downloadDeckTemplate(path: string, filename: string) {
+  const supabase = getSupabaseBrowserClient();
+  if (!supabase) {
+    return { file: null, error: "Template download is temporarily unavailable." };
+  }
+
+  const { data, error } = await supabase.storage.from("deck-template-uploads").download(path);
+  if (error || !data) {
+    return { file: null, error: error?.message ?? "Could not download the saved template." };
+  }
+
+  return {
+    file: new File([data], filename, {
+      type: data.type || "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    }),
+    error: null,
+  };
+}
+
 export function uploadRoiSpreadsheet(file: File, userId: string) {
   return uploadPrivateFile("roi-spreadsheet-uploads", file, userId);
 }
