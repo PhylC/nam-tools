@@ -211,6 +211,128 @@ function activeDeckInputValues(inputs: DeckInputValues, playbook: DeckPlaybook) 
   return Object.fromEntries(normaliseDeckInputs(inputs, playbook).map((item) => [item.prompt, item.value]));
 }
 
+function inputValuesForPlaybook(playbook: DeckPlaybook, values: string[]) {
+  return Object.fromEntries(playbook.inputPrompts.map((prompt, index) => [prompt, values[index] ?? ""]));
+}
+
+function exampleDeckData(deckType: string, playbook: DeckPlaybook, deckLabel: string) {
+  const examples: Record<string, { name: string; inputs: string[]; brief: string; audience?: string; tone?: string }> = {
+    jbp: {
+      name: "Tesco 2027 Joint Business Plan",
+      inputs: [
+        "Deliver +8% RSV growth across 2027, with a clear H1/H2 plan for core range, premiumisation and seasonal activations.",
+        "Joint objectives: grow category value, improve availability on top 20 SKUs, increase premium mix by 2pts and support shopper trade-up missions.",
+        "Request £420k trade investment split across Q2 launch support, Q3 feature space and Q4 seasonal activation. Expected incremental RSV: £2.1m; target ROI above 2.5x.",
+        "Monthly scorecard, quarterly steering review, NAM owner for commercial delivery, supply owner for availability, category owner for shopper/category evidence.",
+      ],
+      brief: "Build this as a retailer-ready JBP story with a clear growth agenda, investment choices, measures of success and governance plan.",
+      audience: "Retailer/customer meeting",
+      tone: "executive_polished",
+    },
+    qbr: {
+      name: "Sainsbury's Q3 Business Review",
+      inputs: [
+        "Q3 review for Sainsbury's grocery account covering total account, top 10 SKUs and promo performance vs agreed plan.",
+        "Sales +4.2% vs LY but 3pts below plan. Margin held at 31%. Distribution gaps on two priority SKUs and promo ROI weakened on multibuy mechanics.",
+        "Growth came from premium SKU mix and improved base rate of sale. Under-performance driven by missed secondary space, late promo stock and lower feature compliance.",
+        "Agree Q4 recovery plan: fix distribution gaps, switch one promo to price cut, protect top SKU availability and confirm buyer support for January reset.",
+      ],
+      brief: "Create a QBR that explains what happened, why it happened and the actions needed to recover next-quarter performance.",
+      audience: "Leadership review",
+      tone: "detailed_analytical",
+    },
+    "promo-proposal": {
+      name: "Asda Summer Promo Proposal",
+      inputs: [
+        "Run £1.50 feature-and-display promotion for four weeks in July on 500g core SKU across Asda main estate.",
+        "Baseline 18k units/week; expected uplift 2.4x based on last summer event and improved media support.",
+        "Invoice £1.12, SRP £1.50, COGS £0.64, proposed support £85k. Target contribution remains positive after support with ROI above 1.8x.",
+        "Customer benefit: value-led summer event and incremental basket driver. Approval guardrail: do not exceed £95k support without feature compliance commitment.",
+      ],
+      brief: "Build a persuasive promo proposal with the mechanic, shopper rationale, ROI, support ask and negotiation guardrails.",
+      audience: "Retailer/customer meeting",
+      tone: "concise_commercial",
+    },
+    "range-review": {
+      name: "Morrisons Chilled Range Review",
+      inputs: [
+        "Review chilled fixture to decide adds, deletes and space changes for autumn reset.",
+        "SKU A ROS 18 units/store/week and 34% margin; SKU B ROS 4 and declining. New premium SKU forecast ROS 11 with strong incrementality. Distribution gaps on two core SKUs.",
+        "Competitor benchmark shows premium sub-segment under-spaced by 1.5 bays and shopper need for higher-protein options is growing.",
+        "Recommend add two premium SKUs, delist SKU B, expand core SKU facing in top stores and protect availability on top 5 lines.",
+      ],
+      brief: "Create a range-review deck that makes the assortment decision easy, with evidence by SKU and a clear commercial impact.",
+      audience: "Retailer/customer meeting",
+      tone: "detailed_analytical",
+    },
+    "product-launch": {
+      name: "Premium Protein SKU Launch Deck",
+      inputs: [
+        "Launch a premium high-protein chilled SKU in September with Tesco and Sainsbury's as priority customers.",
+        "Consumer insight: shoppers want convenient higher-protein options without moving into sports nutrition. Category gap exists at premium price points.",
+        "Year-one forecast £1.4m RSV, 38% gross margin, distribution ask 650 stores, launch support £160k across media, sampling and introductory promotion.",
+        "Main risks: forecast confidence, chilled supply lead times and activation compliance. Success measures: distribution, ROS, repeat rate and launch ROI.",
+      ],
+      brief: "Build a launch sell-in story that proves the shopper need, customer fit, forecast, support plan and launch risks.",
+      audience: "Retailer/customer meeting",
+      tone: "executive_polished",
+    },
+    "annual-planning": {
+      name: "Waitrose 2027 Annual Account Plan",
+      inputs: [
+        "2027 plan for Waitrose with target +6% net sales growth and margin protection above 30%.",
+        "2026 delivered +3.5% sales but missed premium mix target. Strong Christmas execution, weaker spring availability and underused digital activation.",
+        "Priorities: premium mix growth, better seasonal planning, lower-waste promo mechanics and stronger digital support. Investment ask £240k with clear quarterly trade-offs.",
+        "Q1 reset and availability fix, Q2 summer activation, Q3 premium launch, Q4 seasonal event. Owners across NAM, supply, category and shopper marketing.",
+      ],
+      brief: "Create an annual planning deck with last-year lessons, strategic priorities, investment choices and a quarterly roadmap.",
+      audience: "Leadership review",
+      tone: "executive_polished",
+    },
+    "buyer-meeting": {
+      name: "Tesco Buyer Meeting Planner",
+      inputs: [
+        "Buyer: Tesco chilled category manager. Meeting next Thursday. Desired decision: approval for September launch distribution and Q4 feature support.",
+        "Buyer priorities: value perception, availability and fixture simplicity. Likely objections: support cost, SKU duplication and launch forecast confidence.",
+        "Commercial ask: 650-store distribution, one Q4 feature, £80k shared activation. Walk-away: phased 350-store launch with confirmed review trigger. Concession: shift media timing.",
+        "Evidence: category gap, forecast, competitor benchmark and prior promo ROI. Questions: decision criteria, fixture constraints, activation requirements and sign-off timing.",
+      ],
+      brief: "Build this as a practical buyer meeting plan with opening objective, questions, likely objections, evidence, negotiation guardrails and close.",
+      audience: "Internal review",
+      tone: "concise_commercial",
+    },
+    "category-opportunity": {
+      name: "Chilled Snacks Category Opportunity",
+      inputs: [
+        "Opportunity question: where can Tesco unlock chilled snacks growth over the next 12 months?",
+        "Shopper trends: higher-protein snacking, weekday convenience and premium treat missions are growing. Younger shoppers are under-indexing in current fixture.",
+        "Benchmark shows competitor has 18% more premium space and stronger high-protein range. Distribution gaps on two fast-growing sub-segments.",
+        "Recommend premium range expansion, stronger meal-deal adjacency, two test stores for new fixture flow and value story linked to basket growth.",
+      ],
+      brief: "Create a category opportunity deck that sizes the prize, explains the shopper/customer gap and recommends practical growth actions.",
+      audience: "Retailer/customer meeting",
+      tone: "detailed_analytical",
+    },
+  };
+  const fallback = {
+    name: `${deckLabel} example deck`,
+    inputs: [
+      "Retailer/customer meeting to secure a clear commercial decision.",
+      "Customer context, commercial risk and the core ask that needs approval.",
+      "Revenue, margin, support and ROI assumptions will be added from supporting files.",
+      "Finish with owners, actions, timings and the decision needed.",
+    ],
+    brief: "Create a concise commercial deck with a clear story, evidence, recommendation, risks and next steps.",
+    audience: "Retailer/customer meeting",
+    tone: "concise_commercial",
+  };
+  const example = examples[deckType] ?? fallback;
+  return {
+    ...example,
+    inputs: inputValuesForPlaybook(playbook, example.inputs),
+  };
+}
+
 const defaultDeckPlaybook: DeckPlaybook = {
   proofPrompt: "Clarify the decision, the commercial ask and the evidence needed to support it.",
   inputPrompts: [
@@ -1669,6 +1791,18 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     void createAndSaveDeck();
   }
 
+  function populateExampleData() {
+    const example = exampleDeckData(deckType, selectedPlaybook, selectedDeck.label);
+    setDeckName(example.name);
+    setDeckInputs(example.inputs);
+    setBrief(example.brief);
+    setAudience(example.audience ?? "Retailer/customer meeting");
+    setTone(example.tone ?? "concise_commercial");
+    setFinancialSummary("Yes");
+    setNextStepsSlide("Yes");
+    setRequestMessage(`${selectedDeck.label} example data added. You can edit any field before creating the deck.`);
+  }
+
   return (
     <section className="shell section">
       <div className="custom-deck-layout">
@@ -1697,6 +1831,11 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             <section className="custom-deck-form-section custom-deck-name-section">
               <h2>Deck setup</h2>
               {basedOnDeckMessage ? <p className="settings-message settings-message-success">{basedOnDeckMessage}</p> : null}
+              <div className="custom-deck-setup-actions">
+                <button className="button button-secondary button-small" disabled={!isPro} type="button" onClick={populateExampleData}>
+                  Populate example data
+                </button>
+              </div>
               <div className="custom-deck-setup-grid">
                 <label className="field">
                   <span>Deck name</span>

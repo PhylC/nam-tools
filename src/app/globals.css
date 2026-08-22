@@ -6553,6 +6553,12 @@ p {
   font-size: 1.08rem;
 }
 
+.custom-deck-setup-actions {
+  display: flex;
+  justify-content: flex-start;
+  margin: 0.35rem 0 0.75rem;
+}
+
 .custom-deck-setup-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.7fr);
