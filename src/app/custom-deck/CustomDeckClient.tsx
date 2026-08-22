@@ -7,8 +7,8 @@ import type PptxGenJS from "pptxgenjs";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
-import { saveDeckBrief } from "../../lib/saveStore";
-import { downloadDeckTemplate, uploadGeneratedDeck } from "../../lib/storageUploads";
+import { loadDeckBrief, saveDeckBrief } from "../../lib/saveStore";
+import { downloadDeckTemplate, downloadGeneratedDeck, uploadGeneratedDeck } from "../../lib/storageUploads";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
@@ -70,6 +70,14 @@ type DeckSlideContent = {
 type ReusableSavedTemplate = SavedPresentationTemplate & {
   storagePathOrUrl: string;
 };
+
+function getText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
 function normaliseTemplate(value: string) {
   const aliases: Record<string, string> = {
@@ -700,7 +708,7 @@ function DeckFileDropzone({
   );
 }
 
-export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
+export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnDeckId: string; selectedTemplate: string }) {
   const { plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
@@ -716,6 +724,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [googleSlidesTemplateUrl, setGoogleSlidesTemplateUrl] = useState("");
   const [templateError, setTemplateError] = useState("");
   const [googleSlidesError, setGoogleSlidesError] = useState("");
+  const [basedOnDeckTemplateFile, setBasedOnDeckTemplateFile] = useState<File | null>(null);
+  const [basedOnDeckMessage, setBasedOnDeckMessage] = useState("");
   const [supportingFiles, setSupportingFiles] = useState<File[]>([]);
   const [supportingError, setSupportingError] = useState("");
   const [brief, setBrief] = useState("");
@@ -749,7 +759,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     () => supportingFiles.find(isPowerPointTemplateFile) ?? null,
     [supportingFiles],
   );
-  const activeUploadedTemplate = oneOffTemplateFiles[0] ?? supportingTemplateFile;
+  const activeUploadedTemplate = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? basedOnDeckTemplateFile ?? supportingTemplateFile : null;
   const activeTemplateName = activeUploadedTemplate?.name
     ?? (templateSource === "saved" && selectedSavedTemplate
       ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename
@@ -758,6 +768,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         : "Upload a .pptx or .potx template");
   const activeTemplateKind = oneOffTemplateFiles[0]
     ? "Uploaded deck design template"
+    : basedOnDeckTemplateFile
+      ? "Design from saved deck"
     : supportingTemplateFile
       ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
@@ -784,6 +796,63 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!basedOnDeckId || !isPro) return;
+    let isMounted = true;
+
+    loadDeckBrief(basedOnDeckId).then(async (result) => {
+      if (!isMounted) return;
+      const saved = result.data;
+      if (!saved) {
+        setBasedOnDeckMessage(result.message ?? "Could not find that saved deck.");
+        return;
+      }
+
+      const savedDeckType = getText(saved.deckType, normaliseTemplate(getText(saved.template_type, "jbp")));
+      const matchedDeckType = deckTypes.some((item) => item.value === savedDeckType)
+        ? savedDeckType
+        : deckTypes.find((item) => item.label === getText(saved.template_type))?.value ?? "jbp";
+      const savedGeneratedDeck = isRecord(saved.generatedDeck) ? saved.generatedDeck : {};
+      const generatedDeckPath = getText(savedGeneratedDeck.storagePath);
+      const generatedDeckFilename = getText(savedGeneratedDeck.filename, `${safeFilename(getText(saved.name, "saved-deck"))}.pptx`);
+
+      setDeckName(`New ${getText(saved.name ?? saved.deck_name, "custom deck")}`);
+      setDeckType(matchedDeckType);
+      setBrief(getText(saved.brief));
+      setAudience(getText(saved.audience, "Retailer/customer meeting"));
+      setTone(getText(saved.tone, "concise_commercial"));
+      setFinancialSummary(saved.includeFinancialSummary === false ? "No" : "Yes");
+      setNextStepsSlide(saved.includeNextStepsSlide === false ? "No" : "Yes");
+      setExportFormat(getText(saved.exportFormat, "pptx") as ExportFormat);
+      setGoogleSlidesTemplateUrl(getText(saved.googleSlidesTemplateUrl));
+
+      const savedTemplateId = getText(saved.savedTemplateId);
+      if (savedTemplateId) {
+        setSelectedSavedTemplateId(savedTemplateId);
+        setTemplateSource("saved");
+      } else if (getText(saved.templateSource) === "apt_default") {
+        setTemplateSource("apt_default");
+      }
+
+      if (generatedDeckPath) {
+        const downloaded = await downloadGeneratedDeck(generatedDeckPath, generatedDeckFilename);
+        if (!isMounted) return;
+        if (downloaded.file) {
+          setBasedOnDeckTemplateFile(downloaded.file);
+          setTemplateSource("one_off");
+          setBasedOnDeckMessage(`Starting from saved deck "${getText(saved.name ?? saved.deck_name, "custom deck")}". Its generated file is being used as the design base.`);
+          return;
+        }
+      }
+
+      setBasedOnDeckMessage(`Starting from saved deck "${getText(saved.name ?? saved.deck_name, "custom deck")}". Brief and settings have been copied into a new deck request.`);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [basedOnDeckId, isPro]);
 
   useEffect(() => {
     return () => {
@@ -974,6 +1043,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           <fieldset className="settings-fieldset" disabled={!isPro}>
             <section className="custom-deck-form-section custom-deck-name-section">
               <h2>Deck setup</h2>
+              {basedOnDeckMessage ? <p className="settings-message settings-message-success">{basedOnDeckMessage}</p> : null}
               <div className="custom-deck-setup-grid">
                 <label className="field">
                   <span>Deck name</span>

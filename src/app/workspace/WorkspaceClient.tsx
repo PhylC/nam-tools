@@ -658,31 +658,35 @@ function WorkspaceBulkActions({
 function GeneralItemMenu({
   id,
   type,
-  editHref,
+  primaryHref,
+  primaryLabel,
   onRename,
   onDuplicate,
   onDelete,
 }: {
   id: string;
   type: SavedItemType;
-  editHref?: string;
+  primaryHref?: string;
+  primaryLabel?: string;
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
 }) {
   return (
     <WorkspaceMenuShell>
-      {editHref ? (
-        <Link className="workspace-menu-action" href={editHref}>
-          Edit
+      {primaryHref ? (
+        <Link className="workspace-menu-action" href={primaryHref}>
+          {primaryLabel ?? "Edit"}
         </Link>
       ) : null}
       <button className="workspace-menu-action" onClick={() => onRename(id, type)} type="button">
         Rename
       </button>
-      <button className="workspace-menu-action" onClick={() => onDuplicate(id, type)} type="button">
-        Duplicate
-      </button>
+      {type !== "Deck" ? (
+        <button className="workspace-menu-action" onClick={() => onDuplicate(id, type)} type="button">
+          Duplicate
+        </button>
+      ) : null}
       <button className="workspace-menu-action workspace-menu-danger" onClick={() => onDelete(id, type)} type="button">
         Delete
       </button>
@@ -839,7 +843,8 @@ function SavedWorkRow({
           <GeneralItemMenu
             id={item.id}
             type={item.type}
-            editHref={item.type === "Comparison" || item.type === "Scenario" ? href : undefined}
+            primaryHref={item.type === "Comparison" || item.type === "Scenario" ? href : item.type === "Deck" ? `/custom-deck?deck=${item.id}` : undefined}
+            primaryLabel={item.type === "Deck" ? "Create new from this" : "Edit"}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onRename={onRename}
@@ -985,7 +990,7 @@ function ComparisonGroupRow({
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
           <WorkspaceIconLink href={href} label={`Open ${title}`} />
-          <GeneralItemMenu id={item.id} type="Comparison" editHref={href} onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
+          <GeneralItemMenu id={item.id} type="Comparison" primaryHref={href} primaryLabel="Edit" onDelete={onDelete} onDuplicate={onDuplicate} onRename={onRename} />
         </div>
       </div>
       <div className="workspace-subrows">

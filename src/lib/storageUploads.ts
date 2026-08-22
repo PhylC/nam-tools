@@ -26,14 +26,22 @@ export function uploadDeckTemplate(file: File, userId: string) {
 }
 
 export async function downloadDeckTemplate(path: string, filename: string) {
+  return downloadPrivateStorageFile("deck-template-uploads", path, filename, "Template download is temporarily unavailable.", "Could not download the saved template.");
+}
+
+export async function downloadGeneratedDeck(path: string, filename: string) {
+  return downloadPrivateStorageFile("generated-decks", path, filename, "Deck download is temporarily unavailable.", "Could not download the saved deck.");
+}
+
+async function downloadPrivateStorageFile(bucket: string, path: string, filename: string, unavailableMessage: string, downloadErrorMessage: string) {
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    return { file: null, error: "Template download is temporarily unavailable." };
+    return { file: null, error: unavailableMessage };
   }
 
-  const { data, error } = await supabase.storage.from("deck-template-uploads").download(path);
+  const { data, error } = await supabase.storage.from(bucket).download(path);
   if (error || !data) {
-    return { file: null, error: error?.message ?? "Could not download the saved template." };
+    return { file: null, error: error?.message ?? downloadErrorMessage };
   }
 
   return {

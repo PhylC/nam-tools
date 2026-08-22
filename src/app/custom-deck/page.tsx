@@ -10,9 +10,10 @@ export const metadata = privateMetadata(
 export default async function CustomDeckPage({
   searchParams,
 }: {
-  searchParams: Promise<{ template?: string | string[] }>;
+  searchParams: Promise<{ deck?: string | string[]; template?: string | string[] }>;
 }) {
   const params = await searchParams;
+  const deck = Array.isArray(params.deck) ? params.deck[0] : params.deck;
   const template = Array.isArray(params.template) ? params.template[0] : params.template;
 
   return (
@@ -23,7 +24,7 @@ export default async function CustomDeckPage({
           needs to create a stronger first draft.
         </p>
       </Hero>
-      <CustomDeckClient selectedTemplate={template ?? ""} />
+      <CustomDeckClient basedOnDeckId={deck ?? ""} selectedTemplate={template ?? ""} />
     </div>
   );
 }
