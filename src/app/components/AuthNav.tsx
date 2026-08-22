@@ -107,6 +107,7 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
   const { user, isSignedIn, isLoadingAuth, signOut, actualPlan } = useAuth();
   const router = useRouter();
   const email = user?.email ?? "";
+  const isPro = actualPlan === "pro" || actualPlan === "team";
 
   async function handleSignOut() {
     const result = await signOut();
@@ -147,6 +148,12 @@ export function MobileAuthLinks({ onNavigate }: { onNavigate: () => void }) {
         >
           Upgrade
         </Link>
+      ) : null}
+      {isPro ? (
+        <>
+          <Link className="mobile-nav-link mobile-nav-link-strong" href="/workspace" onClick={onNavigate}>Workspace</Link>
+          <Link className="mobile-nav-link" href="/settings" onClick={onNavigate}>Settings</Link>
+        </>
       ) : null}
       <Link className="mobile-nav-link" href="/account" onClick={onNavigate}>Account</Link>
       <button className="mobile-nav-link mobile-nav-button" onClick={handleSignOut} type="button">Sign out</button>
