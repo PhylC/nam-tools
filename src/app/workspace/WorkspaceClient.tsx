@@ -414,21 +414,18 @@ function getScenarioLineAggregate(lines: SavedRecord[]) {
 }
 
 function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord; savedRecord?: SavedRecord }) {
-  const savedInputs = getRecordEntries(savedRecord?.inputs).slice(0, 8);
-  const savedOutputs = getRecordEntries(savedRecord?.outputs).slice(0, 8);
-  const scenarioEntries = getRecordEntries(scenario).filter(([label]) => !["id", "name", "lines"].includes(label)).slice(0, 8);
-  const lines = Array.isArray(scenario.lines) ? scenario.lines.filter(isRecord) : [];
-  const summary = savedRecord ? getText(savedRecord.summaryText, "") : "";
+  const normalizedScenario = getScenarioRecord(savedRecord ?? scenario);
+  const scenarioEntries = getRecordEntries(normalizedScenario).filter(([label]) => !["id", "name", "lines"].includes(label)).slice(0, 8);
+  const lines = Array.isArray(normalizedScenario.lines) ? normalizedScenario.lines.filter(isRecord) : [];
   const aggregate = getScenarioLineAggregate(lines);
   const aggregateCurrency = lines[0] ? getScenarioLineCurrency(lines[0]) : "GBP";
 
-  if (!savedInputs.length && !savedOutputs.length && !scenarioEntries.length && !lines.length && !summary) {
+  if (!scenarioEntries.length && !lines.length) {
     return <div className="workspace-subrow-detail-panel">No extra scenario details saved.</div>;
   }
 
   return (
     <div className="workspace-subrow-detail-panel">
-      {summary ? <p>{summary}</p> : null}
       {lines.length ? (
         <div className="workspace-scenario-summary-grid">
           <div>
@@ -461,26 +458,6 @@ function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord
         <dl>
           {scenarioEntries.map(([label, value]) => (
             <div key={`scenario-${label}`}>
-              <dt>{label}</dt>
-              <dd>{formatDetailValue(value)}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      {savedInputs.length ? (
-        <dl>
-          {savedInputs.map(([label, value]) => (
-            <div key={`input-${label}`}>
-              <dt>{label}</dt>
-              <dd>{formatDetailValue(value)}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-      {savedOutputs.length ? (
-        <dl>
-          {savedOutputs.map(([label, value]) => (
-            <div key={`output-${label}`}>
               <dt>{label}</dt>
               <dd>{formatDetailValue(value)}</dd>
             </div>
