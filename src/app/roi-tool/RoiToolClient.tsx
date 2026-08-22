@@ -1571,7 +1571,7 @@ export function RoiPlanner() {
   const autoSaveRequest = useRef(0);
   const pendingAutoSave = useRef<{ snapshot: ReturnType<typeof buildRoiPlanSnapshot>; signature: string } | null>(null);
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
-  const { groups, activeGroupId } = plannerState;
+  const { groups, activeGroupId, activeScenarioId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenarioRecord[]>([]);
   const [saveMessage, setSaveMessage] = useState("");
@@ -1814,6 +1814,7 @@ export function RoiPlanner() {
   const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
   const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
   const activeScenarios = activeGroup?.scenarios ?? [];
+  const activeScenario = activeScenarios.find((scenario) => scenario.id === activeScenarioId) ?? activeScenarios[0];
   const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
 
   useEffect(() => {
@@ -2091,105 +2092,130 @@ export function RoiPlanner() {
           />
         ) : null}
 
-        <div className="scenario-stack">
-          {activeScenarios.map((scenario) => {
-            const showNumberedHeading = isPro && activeScenarios.length > 1;
-            return (
-            <section className="scenario-card" key={scenario.id}>
-              <div className="scenario-title-row">
-                <div>
-                  <h3>{showNumberedHeading ? scenario.name || "Scenario" : "Scenario"}</h3>
-                  {!isPro ? <p>Model one scenario for free. Add and compare scenarios with APT Pro.</p> : null}
-                </div>
-              </div>
-              <div className="scenario-card-header">
-                <label className="field scenario-name-field">
-                  <span>Name</span>
-                  <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
-                </label>
-                <div className="scenario-card-actions">
-                  {isPro ? (
-                    <>
-                      <button className="table-action" onClick={() => openSaveScenario(scenario)} type="button">Save scenario</button>
-                      <button className="table-action" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
-                      <button className="table-action" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
-                    </>
-                  ) : (
-                    <button className="table-action" onClick={() => openSaveScenario(scenario)} type="button">
-                      Save scenario <ProBadge />
-                    </button>
-                  )}
-                </div>
-                <details className="roi-mobile-actions">
-                  <summary>Scenario actions</summary>
-                  <div>
-                    <label className="roi-mobile-field">
-                      <span>Rename scenario</span>
-                      <input value={scenario.name} onChange={(event) => updateScenarioName(scenario.id, event.target.value)} />
+        <div className="roi-workspace-layout">
+          <aside className="roi-scenario-nav" aria-label="Scenarios">
+            <div className="roi-scenario-nav-heading">
+              <span>Scenarios</span>
+              <strong>{activeScenarios.length}</strong>
+            </div>
+            <div className="roi-scenario-list">
+              {activeScenarios.map((scenario, index) => {
+                const summary = aggregate(scenario.lines);
+                const isActive = scenario.id === activeScenario?.id;
+                return (
+                  <button
+                    aria-current={isActive ? "true" : undefined}
+                    className={isActive ? "roi-scenario-nav-item roi-scenario-nav-item-active" : "roi-scenario-nav-item"}
+                    key={scenario.id}
+                    onClick={() => setPlannerState((current) => ({ ...current, activeScenarioId: scenario.id }))}
+                    type="button"
+                  >
+                    <span>{scenario.name || `Scenario ${index + 1}`}</span>
+                    <small>{scenario.lines.length} line{scenario.lines.length === 1 ? "" : "s"} · {money(summary.revenueImpact)} inc revenue</small>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              className={isPro ? "button button-secondary button-small new-scenario-button" : "button button-secondary button-small new-scenario-button pro-only-button"}
+              onClick={addScenario}
+              type="button"
+            >
+              {isPro ? (
+                "+ New scenario"
+              ) : (
+                <>
+                  Add another scenario
+                  <ProBadge />
+                </>
+              )}
+            </button>
+          </aside>
+
+          <div className="roi-scenario-editor">
+            <div className="scenario-stack">
+              {activeScenario ? (
+                <section className="scenario-card" key={activeScenario.id}>
+                  <div className="scenario-title-row">
+                    <div>
+                      <h3>{isPro && activeScenarios.length > 1 ? activeScenario.name || "Scenario" : "Scenario"}</h3>
+                      {!isPro ? <p>Model one scenario for free. Add and compare scenarios with APT Pro.</p> : null}
+                    </div>
+                  </div>
+                  <div className="scenario-card-header">
+                    <label className="field scenario-name-field">
+                      <span>Name</span>
+                      <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
                     </label>
-                    {isPro ? (
-                      <div className="summary-actions">
-                        <button className="button button-secondary button-small" onClick={() => openSaveScenario(scenario)} type="button">Save scenario</button>
-                        <button className="button button-secondary button-small" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button>
-                        <button className="button button-secondary button-small" onClick={() => deleteScenario(scenario.id)} type="button">Delete scenario</button>
+                    <div className="scenario-card-actions">
+                      {isPro ? (
+                        <>
+                          <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario</button>
+                          <button className="table-action" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
+                          <button className="table-action" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
+                        </>
+                      ) : (
+                        <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">
+                          Save scenario <ProBadge />
+                        </button>
+                      )}
+                    </div>
+                    <details className="roi-mobile-actions">
+                      <summary>Scenario actions</summary>
+                      <div>
+                        <label className="roi-mobile-field">
+                          <span>Rename scenario</span>
+                          <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
+                        </label>
+                        {isPro ? (
+                          <div className="summary-actions">
+                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario</button>
+                            <button className="button button-secondary button-small" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
+                            <button className="button button-secondary button-small" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
+                          </div>
+                        ) : (
+                          <div className="summary-actions">
+                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario <ProBadge /></button>
+                          </div>
+                        )}
                       </div>
-                    ) : (
+                    </details>
+                  </div>
+                  {savingScenarioId === activeScenario.id ? (
+                    <div className="save-work-panel roi-save-panel">
+                      <label className="field scenario-name-field">
+                        <span>Scenario name</span>
+                        <input value={scenarioSaveName} onChange={(event) => setScenarioSaveName(event.target.value)} />
+                      </label>
                       <div className="summary-actions">
-                        <button className="button button-secondary button-small" onClick={() => openSaveScenario(scenario)} type="button">Save scenario <ProBadge /></button>
+                        <button className="button button-small" onClick={() => saveCurrentScenario(activeScenario)} type="button">Save scenario</button>
+                        <button className="button button-secondary button-small" onClick={() => setSavingScenarioId("")} type="button">Cancel</button>
                       </div>
-                    )}
-                  </div>
-                </details>
-              </div>
-              {savingScenarioId === scenario.id ? (
-                <div className="save-work-panel roi-save-panel">
-                  <label className="field scenario-name-field">
-                    <span>Scenario name</span>
-                    <input value={scenarioSaveName} onChange={(event) => setScenarioSaveName(event.target.value)} />
-                  </label>
-                  <div className="summary-actions">
-                    <button className="button button-small" onClick={() => saveCurrentScenario(scenario)} type="button">Save scenario</button>
-                    <button className="button button-secondary button-small" onClick={() => setSavingScenarioId("")} type="button">Cancel</button>
-                  </div>
-                </div>
+                    </div>
+                  ) : null}
+                  {scenarioSaveMessage && scenarioMessageId === activeScenario.id ? (
+                    <div className="save-work-message" role="status">
+                      <strong>{scenarioSaveMessage}</strong>
+                      {savedScenarioId ? <a className="text-link" href="/workspace#scenarios">View in workspace</a> : null}
+                      {savedScenarioId ? <button className="text-button" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button> : null}
+                      <button className="text-button" onClick={() => { setScenarioSaveMessage(""); setScenarioMessageId(""); }} type="button">Keep working</button>
+                    </div>
+                  ) : null}
+                  <RoiEditableTable
+                    lines={activeScenario.lines}
+                    onAddLine={() => addLineToScenario(activeScenario.id)}
+                    onChangeLines={(lines) => setScenarioLines(activeScenario.id, lines)}
+                    lineActions={isPro}
+                    newLineProOnly={!isPro}
+                  />
+                  <ScenarioSummary scenario={activeScenario} />
+                </section>
               ) : null}
-              {scenarioSaveMessage && scenarioMessageId === scenario.id ? (
-                <div className="save-work-message" role="status">
-                  <strong>{scenarioSaveMessage}</strong>
-                  {savedScenarioId ? <a className="text-link" href="/workspace#scenarios">View in workspace</a> : null}
-                  {savedScenarioId ? <button className="text-button" onClick={() => duplicateScenario(scenario.id)} type="button">Duplicate scenario</button> : null}
-                  <button className="text-button" onClick={() => { setScenarioSaveMessage(""); setScenarioMessageId(""); }} type="button">Keep working</button>
-                </div>
-              ) : null}
-              <RoiEditableTable
-                lines={scenario.lines}
-                onAddLine={() => addLineToScenario(scenario.id)}
-                onChangeLines={(lines) => setScenarioLines(scenario.id, lines)}
-                lineActions={isPro}
-                newLineProOnly={!isPro}
-              />
-              <ScenarioSummary scenario={scenario} />
-            </section>
-          );
-          })}
+            </div>
+          </div>
         </div>
 
         <CalculatorCaveat />
-
-        <button
-          className={isPro ? "button new-scenario-button" : "button button-secondary button-small new-scenario-button pro-only-button"}
-          onClick={addScenario}
-          type="button"
-        >
-          {isPro ? (
-            "+ New scenario"
-          ) : (
-            <>
-              Add another scenario
-              <ProBadge />
-            </>
-          )}
-        </button>
 
         {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} /> : <FreeProPrompt />}
       </article>

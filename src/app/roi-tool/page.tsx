@@ -43,11 +43,12 @@ export default function RoiToolPage() {
       />
       <Hero
         eyebrow="Promotion ROI tool"
-        title="Promotion ROI planner for trade spend and support."
+        title="Promotion ROI planner"
       >
         <p>
-          Model one SKU or a full multi-line promotion, compare scenarios and
-          export the numbers for retailer, distributor or customer planning.
+          Model trade spend and support for one SKU or a full multi-line promotion,
+          compare scenarios and export the numbers for retailer, distributor or
+          customer planning.
         </p>
       </Hero>
       <RoiToolProduct />

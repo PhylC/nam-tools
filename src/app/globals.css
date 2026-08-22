@@ -3337,6 +3337,100 @@ p {
   gap: 0.35rem;
 }
 
+.roi-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 240px) minmax(0, 1fr);
+  gap: 0.9rem;
+  align-items: start;
+  min-width: 0;
+}
+
+.roi-scenario-nav {
+  position: sticky;
+  top: 0.75rem;
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fbfdfc;
+  padding: 0.7rem;
+}
+
+.roi-scenario-nav-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 950;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.roi-scenario-nav-heading strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.55rem;
+  min-height: 1.55rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+}
+
+.roi-scenario-list {
+  display: grid;
+  gap: 0.45rem;
+  max-height: 420px;
+  overflow: auto;
+  padding-right: 0.1rem;
+}
+
+.roi-scenario-nav-item {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--foreground);
+  cursor: pointer;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+}
+
+.roi-scenario-nav-item:hover,
+.roi-scenario-nav-item-active {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #ffffff;
+}
+
+.roi-scenario-nav-item-active {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.roi-scenario-nav-item span {
+  font-size: 0.9rem;
+  font-weight: 950;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.roi-scenario-nav-item small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 820;
+  line-height: 1.25;
+}
+
+.roi-scenario-editor {
+  min-width: 0;
+}
+
 .roi-table-scroll {
   overflow-x: auto;
   border: 1px solid var(--border);
@@ -3410,11 +3504,11 @@ p {
 }
 
 .roi-desktop-table {
-  display: none;
+  display: block;
 }
 
 .roi-mobile-builder {
-  display: grid;
+  display: none;
   gap: 0.85rem;
 }
 
@@ -3552,18 +3646,18 @@ p {
 
 .roi-planner-table {
   width: max-content;
-  min-width: 1420px;
+  min-width: 1240px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 0.84rem;
+  font-size: 0.78rem;
 }
 
 .roi-planner-table th,
 .roi-planner-table td {
-  min-width: 120px;
+  min-width: 104px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
-  padding: 0.55rem;
+  padding: 0.42rem;
   text-align: left;
   vertical-align: middle;
   white-space: nowrap;
@@ -3575,7 +3669,7 @@ p {
   z-index: 2;
   background: #f4fbfa;
   color: var(--accent-dark);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 900;
   letter-spacing: 0.02em;
   text-transform: none;
@@ -3590,7 +3684,7 @@ p {
   position: sticky;
   left: 0;
   z-index: 3;
-  min-width: 170px;
+  min-width: 145px;
   background: #fff;
   box-shadow: 1px 0 0 var(--border);
 }
@@ -3601,11 +3695,11 @@ p {
 }
 
 .roi-table-input {
-  min-height: 38px;
-  min-width: 120px;
+  min-height: 32px;
+  min-width: 92px;
   border-radius: 6px;
-  padding: 0.45rem 0.5rem;
-  font-size: 0.84rem;
+  padding: 0.34rem 0.42rem;
+  font-size: 0.78rem;
   line-height: 1.3;
 }
 
@@ -7925,6 +8019,25 @@ p {
     gap: 0.45rem;
   }
 
+  .roi-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .roi-scenario-nav {
+    position: static;
+  }
+
+  .roi-scenario-list {
+    display: flex;
+    max-height: none;
+    overflow-x: auto;
+    padding: 0 0 0.15rem;
+  }
+
+  .roi-scenario-nav-item {
+    flex: 0 0 min(240px, 82vw);
+  }
+
   .hero {
     padding: 1rem 0 0.85rem;
   }
@@ -8474,6 +8587,36 @@ p {
     width: 100%;
     max-width: 100%;
     min-width: 0;
+  }
+
+  .roi-tool-page,
+  .roi-tool-page .hero-copy,
+  .roi-tool-page .section,
+  .roi-tool-page .section-header {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .roi-tool-page > .hero {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    margin-inline: auto;
+  }
+
+  .roi-tool-page .hero-copy h1 {
+    width: 100%;
+    max-width: calc(100vw - 24px);
+    font-size: clamp(1.75rem, 8vw, 2.05rem);
+    line-height: 1.12;
+  }
+
+  .roi-tool-page h1,
+  .roi-tool-page h2,
+  .roi-tool-page p {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: break-word;
   }
 
   .calculators-hub-page .shell {
