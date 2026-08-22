@@ -751,15 +751,22 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   );
   const activeUploadedTemplate = oneOffTemplateFiles[0] ?? supportingTemplateFile;
   const activeTemplateName = activeUploadedTemplate?.name
-    ?? (templateSource === "saved" && selectedSavedTemplate ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename : "Upload a .pptx or .potx template");
+    ?? (templateSource === "saved" && selectedSavedTemplate
+      ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename
+      : templateSource === "apt_default"
+        ? "Simple blank template"
+        : "Upload a .pptx or .potx template");
   const activeTemplateKind = oneOffTemplateFiles[0]
     ? "Uploaded deck design template"
     : supportingTemplateFile
       ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
       ? "Saved template"
-      : "No design template selected";
+      : templateSource === "apt_default"
+        ? "Simple blank template"
+        : "No design template selected";
   const hasActiveDesignTemplate = Boolean(activeUploadedTemplate || (templateSource === "saved" && selectedSavedTemplate));
+  const canCreateDeck = hasActiveDesignTemplate || templateSource === "apt_default";
 
   useEffect(() => {
     let isMounted = true;
@@ -853,7 +860,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           return;
         }
       }
-      if (!templateFileForDesign) {
+      if (!templateFileForDesign && templateSource !== "apt_default") {
         setTemplateError(
           savedTemplates.length
             ? "Choose a reusable saved PowerPoint template, or replace your older saved template with a .pptx/.potx upload."
@@ -1025,6 +1032,19 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     <small>Upload a PowerPoint file just for this deck.</small>
                   </span>
                 </label>
+                <label className="template-source-option">
+                  <input
+                    checked={templateSource === "apt_default"}
+                    name="template-source"
+                    type="radio"
+                    value="apt_default"
+                    onChange={() => setTemplateSource("apt_default")}
+                  />
+                  <span>
+                    <strong>Use simple blank template</strong>
+                    <small>Create an editable deck without uploading or choosing a design file.</small>
+                  </span>
+                </label>
               </div>
               {templateSource === "one_off" ? (
                 <div className="template-one-off-fields">
@@ -1048,7 +1068,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                 <span>{activeTemplateKind}</span>
                 <strong>{activeTemplateName}</strong>
               </div>
-              {reusableSavedTemplates.length === 0 ? (
+              {templateSource === "saved" && reusableSavedTemplates.length === 0 ? (
                 <p className="helper-note">
                   No reusable saved PowerPoint templates yet. Add or replace one in{" "}
                   <Link className="text-link" href="/settings#presentation-templates">
@@ -1205,11 +1225,11 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !hasActiveDesignTemplate} type="submit">
+            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !canCreateDeck} type="submit">
               {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
             </button>
-            {!hasActiveDesignTemplate ? (
-              <p className="field-error">Upload or choose a PowerPoint template before creating the deck.</p>
+            {!canCreateDeck ? (
+              <p className="field-error">Upload or choose a PowerPoint template, or select the simple blank template.</p>
             ) : null}
             <p>
               This creates an editable PowerPoint draft, saves the deck record to your workspace and stores the file when account storage is available.
