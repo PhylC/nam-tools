@@ -6744,6 +6744,61 @@ p {
   gap: 0.65rem;
 }
 
+.saved-bottom-panel {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+  background: #f9fdfc;
+}
+
+.saved-bottom-header,
+.saved-bottom-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.saved-bottom-header h2 {
+  font-size: 1.18rem;
+}
+
+.saved-bottom-header p {
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0.2rem 0 0;
+}
+
+.saved-bottom-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.saved-bottom-row {
+  grid-template-columns: minmax(220px, 1fr) minmax(128px, auto) auto;
+  border-top: 1px solid var(--border);
+  padding-top: 0.6rem;
+}
+
+.saved-bottom-row strong,
+.saved-bottom-row span {
+  display: block;
+}
+
+.saved-bottom-row strong {
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.saved-bottom-row span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
 .saved-panel-empty {
   display: grid;
   gap: 0.3rem;
@@ -8466,6 +8521,15 @@ p {
 
   .saved-row {
     grid-template-columns: 1fr;
+  }
+
+  .saved-bottom-header,
+  .saved-bottom-row {
+    grid-template-columns: 1fr;
+  }
+
+  .saved-bottom-row .summary-actions {
+    width: 100%;
   }
 
   .hero-copy,

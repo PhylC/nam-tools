@@ -11,6 +11,7 @@ import {
   deleteRoiPlan,
   duplicateRoiPlan,
   listRoiPlans,
+  listSavedScenarios,
   loadSavedScenario,
   loadRoiPlan,
   saveScenario,
@@ -58,6 +59,8 @@ type SavedRoiGroup = RoiGroup & {
   created_at?: string;
   updated_at?: string;
 };
+
+type SavedScenarioRecord = Record<string, unknown>;
 
 type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -338,6 +341,28 @@ function restoreSavedScenario(value: unknown, fallbackName = "ROI scenario"): Ro
     name: typeof scenario.name === "string" && scenario.name.trim() ? scenario.name : fallbackName,
     lines,
   };
+}
+
+function getRecordText(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function getRecordTimestamp(item: Record<string, unknown>) {
+  const raw = item.updated_at ?? item.updatedAt ?? item.savedAt ?? item.created_at ?? item.createdAt;
+  if (typeof raw !== "string") return 0;
+  const time = new Date(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getRecordUpdatedDate(item: Record<string, unknown>) {
+  const time = getRecordTimestamp(item);
+  if (!time) return "Date not available";
+  return `Last updated ${new Date(time).toLocaleDateString("en-GB")}`;
+}
+
+function savedScenarioLineCount(item: SavedScenarioRecord) {
+  const scenarioData = isRecord(item.scenarioData) ? item.scenarioData : item;
+  return Array.isArray(scenarioData.lines) ? scenarioData.lines.length : 0;
 }
 
 function limitGroupsForFree(nextGroups: RoiGroup[]) {
@@ -1312,6 +1337,79 @@ function SavedRoiPlansPanel({
   );
 }
 
+function SavedRoiBottomPanel({
+  comparisons,
+  scenarios,
+  onLoadComparison,
+}: {
+  comparisons: SavedRoiGroup[];
+  scenarios: SavedScenarioRecord[];
+  onLoadComparison: (id: string) => void | Promise<void>;
+}) {
+  const hasSavedItems = comparisons.length || scenarios.length;
+
+  return (
+    <aside className="card saved-bottom-panel" aria-label="Previously saved ROI work">
+      <div className="saved-bottom-header">
+        <div>
+          <h2>Previously saved comparisons & scenarios</h2>
+          <p>Return to recent ROI work from here, or open Workspace for the full searchable list.</p>
+        </div>
+        <Link className="button button-secondary button-small" href="/workspace#comparison-scenarios">
+          View all
+        </Link>
+      </div>
+      {hasSavedItems ? (
+        <div className="saved-bottom-list">
+          {comparisons.slice(0, 4).map((comparison) => (
+            <div className="saved-bottom-row" key={`comparison-${comparison.id}`}>
+              <div>
+                <strong>{comparison.name || comparison.group_name || "Saved comparison"}</strong>
+                <span>{comparison.scenarios.length} scenario(s)</span>
+              </div>
+              <span>{getRecordUpdatedDate(comparison)}</span>
+              <div className="summary-actions">
+                <button className="button button-secondary button-small" onClick={() => onLoadComparison(comparison.id)} type="button">
+                  Load
+                </button>
+                <Link className="button button-secondary button-small" href={`/roi-tool?comparison=${comparison.id}`}>
+                  Edit
+                </Link>
+              </div>
+            </div>
+          ))}
+          {scenarios.slice(0, 4).map((scenario) => {
+            const id = String(scenario.id ?? "");
+            const title = getRecordText(scenario.title ?? scenario.name, "Saved scenario");
+            return (
+              <div className="saved-bottom-row" key={`scenario-${id}`}>
+                <div>
+                  <strong>{title}</strong>
+                  <span>{savedScenarioLineCount(scenario)} product line(s)</span>
+                </div>
+                <span>{getRecordUpdatedDate(scenario)}</span>
+                <div className="summary-actions">
+                  <Link className="button button-secondary button-small" href={`/roi-tool?saved=${id}`}>
+                    Edit
+                  </Link>
+                  <Link className="button button-secondary button-small" href="/workspace#comparison-scenarios">
+                    Details
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="saved-panel-empty">
+          <strong>No saved ROI work yet.</strong>
+          <p>Save a comparison or standalone scenario, then it will appear here.</p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 function FreeProPrompt() {
   return (
     <article className="card pro-upgrade-panel">
@@ -1341,6 +1439,7 @@ export function RoiPlanner() {
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenarioRecord[]>([]);
   const [saveMessage, setSaveMessage] = useState("");
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle");
   const [autoSaveMessage, setAutoSaveMessage] = useState("");
@@ -1361,7 +1460,7 @@ export function RoiPlanner() {
         : "roi-autosave-status";
 
   useEffect(() => {
-    if (isPro) refreshSavedGroups();
+    if (isPro) refreshSavedRoiWork();
   }, [isAuthenticated, isPro]);
 
   useEffect(() => {
@@ -1439,10 +1538,11 @@ export function RoiPlanner() {
     });
   }
 
-  async function refreshSavedGroups() {
-    const result = await listRoiPlans();
-    setSavedGroups(result.data as SavedRoiGroup[]);
-    setSaveMessage(result.message ?? "");
+  async function refreshSavedRoiWork() {
+    const [groupsResult, scenariosResult] = await Promise.all([listRoiPlans(), listSavedScenarios()]);
+    setSavedGroups(groupsResult.data as SavedRoiGroup[]);
+    setSavedScenarios(scenariosResult.data);
+    setSaveMessage(groupsResult.message ?? scenariosResult.message ?? "");
   }
 
   function setGroups(nextGroups: RoiGroup[]) {
@@ -1463,7 +1563,7 @@ export function RoiPlanner() {
       setSaveMessage(result.message ?? "Could not save comparison.");
       return;
     }
-    await refreshSavedGroups();
+    await refreshSavedRoiWork();
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: snapshot.name } : group)),
@@ -1518,6 +1618,7 @@ export function RoiPlanner() {
     setScenarioSaveMessage("Scenario saved to your account.");
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
+    await refreshSavedRoiWork();
   }
 
   async function loadSavedGroup(groupId: string) {
@@ -1548,7 +1649,7 @@ export function RoiPlanner() {
       return;
     }
     setSaveMessage("");
-    await refreshSavedGroups();
+    await refreshSavedRoiWork();
     setPlannerState((current) => ({
       ...current,
       groups: current.groups.map((group) => (group.id === groupId ? { ...group, name } : group)),
@@ -1566,14 +1667,14 @@ export function RoiPlanner() {
       activeGroupId: copy.id,
       activeScenarioId: copy.scenarios[0]?.id ?? "",
     }));
-    await refreshSavedGroups();
+    await refreshSavedRoiWork();
   }
 
   async function deleteSavedGroup(groupId: string) {
     if (!ensureRoiPro("save-plan")) return;
     const result = await deleteRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
-    await refreshSavedGroups();
+    await refreshSavedRoiWork();
   }
 
   const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
@@ -1958,6 +2059,7 @@ export function RoiPlanner() {
 
         {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} /> : <FreeProPrompt />}
       </article>
+      {isPro ? <SavedRoiBottomPanel comparisons={savedGroups} scenarios={savedScenarios} onLoadComparison={loadSavedGroup} /> : null}
     </section>
   );
 }

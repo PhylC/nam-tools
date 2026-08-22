@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
+import { listDeckBriefs } from "../../lib/saveStore";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 
 type FreeTemplate = {
@@ -20,6 +21,8 @@ type FreeTemplate = {
   previewWidth?: number;
   previewHeight?: number;
 };
+
+type SavedRecord = Record<string, unknown>;
 
 // Templates intentionally use editable example content so users can adapt them for real customer meetings.
 const freeTemplates: FreeTemplate[] = [
@@ -131,6 +134,90 @@ function customDeckHref(template: FreeTemplate) {
   return `/custom-deck?template=${queryBySlug[template.slug] ?? template.slug}`;
 }
 
+function getText(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function getTimestamp(item: SavedRecord) {
+  const raw = item.updated_at ?? item.updatedAt ?? item.savedAt ?? item.created_at ?? item.createdAt;
+  if (typeof raw !== "string") return 0;
+  const time = new Date(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function getUpdatedDate(item: SavedRecord) {
+  const time = getTimestamp(item);
+  if (!time) return "Date not available";
+  return `Last updated ${new Date(time).toLocaleDateString("en-GB")}`;
+}
+
+function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
+  const [decks, setDecks] = useState<SavedRecord[]>([]);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!isPro) return;
+    let isMounted = true;
+    listDeckBriefs().then((result) => {
+      if (!isMounted) return;
+      setDecks(result.data.slice(0, 5));
+      setMessage(result.message ?? "");
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isPro]);
+
+  if (!isPro) return null;
+
+  return (
+    <aside className="card saved-bottom-panel" aria-label="Previously saved decks">
+      <div className="saved-bottom-header">
+        <div>
+          <h2>Previously saved decks</h2>
+          <p>Pick up an existing deck request, or create a new deck using one as the starting point.</p>
+        </div>
+        <Link className="button button-secondary button-small" href="/workspace#decks">
+          View all
+        </Link>
+      </div>
+      {message ? <p className="saved-panel-note">{message}</p> : null}
+      {decks.length ? (
+        <div className="saved-bottom-list">
+          {decks.map((deck) => {
+            const id = String(deck.id ?? "");
+            const name = getText(deck.name ?? deck.deck_name, "Saved deck");
+            const template = getText(deck.template_type, "Custom deck");
+            const customer = getText(deck.customer, "");
+            return (
+              <div className="saved-bottom-row" key={id}>
+                <div>
+                  <strong>{name}</strong>
+                  <span>{customer ? `${template} for ${customer}` : template}</span>
+                </div>
+                <span>{getUpdatedDate(deck)}</span>
+                <div className="summary-actions">
+                  <Link className="button button-secondary button-small" href={`/custom-deck?deck=${id}`}>
+                    Create new from this
+                  </Link>
+                  <Link className="button button-secondary button-small" href="/workspace#decks">
+                    Details
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="saved-panel-empty">
+          <strong>No saved decks yet.</strong>
+          <p>Create and save a custom deck, then it will appear here.</p>
+        </div>
+      )}
+    </aside>
+  );
+}
+
 export function PresentationTemplatesFree() {
   const { plan } = useSupabaseAuth();
   const isPro = plan === "pro" || plan === "team";
@@ -165,17 +252,6 @@ export function PresentationTemplatesFree() {
           reviews all live here.
         </p>
       </div>
-      {isPro ? (
-        <aside className="card saved-panel saved-panel-compact">
-          <div>
-            <h3>Saved custom decks</h3>
-            <p>Find saved deck briefs and meeting-ready outputs in My workspace.</p>
-          </div>
-          <Link className="button button-secondary button-small" href="/workspace#decks">
-            Open saved decks
-          </Link>
-        </aside>
-      ) : null}
       <div className="card-grid presentation-template-grid" id="template-card-grid">
         {freeTemplates.map((template) => (
           <div className="template-card-wrap" id={`template-${template.slug}`} key={template.title}>
@@ -266,6 +342,7 @@ export function PresentationTemplatesFree() {
           </Link>
         </article>
       )}
+      <SavedDecksBottomPanel isPro={isPro} />
     </section>
   );
 }
