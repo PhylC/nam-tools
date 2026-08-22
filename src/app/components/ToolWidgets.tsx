@@ -1637,31 +1637,6 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             ))}
           </div>
         </section>
-        <section className="input-section" aria-label="Supplier support input method">
-          <div className="input-section-header">
-            <h3>How do you want to enter supplier support?</h3>
-          </div>
-          <div className="segmented-control" role="radiogroup" aria-label="Supplier support input method">
-            <button
-              aria-checked={supportMethod === "soa"}
-              className={supportMethod === "soa" ? "tab-button tab-button-active" : "tab-button"}
-              onClick={() => setSupportMethod("soa")}
-              role="radio"
-              type="button"
-            >
-              SOA / supplier support per unit
-            </button>
-            <button
-              aria-checked={supportMethod === "promoInvoice"}
-              className={supportMethod === "promoInvoice" ? "tab-button tab-button-active" : "tab-button"}
-              onClick={() => setSupportMethod("promoInvoice")}
-              role="radio"
-              type="button"
-            >
-              Promo retailer invoice/buy price
-            </button>
-          </div>
-        </section>
         <section className="input-section" aria-label="Promotion and price inputs">
           <div className="input-section-header">
             <h3>Promotion and price inputs</h3>
@@ -1670,11 +1645,22 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
             <NumericInput label="Baseline units before promotion" help="Estimated units sold in the normal comparison period before the promotion." placeholder="e.g. 10,000" value={baselineUnits} onChange={setBaselineUnits} step="1" />
             <NumericInput label="Forecast units during promotion" help="Expected units sold during the promotion or deal period." placeholder="e.g. 18,000" value={promoUnits} onChange={setPromoUnits} step="1" />
             <NumericInput label="Retailer invoice/buy price before promotion" help="The price the retailer/customer pays the supplier per unit before the promotion." placeholder="e.g. 1.75" value={retailerBuyPrice} onChange={setRetailerBuyPrice} />
-            {supportMethod === "soa" ? (
-              <NumericInput label="SOA / supplier support per unit" help={SUPPORT_HELP} placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
-            ) : (
-              <NumericInput label="Promotional retailer invoice/buy price" help="Effective invoice/buy price during the promotion after supplier support." placeholder="e.g. 1.40" value={promoInvoicePrice} onChange={setPromoInvoicePrice} />
-            )}
+            <div className="deal-linked-support-fields">
+              <label className="calc-field deal-support-method-field">
+                <span className="field-label calc-field-header">
+                  <span className="calc-field-label">Promo input</span>
+                </span>
+                <select className="calc-input" value={supportMethod} onChange={(event) => setSupportMethod(event.target.value as SupportMethod)}>
+                  <option value="soa">SOA/support</option>
+                  <option value="promoInvoice">Promo invoice/buy price</option>
+                </select>
+              </label>
+              {supportMethod === "soa" ? (
+                <NumericInput label="SOA / supplier support per unit" help={SUPPORT_HELP} placeholder="e.g. 0.35" value={soa} onChange={setSoa} />
+              ) : (
+                <NumericInput label="Promotional retailer invoice/buy price" help="Effective invoice/buy price during the promotion after supplier support." placeholder="e.g. 1.40" value={promoInvoicePrice} onChange={setPromoInvoicePrice} />
+              )}
+            </div>
             {dealMode === "profit" ? (
               <NumericInput label="Supplier COGS per unit" help="Your internal cost of goods sold per unit. This is not the retailer invoice price." placeholder="e.g. 1.10" value={cogs} onChange={setCogs} />
             ) : null}

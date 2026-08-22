@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   deleteDeckBrief,
   deleteRoiPlan,
@@ -20,6 +20,8 @@ import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
 
 type SavedRecord = Record<string, unknown>;
+type SavedItemType = "Analysis" | "Comparison" | "Scenario" | "Deck";
+type WorkspaceSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
 
 type WorkspaceSectionProps = {
   id: string;
@@ -28,9 +30,9 @@ type WorkspaceSectionProps = {
   cta: string;
   href: string;
   items?: SavedRecord[];
-  itemType?: "Analysis" | "Comparison" | "Scenario" | "Deck";
-  onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
-  onDelete?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
+  itemType?: SavedItemType;
+  onDuplicate?: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDelete?: (id: string, type: SavedItemType) => void | Promise<void>;
   emptyImage?: {
     src: string;
     alt: string;
@@ -43,6 +45,20 @@ type WorkspaceSectionProps = {
 
 function getText(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function getSavedItemTitle(item: SavedRecord, type: SavedItemType) {
+  return getText(
+    item.title ?? item.name ?? item.group_name ?? item.deck_name,
+    type === "Deck" ? "Saved deck" : type === "Comparison" ? "Saved comparison" : type === "Scenario" ? "Saved scenario" : "Saved calculator result",
+  );
+}
+
+function getTimestamp(item: SavedRecord) {
+  const raw = item.updated_at ?? item.updatedAt ?? item.savedAt ?? item.created_at ?? item.createdAt;
+  if (typeof raw !== "string") return 0;
+  const time = new Date(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function getUpdatedDate(item: SavedRecord) {
@@ -81,12 +97,65 @@ function getScenarioDescription(item: SavedRecord) {
   return incrementalRevenue ? `${lines} · ${incrementalRevenue} incremental revenue` : lines;
 }
 
+function getScenarioLineCount(scenario: SavedRecord) {
+  return Array.isArray(scenario.lines) ? scenario.lines.length : 0;
+}
+
+function getScenarioSummary(scenario: SavedRecord) {
+  const lines = getScenarioLineCount(scenario);
+  const products = Array.isArray(scenario.lines)
+    ? scenario.lines
+        .map((line) => (line && typeof line === "object" && !Array.isArray(line) ? getText((line as SavedRecord).product ?? (line as SavedRecord).sku, "") : ""))
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+  return products.length ? `${lines} line(s) · ${products.join(", ")}` : `${lines} line(s)`;
+}
+
+function recordSearchText(item: SavedRecord, type: SavedItemType) {
+  const chunks = [getSavedItemTitle(item, type), getUpdatedDate(item)];
+  if (type === "Comparison" && Array.isArray(item.scenarios)) {
+    item.scenarios.forEach((scenario) => {
+      if (!scenario || typeof scenario !== "object" || Array.isArray(scenario)) return;
+      const record = scenario as SavedRecord;
+      chunks.push(getText(record.name, ""));
+      if (Array.isArray(record.lines)) {
+        record.lines.forEach((line) => {
+          if (!line || typeof line !== "object" || Array.isArray(line)) return;
+          const lineRecord = line as SavedRecord;
+          chunks.push(getText(lineRecord.sku, ""));
+          chunks.push(getText(lineRecord.product, ""));
+          chunks.push(getText(lineRecord.notes, ""));
+        });
+      }
+    });
+  }
+  if (type === "Scenario") chunks.push(getScenarioDescription(item));
+  if (type === "Analysis") chunks.push(getAnalysisDescription(item));
+  if (type === "Deck") chunks.push(getDeckDescription(item));
+  return chunks.join(" ").toLowerCase();
+}
+
+function filterAndSortItems(items: SavedRecord[], type: SavedItemType, search: string, sort: WorkspaceSort) {
+  const query = search.trim().toLowerCase();
+  return items
+    .filter((item) => !query || recordSearchText(item, type).includes(query))
+    .toSorted((left, right) => {
+      if (sort === "name-asc" || sort === "name-desc") {
+        const direction = sort === "name-asc" ? 1 : -1;
+        return direction * getSavedItemTitle(left, type).localeCompare(getSavedItemTitle(right, type), "en-GB", { sensitivity: "base" });
+      }
+      const direction = sort === "updated-desc" ? -1 : 1;
+      return direction * (getTimestamp(left) - getTimestamp(right));
+    });
+}
+
 function getRecordEntries(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return [];
   return Object.entries(value as SavedRecord).filter(([, entryValue]) => entryValue !== "" && entryValue !== null && entryValue !== undefined);
 }
 
-function SavedItemDetails({ item, type }: { item: SavedRecord; type: "Analysis" | "Comparison" | "Scenario" | "Deck" }) {
+function SavedItemDetails({ item, type }: { item: SavedRecord; type: SavedItemType }) {
   if (type === "Comparison" || type === "Deck") return null;
   const inputs = getRecordEntries(item.inputs).slice(0, 6);
   const outputs = getRecordEntries(item.outputs).slice(0, 6);
@@ -129,11 +198,11 @@ function SavedItemCard({
   onDelete,
 }: {
   item: SavedRecord;
-  type: "Analysis" | "Comparison" | "Scenario" | "Deck";
-  onDuplicate?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
-  onDelete?: (id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") => void | Promise<void>;
+  type: SavedItemType;
+  onDuplicate?: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDelete?: (id: string, type: SavedItemType) => void | Promise<void>;
 }) {
-  const title = getText(item.title ?? item.name ?? item.group_name ?? item.deck_name, type === "Deck" ? "Saved deck" : type === "Comparison" ? "Saved comparison" : type === "Scenario" ? "Saved scenario" : "Saved analysis");
+  const title = getSavedItemTitle(item, type);
   const description = type === "Deck" ? getDeckDescription(item) : type === "Comparison" ? getComparisonDescription(item) : type === "Scenario" ? getScenarioDescription(item) : getAnalysisDescription(item);
   const defaultPath = type === "Deck" ? "/presentation-templates" : type === "Analysis" ? "/calculators" : "/roi-tool";
   const sourcePath = getText(item.sourcePath, defaultPath);
@@ -174,6 +243,72 @@ function SavedItemCard({
           ) : null}
         </div>
       </div>
+    </article>
+  );
+}
+
+function ComparisonGroupCard({
+  item,
+  onDuplicate,
+  onDelete,
+}: {
+  item: SavedRecord;
+  onDuplicate?: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDelete?: (id: string, type: SavedItemType) => void | Promise<void>;
+}) {
+  const title = getSavedItemTitle(item, "Comparison");
+  const scenarios = Array.isArray(item.scenarios)
+    ? item.scenarios.filter((scenario): scenario is SavedRecord => Boolean(scenario) && typeof scenario === "object" && !Array.isArray(scenario))
+    : [];
+  const sourcePath = getText(item.sourcePath, "/roi-tool");
+  const itemId = typeof item.id === "string" ? item.id : "";
+  const href = itemId ? `${sourcePath}?comparison=${itemId}` : sourcePath;
+
+  return (
+    <article className="comparison-group-card">
+      <div className="comparison-group-main">
+        <div>
+          <span className="saved-item-meta">Comparison group</span>
+          <h3>{title}</h3>
+          <p>{getComparisonDescription(item)}</p>
+        </div>
+        <div className="comparison-group-actions">
+          <Link className="button button-secondary button-small" href={href}>
+            Open comparison
+          </Link>
+          {onDuplicate && itemId ? (
+            <button className="text-button" onClick={() => onDuplicate(itemId, "Comparison")} type="button">
+              Duplicate
+            </button>
+          ) : null}
+          {onDelete && itemId ? (
+            <button className="text-button text-button-danger" onClick={() => onDelete(itemId, "Comparison")} type="button">
+              Delete
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <details className="comparison-scenario-list" open>
+        <summary>Scenarios in this comparison</summary>
+        {scenarios.length ? (
+          <div className="comparison-scenario-rows">
+            {scenarios.map((scenario, index) => (
+              <div className="comparison-scenario-row" key={String(scenario.id ?? `${itemId}-scenario-${index}`)}>
+                <div>
+                  <strong>{getText(scenario.name, `Scenario ${index + 1}`)}</strong>
+                  <span>{getScenarioSummary(scenario)}</span>
+                </div>
+                <Link className="text-link" href={itemId && scenario.id ? `${href}&scenario=${String(scenario.id)}` : href}>
+                  Open scenario
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">No scenarios saved inside this comparison.</p>
+        )}
+      </details>
     </article>
   );
 }
@@ -260,6 +395,74 @@ function WorkspaceSection({
   );
 }
 
+function WorkspaceControls({
+  search,
+  sort,
+  onSearch,
+  onSort,
+}: {
+  search: string;
+  sort: WorkspaceSort;
+  onSearch: (value: string) => void;
+  onSort: (value: WorkspaceSort) => void;
+}) {
+  return (
+    <div className="workspace-controls" aria-label="Saved work controls">
+      <label className="field workspace-search-field">
+        <span>Search saved work</span>
+        <input value={search} onChange={(event) => onSearch(event.target.value)} placeholder="Search comparisons, scenarios, SKUs or decks" />
+      </label>
+      <label className="field workspace-sort-field">
+        <span>Sort by</span>
+        <select value={sort} onChange={(event) => onSort(event.target.value as WorkspaceSort)}>
+          <option value="updated-desc">Newest first</option>
+          <option value="updated-asc">Oldest first</option>
+          <option value="name-asc">Name A-Z</option>
+          <option value="name-desc">Name Z-A</option>
+        </select>
+      </label>
+    </div>
+  );
+}
+
+function ComparisonGroupsSection({
+  items,
+  onDuplicate,
+  onDelete,
+}: {
+  items: SavedRecord[];
+  onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+}) {
+  return (
+    <article className="card workspace-card workspace-card-wide" id="comparisons">
+      <div className="workspace-card-header">
+        <div>
+          <h2>ROI comparison groups</h2>
+          <p>Each comparison is a saved group. Open it to keep editing, or expand the scenarios underneath to see what is inside.</p>
+        </div>
+        <Link className="button button-secondary button-small" href="/roi-tool">
+          Create comparison
+        </Link>
+      </div>
+      {items.length ? (
+        <div className="comparison-group-list">
+          {items.map((item, index) => (
+            <ComparisonGroupCard item={item} key={String(item.id ?? `comparison-${index}`)} onDelete={onDelete} onDuplicate={onDuplicate} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="No matching comparison groups."
+          body="Create an ROI comparison, or adjust the search and sort controls above."
+          cta="Create ROI comparison"
+          href="/roi-tool"
+        />
+      )}
+    </article>
+  );
+}
+
 export function WorkspaceClient() {
   const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
   const [savedAnalyses, setSavedAnalyses] = useState<SavedRecord[]>([]);
@@ -267,7 +470,13 @@ export function WorkspaceClient() {
   const [savedScenarios, setSavedScenarios] = useState<SavedRecord[]>([]);
   const [deckBriefs, setDeckBriefs] = useState<SavedRecord[]>([]);
   const [loadMessage, setLoadMessage] = useState("");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<WorkspaceSort>("updated-desc");
   const isPro = plan === "pro" || plan === "team";
+  const filteredComparisons = useMemo(() => filterAndSortItems(savedComparisons, "Comparison", search, sort), [savedComparisons, search, sort]);
+  const filteredScenarios = useMemo(() => filterAndSortItems(savedScenarios, "Scenario", search, sort), [savedScenarios, search, sort]);
+  const filteredAnalyses = useMemo(() => filterAndSortItems(savedAnalyses, "Analysis", search, sort), [savedAnalyses, search, sort]);
+  const filteredDecks = useMemo(() => filterAndSortItems(deckBriefs, "Deck", search, sort), [deckBriefs, search, sort]);
 
   useEffect(() => {
     if (!isAuthenticated || !isPro) {
@@ -307,7 +516,7 @@ export function WorkspaceClient() {
     setLoadMessage(analyses.message ?? comparisons.message ?? scenarios.message ?? decks.message ?? "");
   }
 
-  async function duplicateSavedItem(id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") {
+  async function duplicateSavedItem(id: string, type: SavedItemType) {
     if (type === "Analysis") {
       const result = await duplicateSavedAnalysis(id);
       setLoadMessage(result.data ? "Analysis duplicated." : result.message ?? "Could not duplicate analysis.");
@@ -323,7 +532,7 @@ export function WorkspaceClient() {
     await refreshSavedWork();
   }
 
-  async function deleteSavedItem(id: string, type: "Analysis" | "Comparison" | "Scenario" | "Deck") {
+  async function deleteSavedItem(id: string, type: SavedItemType) {
     const confirmed = window.confirm(`Delete this saved ${type.toLowerCase()}?`);
     if (!confirmed) return;
 
@@ -417,12 +626,12 @@ export function WorkspaceClient() {
             <div className="workspace-message-copy">
               <h2>Your Pro workspace</h2>
               <p>
-                Saved work from ROI plans and custom deck briefs appears here when you create it. Exports appear here
-                when you export your work.
+                ROI comparisons are saved groups of scenarios. Saved calculator results are one-off outputs from the
+                smaller calculators and quick deal checks.
               </p>
               <div className="workspace-sync-note">
                 <span className="save-mode-badge save-mode-account">Account saves</span>
-                <span>Saved comparisons and deck briefs follow you across signed-in devices.</span>
+                <span>Comparison groups, standalone scenarios, calculator results and deck briefs follow you across signed-in devices.</span>
               </div>
               {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
             </div>
@@ -435,52 +644,39 @@ export function WorkspaceClient() {
               width={547}
             />
           </article>
+          <WorkspaceControls search={search} sort={sort} onSearch={setSearch} onSort={setSort} />
 
           <div className="workspace-grid">
+            <ComparisonGroupsSection items={filteredComparisons} onDelete={deleteSavedItem} onDuplicate={duplicateSavedItem} />
             <WorkspaceSection
-              cta="View saved analyses"
-              description="Commercial calculations and deal checks you have saved."
+              cta="Open calculators"
+              description="One-off calculator outputs saved from quick calculators or commercial deal checks."
               emptyBody="Run a calculator, save the result, and it will appear here for quick follow-up."
               emptyCta="Open calculators"
               emptyHref="/calculators"
-              emptyTitle="No saved analyses yet."
-              href="/workspace#analyses"
+              emptyTitle="No saved calculator results yet."
+              href="/calculators"
               id="analyses"
-              items={savedAnalyses}
+              items={filteredAnalyses}
               itemType="Analysis"
               onDelete={deleteSavedItem}
               onDuplicate={duplicateSavedItem}
-              title="Saved analyses"
-            />
-            <WorkspaceSection
-              cta="View comparisons"
-              description="Full ROI comparison groups saved from the planner."
-              emptyBody="Create a named comparison in the ROI planner to return to the full scenario group later."
-              emptyCta="Create ROI comparison"
-              emptyHref="/roi-tool"
-              emptyTitle="No saved comparisons yet."
-              href="/workspace#comparisons"
-              id="comparisons"
-              items={savedComparisons}
-              itemType="Comparison"
-              onDelete={deleteSavedItem}
-              onDuplicate={duplicateSavedItem}
-              title="Saved ROI comparisons"
+              title="Saved calculator results"
             />
             <WorkspaceSection
               cta="View scenarios"
-              description="Single deal versions saved from ROI tools."
-              emptyBody="Save individual deal versions when you want a lightweight record of one scenario."
+              description="Standalone ROI scenarios saved outside a comparison group."
+              emptyBody="Save an individual ROI scenario when you need a lightweight single version. For most ROI work, use comparison groups above."
               emptyCta="Save a scenario"
               emptyHref="/roi-tool"
-              emptyTitle="No saved scenarios yet."
+              emptyTitle="No standalone scenarios yet."
               href="/workspace#scenarios"
               id="scenarios"
-              items={savedScenarios}
+              items={filteredScenarios}
               itemType="Scenario"
               onDelete={deleteSavedItem}
               onDuplicate={duplicateSavedItem}
-              title="Saved scenarios"
+              title="Standalone saved scenarios"
             />
             <WorkspaceSection
               cta="View saved decks"
@@ -491,7 +687,7 @@ export function WorkspaceClient() {
               emptyTitle="No saved decks yet."
               href="/workspace#decks"
               id="decks"
-              items={deckBriefs}
+              items={filteredDecks}
               itemType="Deck"
               onDelete={deleteSavedItem}
               title="Saved decks"

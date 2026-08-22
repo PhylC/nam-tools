@@ -59,6 +59,8 @@ type SavedRoiGroup = RoiGroup & {
   updated_at?: string;
 };
 
+type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
+
 type RoiFieldKey =
   | "sku"
   | "product"
@@ -349,6 +351,50 @@ function limitGroupsForFree(nextGroups: RoiGroup[]) {
       scenarios: [{ ...scenario, lines }],
     },
   ];
+}
+
+function groupHasDraftContent(group: RoiGroup | undefined) {
+  if (!group) return false;
+  if (group.name.trim() && group.name !== "Q4 Retailer Promo Plan") return true;
+  if (group.scenarios.length > 1) return true;
+  return group.scenarios.some(
+    (scenario, scenarioIndex) =>
+      (scenario.name.trim() && (scenarioIndex > 0 || scenario.name !== "Scenario 1")) ||
+      scenario.lines.length > 1 ||
+      scenario.lines.some((line) =>
+        [
+          line.sku,
+          line.product,
+          line.notes,
+          line.currentInvoice,
+          line.promoInvoice,
+          line.soa,
+          line.currentSrp,
+          line.promoSrp,
+          line.baselineUnits,
+          line.promoUnits,
+          line.cogs,
+          line.fixedSupport,
+          line.vatRate,
+          line.currency,
+        ].some((value) => value.trim() !== ""),
+      ),
+  );
+}
+
+function buildRoiPlanSnapshot(group: RoiGroup, existing?: Partial<SavedRoiGroup>) {
+  const now = new Date().toISOString();
+  const comparisonName = group.name.trim() || "ROI comparison";
+  return {
+    ...group,
+    name: comparisonName,
+    group_name: comparisonName,
+    savedAt: now,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    created_at: existing?.created_at ?? existing?.createdAt ?? now,
+    updated_at: now,
+  };
 }
 
 function csvEscape(value: string | number | null) {
@@ -799,14 +845,16 @@ function RoiMobileLineBuilder({
               <MobileField field="product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} />
               <MobileField field="currentInvoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
               <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
-              <label className="roi-mobile-field">
-                <span>Promo input</span>
-                <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
-                  <option value="promoInvoice">Promo retailer invoice/buy price</option>
-                  <option value="soa">SOA/support per unit</option>
-                </select>
-              </label>
-              {supportField}
+              <div className="roi-linked-promo-fields">
+                <label className="roi-mobile-field">
+                  <span>Promo input</span>
+                  <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
+                    <option value="promoInvoice">Invoice/buy price</option>
+                    <option value="soa">SOA/support</option>
+                  </select>
+                </label>
+                {supportField}
+              </div>
               <MobileField field="promoUnits" type="number" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} />
             </div>
 
@@ -1286,10 +1334,16 @@ export function RoiPlanner() {
   const { requirePro } = useProAction({ from: "roi-tool", feature: "pro-action" });
   const isPro = plan === "pro" || plan === "team";
   const hasTrackedCompletion = useRef(false);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoSaveSignature = useRef("");
+  const autoSaveRequest = useRef(0);
+  const pendingAutoSave = useRef<{ snapshot: ReturnType<typeof buildRoiPlanSnapshot>; signature: string } | null>(null);
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId } = plannerState;
   const [savedGroups, setSavedGroups] = useState<SavedRoiGroup[]>([]);
   const [saveMessage, setSaveMessage] = useState("");
+  const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle");
+  const [autoSaveMessage, setAutoSaveMessage] = useState("");
   const [proMessage, setProMessage] = useState("");
   const [savingScenarioId, setSavingScenarioId] = useState("");
   const [scenarioSaveName, setScenarioSaveName] = useState("");
@@ -1299,16 +1353,31 @@ export function RoiPlanner() {
   const saveStatusClass = /device|unavailable|could not/i.test(saveMessage)
     ? "pro-inline-message roi-save-status roi-save-status-warning"
     : "pro-inline-message roi-save-status";
+  const autoSaveStatusClass =
+    autoSaveStatus === "error"
+      ? "roi-autosave-status roi-autosave-status-error"
+      : autoSaveStatus === "saving"
+        ? "roi-autosave-status roi-autosave-status-saving"
+        : "roi-autosave-status";
 
   useEffect(() => {
     if (isPro) refreshSavedGroups();
   }, [isAuthenticated, isPro]);
 
   useEffect(() => {
+    return () => {
+      const pending = pendingAutoSave.current;
+      if (!pending || pending.signature === autoSaveSignature.current) return;
+      void saveRoiPlan(pending.snapshot);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isPro || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const comparisonId = params.get("comparison");
     const savedId = params.get("saved");
+    const scenarioId = params.get("scenario");
     if (comparisonId) {
       let isMounted = true;
       loadRoiPlan(comparisonId).then((result) => {
@@ -1319,10 +1388,12 @@ export function RoiPlanner() {
           setProMessage("Could not find that saved comparison.");
           return;
         }
+        autoSaveSignature.current = JSON.stringify(saved);
+        const activeSavedScenarioId = scenarioId && saved.scenarios.some((scenario) => scenario.id === scenarioId) ? scenarioId : saved.scenarios[0]?.id ?? "";
         setPlannerState({
           groups: [saved],
           activeGroupId: saved.id,
-          activeScenarioId: saved.scenarios[0]?.id ?? "",
+          activeScenarioId: activeSavedScenarioId,
         });
         setSaveMessage(result.message ?? `Loaded comparison "${saved.name}".`);
       });
@@ -1346,6 +1417,7 @@ export function RoiPlanner() {
       if (!scenario) return;
       const group = blankGroup(String(saved.title ?? "Saved ROI scenario"));
       const nextGroup = { ...group, scenarios: [scenario] };
+      autoSaveSignature.current = JSON.stringify(nextGroup);
       setPlannerState({
         groups: [nextGroup],
         activeGroupId: nextGroup.id,
@@ -1385,18 +1457,7 @@ export function RoiPlanner() {
     if (!ensureRoiPro("save-plan")) return;
     if (!activeGroup) return;
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
-    const now = new Date().toISOString();
-    const comparisonName = activeGroup.name.trim() || "ROI comparison";
-    const snapshot = {
-      ...activeGroup,
-      name: comparisonName,
-      group_name: comparisonName,
-      savedAt: now,
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-      created_at: existing?.created_at ?? existing?.createdAt ?? now,
-      updated_at: now,
-    };
+    const snapshot = buildRoiPlanSnapshot(activeGroup, existing);
     const result = await saveRoiPlan(snapshot);
     if (!result.data) {
       setSaveMessage(result.message ?? "Could not save comparison.");
@@ -1405,9 +1466,13 @@ export function RoiPlanner() {
     await refreshSavedGroups();
     setPlannerState((current) => ({
       ...current,
-      groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: comparisonName } : group)),
+      groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: snapshot.name } : group)),
     }));
-    setSaveMessage(`Saved comparison "${comparisonName}" to your account.`);
+    autoSaveSignature.current = JSON.stringify(activeGroup);
+    pendingAutoSave.current = null;
+    setAutoSaveStatus("saved");
+    setAutoSaveMessage(`Saved ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
+    setSaveMessage(`Saved comparison "${snapshot.name}" to your account.`);
   }
 
   function openSaveScenario(scenario: RoiScenario) {
@@ -1461,6 +1526,7 @@ export function RoiPlanner() {
     setSaveMessage(result.message ?? "");
     const saved = result.data as SavedRoiGroup | null;
     if (!saved) return;
+    autoSaveSignature.current = JSON.stringify(saved);
     setPlannerState((current) => {
       const nextGroups = [saved, ...current.groups.filter((group) => group.id !== saved.id)];
       return {
@@ -1514,6 +1580,68 @@ export function RoiPlanner() {
   const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
   const activeScenarios = activeGroup?.scenarios ?? [];
   const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
+
+  useEffect(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+
+    if (!isPro || isLoading || !isAuthenticated || !activeGroup) {
+      pendingAutoSave.current = null;
+      return;
+    }
+
+    const existing = savedGroups.find((group) => group.id === activeGroup.id);
+    if (!existing && !groupHasDraftContent(activeGroup)) {
+      pendingAutoSave.current = null;
+      return;
+    }
+
+    const snapshot = buildRoiPlanSnapshot(activeGroup, existing);
+    const signature = JSON.stringify(activeGroup);
+    if (signature === autoSaveSignature.current) return;
+    pendingAutoSave.current = { snapshot, signature };
+
+    setAutoSaveStatus("saving");
+    setAutoSaveMessage("Autosaving...");
+
+    let isCancelled = false;
+
+    autoSaveTimer.current = setTimeout(() => {
+      const requestId = autoSaveRequest.current + 1;
+      autoSaveRequest.current = requestId;
+      saveRoiPlan(snapshot)
+        .then((result) => {
+          if (isCancelled || autoSaveRequest.current !== requestId) return;
+          if (!result.data) {
+            setAutoSaveStatus("error");
+            setAutoSaveMessage(result.message ?? "Autosave failed");
+            return;
+          }
+
+          const saved = result.data as SavedRoiGroup;
+          autoSaveSignature.current = signature;
+          if (pendingAutoSave.current?.signature === signature) pendingAutoSave.current = null;
+          setSavedGroups((current) => [saved, ...current.filter((group) => group.id !== saved.id)]);
+          setAutoSaveStatus("saved");
+          setAutoSaveMessage(`Saved ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
+        })
+        .catch(() => {
+          if (isCancelled || autoSaveRequest.current !== requestId) return;
+          setAutoSaveStatus("error");
+          setAutoSaveMessage("Autosave failed");
+        });
+    }, 1200);
+
+    return () => {
+      isCancelled = true;
+      if (autoSaveTimer.current) {
+        clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = null;
+      }
+    };
+  }, [activeGroup, isAuthenticated, isLoading, isPro, savedGroups]);
 
   useEffect(() => {
     trackCalculatorOpened("roi-tool", "Promotion ROI Planner");
@@ -1709,6 +1837,7 @@ export function RoiPlanner() {
                 <ProOnlyAction onClick={() => ensureRoiPro("export-results")}>Export results</ProOnlyAction>
               </>
             )}
+            {isPro && autoSaveMessage ? <span className={autoSaveStatusClass} role="status">{autoSaveMessage}</span> : null}
           </div>
         </div>
 

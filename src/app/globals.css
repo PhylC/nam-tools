@@ -3051,6 +3051,26 @@ p {
   grid-column: 1 / -1;
 }
 
+.deal-linked-support-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-column: 1 / -1;
+  gap: 0.55rem;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-radius: 8px;
+  background: #f6faf8;
+  padding: 0.6rem;
+}
+
+.deal-linked-support-fields .calc-field {
+  gap: 0.32rem;
+}
+
+.deal-support-method-field {
+  grid-template-rows: auto auto;
+}
+
 .form-grid > .calc-field:has(.retail-price-input),
 .calc-grid > .calc-field:has(.retail-price-input) {
   grid-column: 1 / -1;
@@ -3193,6 +3213,7 @@ p {
 }
 
 .roi-action-bar-simple {
+  align-items: center;
   justify-content: flex-end;
 }
 
@@ -3398,6 +3419,22 @@ p {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
   min-width: 0;
+}
+
+.roi-linked-promo-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  min-width: 0;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+  border-radius: 8px;
+  background: #f6faf8;
+  padding: 0.55rem;
+}
+
+.roi-linked-promo-fields .roi-mobile-field {
+  gap: 0.32rem;
 }
 
 .roi-mobile-field {
@@ -3614,6 +3651,32 @@ p {
 
 .roi-save-status {
   max-width: 720px;
+}
+
+.roi-autosave-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid #aac6c2;
+  border-radius: 999px;
+  background: #f4fbfa;
+  color: var(--accent-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1.2;
+  padding: 0.38rem 0.62rem;
+}
+
+.roi-autosave-status-saving {
+  border-color: #c9d5d2;
+  background: #f7fbfa;
+  color: var(--muted);
+}
+
+.roi-autosave-status-error {
+  border-color: #e2c792;
+  background: #fff8e8;
+  color: #7a5a08;
 }
 
 .pro-upgrade-panel {
@@ -3976,6 +4039,11 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
     min-width: 0;
+  }
+
+  .roi-linked-promo-fields {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    gap: 0.5rem;
   }
 
   .roi-mobile-field {
@@ -5157,6 +5225,125 @@ p {
   font-size: 0.86rem;
   font-weight: 800;
   line-height: 1.4;
+}
+
+.workspace-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.workspace-search-field,
+.workspace-sort-field {
+  margin: 0;
+}
+
+.workspace-card-wide {
+  grid-column: 1 / -1;
+}
+
+.comparison-group-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.comparison-group-card {
+  display: grid;
+  gap: 0.75rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.9rem;
+}
+
+.comparison-group-card:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.comparison-group-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.comparison-group-main h3 {
+  margin: 0.12rem 0 0;
+  color: var(--foreground);
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.comparison-group-main p {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.comparison-group-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.comparison-scenario-list {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px solid #d7e6e3;
+  border-radius: 8px;
+  background: #f8fcfb;
+  padding: 0.7rem;
+}
+
+.comparison-scenario-list summary {
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.comparison-scenario-rows {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.comparison-scenario-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-top: 1px solid #e3ecea;
+  padding-top: 0.45rem;
+}
+
+.comparison-scenario-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.comparison-scenario-row > div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.comparison-scenario-row strong {
+  color: var(--foreground);
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.comparison-scenario-row span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.35;
 }
 
 .saved-item-list {
@@ -6406,9 +6593,19 @@ p {
   }
 
   .workspace-card-header,
+  .comparison-group-main,
+  .comparison-scenario-row,
   .saved-item-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .workspace-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .comparison-group-actions {
+    justify-content: flex-start;
   }
 
   .workspace-preview-image,
@@ -6971,6 +7168,12 @@ p {
     min-width: 0;
   }
 
+  .roi-linked-promo-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.5rem;
+  }
+
   .roi-free-input-grid {
     grid-template-columns: 1fr;
   }
@@ -7342,6 +7545,12 @@ p {
   .calc-field {
     gap: 0.32rem;
     grid-template-rows: auto auto auto;
+  }
+
+  .deal-linked-support-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    padding: 0.5rem;
   }
 
   .field-label,
