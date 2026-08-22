@@ -4679,6 +4679,37 @@ p {
   grid-column: 1 / -1;
 }
 
+.quick-draft-panel {
+  border-style: dashed;
+  background: #fbfbf8;
+}
+
+.quick-draft-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--foreground);
+  font-weight: 900;
+}
+
+.quick-draft-panel summary span {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.quick-draft-panel summary small {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.quick-draft-body {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
 .pro-action-table {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(110px, 0.55fr) minmax(110px, 0.55fr);

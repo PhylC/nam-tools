@@ -847,6 +847,18 @@ function asLines(value: string) {
     .filter(Boolean);
 }
 
+function compactText(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function firstLine(value: string, fallback: string) {
+  return compactText(asLines(value)[0] ?? value) || fallback;
+}
+
+function joinLines(lines: string[]) {
+  return lines.map(compactText).filter(Boolean).join("\n");
+}
+
 function findSection(sections: [string, string][], names: string[]) {
   const match = sections.find(([title]) => names.some((name) => title.toLowerCase().includes(name.toLowerCase())));
   return match?.[1] ?? "";
@@ -859,25 +871,35 @@ function buildProWorkingPack(toolId: string, sections: [string, string][]) {
   const actions = findSection(sections, ["next steps", "30/60/90", "follow-up", "closing ask"]);
   const asks = findSection(sections, ["ask", "investment", "proposed asks"]);
   const measures = findSection(sections, ["measures", "success"]);
+  const proof = findSection(sections, ["evidence", "performance narrative", "commercial story"]);
 
   if (toolId === "buyer-meeting-prep") {
     const objections = asLines(findSection(sections, ["Likely buyer objections"])).slice(0, 5);
     const responses = asLines(findSection(sections, ["Suggested responses"])).slice(0, 5);
     const questions = asLines(findSection(sections, ["Questions to ask"])).slice(0, 5);
     return [
-      ["Meeting brief", objective],
-      ["Buyer opening", findSection(sections, ["5-minute opening"])],
-      ["Decision to secure", asks || actions],
+      ["Use first: decision path", joinLines([
+        `Decision to secure: ${firstLine(asks || actions, "Agree the next decision and owner.")}`,
+        `Buyer reason to care: ${firstLine(context, "Connect the ask to the buyer's commercial priority.")}`,
+        `Proof point: ${firstLine(proof, "Bring one clear number or example.")}`,
+        `Fallback position: ${firstLine(findSection(sections, ["guardrails"]), "Offer a smaller test, shorter timing or narrower range if needed.")}`,
+      ])],
+      ["Meeting run sheet", "0-5 mins: confirm the buyer priority and decision needed.\n5-15 mins: show the evidence and commercial upside.\n15-25 mins: present the ask, simple execution route and guardrails.\n25-30 mins: handle objections and agree the next owner/date."],
       ["Objection plan", objections.map((item, index) => `${item} -> ${responses[index] ?? "Ask what condition would make the proposal acceptable."}`).join("\n")],
       ["Discovery questions", questions.join("\n")],
+      ["Stakeholder prep", "Buyer: decision and commercial fit.\nCategory/contact: evidence, range logic and shopper story.\nFinance/internal: support level, margin guardrails and approval route.\nSupply/execution: availability, timing and operational simplicity."],
       ["Follow-up email", findSection(sections, ["Follow-up email"])],
     ] satisfies [string, string][];
   }
 
   if (toolId === "account-plan-generator") {
     return [
-      ["Account narrative", context],
-      ["Growth bet", findSection(sections, ["Opportunity summary"]) || objective],
+      ["Use first: account priorities", joinLines([
+        `Primary growth bet: ${firstLine(findSection(sections, ["Opportunity summary"]) || objective, "Define the highest-value account bet.")}`,
+        `Main risk to control: ${firstLine(risks, "Name the risk that would derail the plan.")}`,
+        `Next commercial action: ${firstLine(actions, "Agree the next customer or internal decision.")}`,
+      ])],
+      ["Decision scorecard", "Size of prize: quantify revenue, margin or distribution upside.\nConfidence: rate the evidence quality and customer willingness.\nEase of execution: check supply, range, timing and store workload.\nMargin quality: confirm the plan grows profitable sales, not just volume."],
       ["Priority risk", risks],
       ["Commercial strategy", findSection(sections, ["Commercial strategy"])],
       ["Owner plan", findSection(sections, ["Resource and ownership"])],
@@ -888,13 +910,41 @@ function buildProWorkingPack(toolId: string, sections: [string, string][]) {
 
   if (toolId === "joint-business-plan-builder") {
     return [
-      ["Customer-ready JBP narrative", context],
-      ["Shared objective", objective],
+      ["Use first: JBP spine", joinLines([
+        `Shared objective: ${firstLine(objective, "Agree the joint commercial outcome.")}`,
+        `Growth thesis: ${firstLine(context, "Show why this customer can grow the opportunity.")}`,
+        `Investment ask: ${firstLine(asks, "Name the support, resource or commitment required.")}`,
+      ])],
       ["Growth pillars", findSection(sections, ["Growth pillars"])],
-      ["Activation roadmap", findSection(sections, ["Activation plan"])],
-      ["Investment and support ask", asks],
+      ["Quarterly roadmap", "Q1: validate the size of prize, owners and first activation.\nQ2: execute the priority activation and review early indicators.\nQ3: scale what works, fix availability or range gaps and tighten spend.\nQ4: review full-year impact and agree the next annual priorities."],
+      ["Investment decision logic", joinLines([
+        `Requested support: ${firstLine(asks, "Confirm the support required.")}`,
+        "Approval test: only scale if the size of prize, execution readiness and success measures are clear.",
+        "Trade-off route: reduce scope, shorten timing or move to a test if confidence is not high enough.",
+      ])],
       ["Success scorecard", measures],
       ["Governance and next steps", `${risks}\n${actions}`.trim()],
+    ] satisfies [string, string][];
+  }
+
+  if (toolId === "customer-review-template") {
+    const wins = findSection(sections, ["wins"]);
+    const misses = findSection(sections, ["misses"]);
+    return [
+      ["Use first: review decision", joinLines([
+        `Decision needed: ${firstLine(asks, "Agree the next period priorities and owners.")}`,
+        `Customer objective: ${firstLine(findSection(sections, ["customer objective"]), "Reconnect to the customer objective.")}`,
+        `Headline evidence: ${firstLine(proof || context, "Bring the strongest actual performance evidence.")}`,
+      ])],
+      ["Performance scorecard", "Sales: confirm value, units and trend versus prior period.\nMargin: separate profitable growth from volume bought through support.\nDistribution and availability: call out execution gaps by range or SKU.\nPromo and launch quality: show which activity should be repeated, fixed or stopped."],
+      ["Keep / fix / stop", joinLines([
+        `Keep: ${firstLine(wins, "Repeat the activity that created profitable growth.")}`,
+        `Fix: ${firstLine(misses, "Address the biggest execution or margin issue.")}`,
+        `Stop: remove low-return activity that does not support the next priority.`,
+      ])],
+      ["Next-period recommendation", findSection(sections, ["Recommended actions"])],
+      ["Customer asks", asks],
+      ["Action tracker", findSection(sections, ["Follow-up actions"])],
     ] satisfies [string, string][];
   }
 
@@ -3258,58 +3308,95 @@ function GeneratorShell({
   const { plan } = useSupabaseAuth();
   const isPro = plan === "pro" || plan === "team";
   const output = sections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
-  const outputRows = sections.map(([label, value]) => ({ label, value }));
+  const proSections = buildProWorkingPack(toolId, sections).filter(([, body]) => body.trim());
+  const proOutput = proSections.map(([title, body]) => `${title}\n${body}`).join("\n\n");
+  const proOutputRows = proSections.map(([label, value]) => ({ label, value }));
 
   return (
     <article className="card tool-form">
       <div className="form-grid">{fields}</div>
-      <div className="result-box output-block">
-        <div className="output-header">
-          <div>
-            <h2>Copy-ready output</h2>
-          </div>
-          <CopyButton text={output} />
-        </div>
-        <PlanningDisclaimer />
-        {sections.map(([title, body]) => (
-          <section key={title}>
-            <h3>{title}</h3>
-            {body.includes("\n") ? (
-              <ul>
-                {body.split("\n").map((line) => (
-                  <li key={line}>{line.replace(/^\d+\.\s*/, "")}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>{body}</p>
-            )}
-          </section>
-        ))}
-        <InfoPanel title="Watch-outs">
-          <ul>
-            <li>Add real sales, margin, distribution and customer context before sharing externally.</li>
-            <li>Use the output as a structured first draft, not a final approved recommendation.</li>
-          </ul>
-        </InfoPanel>
-      </div>
       {isPro ? (
         <aside className="pro-panel">
           <ProWorkingPack sections={sections} toolId={toolId} />
           <div className="summary-actions">
-            <DownloadCsvButton filename={`apt-${slugifyFilename(defaultTitle)}.csv`} rows={outputRows} />
+            <DownloadCsvButton filename={`apt-${slugifyFilename(defaultTitle)}-pro-pack.csv`} rows={proOutputRows} />
             <SaveAnalysisAction
               calculatorId={toolId}
               calculatorName={toolName}
               defaultTitle={defaultTitle}
-              outputs={outputRows}
-              summaryText={output}
+              outputs={proOutputRows}
+              summaryText={proOutput}
               sourcePath={sourcePath}
             />
           </div>
         </aside>
       ) : (
-        <ProPreview features={proFeatures} />
+        <>
+          <div className="result-box output-block">
+            <div className="output-header">
+              <div>
+                <h2>Copy-ready output</h2>
+              </div>
+              <CopyButton text={output} />
+            </div>
+            <PlanningDisclaimer />
+            {sections.map(([title, body]) => (
+              <section key={title}>
+                <h3>{title}</h3>
+                {body.includes("\n") ? (
+                  <ul>
+                    {body.split("\n").map((line) => (
+                      <li key={line}>{line.replace(/^\d+\.\s*/, "")}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{body}</p>
+                )}
+              </section>
+            ))}
+            <InfoPanel title="Watch-outs">
+              <ul>
+                <li>Add real sales, margin, distribution and customer context before sharing externally.</li>
+                <li>Use the output as a structured first draft, not a final approved recommendation.</li>
+              </ul>
+            </InfoPanel>
+          </div>
+          <ProPreview features={proFeatures} />
+        </>
       )}
+      {isPro ? (
+        <details className="result-box output-block quick-draft-panel">
+          <summary>
+            <span>
+              <strong>Quick draft</strong>
+              <small>Open this only if you want the simpler free-style write-up.</small>
+            </span>
+          </summary>
+          <div className="quick-draft-body">
+            <div className="output-header">
+              <div>
+                <h2>Basic copy-ready draft</h2>
+              </div>
+              <CopyButton text={output} />
+            </div>
+            <PlanningDisclaimer />
+            {sections.map(([title, body]) => (
+              <section key={title}>
+                <h3>{title}</h3>
+                {body.includes("\n") ? (
+                  <ul>
+                    {body.split("\n").map((line) => (
+                      <li key={line}>{line.replace(/^\d+\.\s*/, "")}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{body}</p>
+                )}
+              </section>
+            ))}
+          </div>
+        </details>
+      ) : null}
     </article>
   );
 }
