@@ -41,6 +41,7 @@ const exportFormatOptions = [
 ];
 type TemplateSource = "saved" | "one_off" | "apt_default";
 type ExportFormat = "pptx" | "google_slides_compatible" | "keynote_compatible";
+type ReadabilityMode = "auto" | "preserve";
 type FileMeta = {
   name: string;
   size: number;
@@ -272,6 +273,10 @@ function readableTextColor(background: string) {
   return colorLuminance(background) > 0.62 ? "16202A" : "FFFFFF";
 }
 
+function mutedReadableTextColor(textColor: string) {
+  return textColor === "FFFFFF" ? "EAF3F2" : "4B5966";
+}
+
 function extractSchemeColor(xml: string, name: string, fallback: string) {
   const block = new RegExp(`<a:${name}[^>]*>([\\s\\S]*?)<\\/a:${name}>`).exec(xml)?.[1] ?? "";
   return normaliseHex(/<a:srgbClr[^>]+val="([^"]+)"/.exec(block)?.[1] ?? /<a:sysClr[^>]+lastClr="([^"]+)"/.exec(block)?.[1], fallback);
@@ -391,6 +396,7 @@ function populateTemplateSlide(slideXml: string, content: DeckSlideContent, desi
 function removeDuplicatedPowerPointCreationIds(slideXml: string) {
   return slideXml
     .replace(/<a:ext uri="\{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236\}">[\s\S]*?<\/a:ext>/g, "")
+    .replace(/<p:ext uri="\{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E\}">[\s\S]*?<\/p:ext>/g, "")
     .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
     .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
 }
@@ -560,11 +566,13 @@ async function extractTemplateDesign(file: File | null): Promise<TemplateDesign>
     const zip = await JSZip.loadAsync(await file.arrayBuffer());
     const themeXml = (await zip.file("ppt/theme/theme1.xml")?.async("text")) ?? "";
     const slideXml = (await zip.file("ppt/slides/slide1.xml")?.async("text")) ?? "";
+    const contentSlideXml = (await zip.file("ppt/slides/slide2.xml")?.async("text")) ?? slideXml;
     const backgroundFromSlide = /<p:bg[\s\S]*?<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1];
     const accentColor = extractSchemeColor(themeXml, "accent1", defaultTemplateDesign.accentColor);
     const secondaryColor = extractSchemeColor(themeXml, "accent2", defaultTemplateDesign.secondaryColor);
     const backgroundColor = normaliseHex(backgroundFromSlide, extractSchemeColor(themeXml, "lt1", defaultTemplateDesign.backgroundColor));
-    const textColor = extractSchemeColor(themeXml, "dk1", readableTextColor(backgroundColor));
+    const hasImageBackground = /<p:bg[\s\S]*?<a:blipFill[\s\S]*?<\/p:bg>/.test(contentSlideXml);
+    const textColor = hasImageBackground ? readableTextColor("123235") : extractSchemeColor(themeXml, "dk1", readableTextColor(backgroundColor));
 
     return {
       sourceName: file.name,
@@ -573,7 +581,7 @@ async function extractTemplateDesign(file: File | null): Promise<TemplateDesign>
       accentColor,
       secondaryColor,
       textColor,
-      mutedTextColor: colorLuminance(backgroundColor) > 0.62 ? "4B5966" : "E5EEF0",
+      mutedTextColor: hasImageBackground ? mutedReadableTextColor(textColor) : colorLuminance(backgroundColor) > 0.62 ? "4B5966" : "E5EEF0",
       borderColor: secondaryColor,
       headFontFace: extractTypeface(themeXml, "majorFont", defaultTemplateDesign.headFontFace),
       bodyFontFace: extractTypeface(themeXml, "minorFont", defaultTemplateDesign.bodyFontFace),
@@ -603,6 +611,7 @@ async function createDeckFile({
   supportingFiles,
   templateDesign,
   templateFile,
+  readabilityMode,
 }: {
   deckLabel: string;
   brief: string;
@@ -613,9 +622,17 @@ async function createDeckFile({
   supportingFiles: File[];
   templateDesign: TemplateDesign;
   templateFile: File | null;
+  readabilityMode: ReadabilityMode;
 }): Promise<GeneratedDeckResult> {
   const { default: PptxGenJS } = await import("pptxgenjs");
-  const design = templateDesign;
+  const autoTextColor = templateDesign.textColor === "FFFFFF" ? "FFFFFF" : readableTextColor(templateDesign.backgroundColor);
+  const design = readabilityMode === "auto"
+    ? {
+        ...templateDesign,
+        textColor: autoTextColor,
+        mutedTextColor: mutedReadableTextColor(autoTextColor),
+      }
+    : templateDesign;
   const { outline, contents } = buildDeckContent({ deckLabel, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
   if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
     const templatedDeck = await withTimeout(
@@ -793,6 +810,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [financialSummary, setFinancialSummary] = useState("Yes");
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
+  const [readabilityMode, setReadabilityMode] = useState<ReadabilityMode>("auto");
   const [requestMessage, setRequestMessage] = useState("");
   const [generatedDeckUrl, setGeneratedDeckUrl] = useState("");
   const [generatedDeckFilename, setGeneratedDeckFilename] = useState("");
@@ -884,6 +902,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setFinancialSummary(saved.includeFinancialSummary === false ? "No" : "Yes");
       setNextStepsSlide(saved.includeNextStepsSlide === false ? "No" : "Yes");
       setExportFormat(getText(saved.exportFormat, "pptx") as ExportFormat);
+      setReadabilityMode(getText(saved.readabilityMode, "auto") === "preserve" ? "preserve" : "auto");
       setGoogleSlidesTemplateUrl(getText(saved.googleSlidesTemplateUrl));
 
       const savedTemplateId = getText(saved.savedTemplateId);
@@ -1040,6 +1059,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           supportingFiles,
           templateDesign,
           templateFile: templateFileForDesign,
+          readabilityMode,
         }),
         25000,
         "Deck file creation timed out.",
@@ -1071,6 +1091,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         includeFinancialSummary: financialSummary === "Yes",
         includeNextStepsSlide: nextStepsSlide === "Yes",
         exportFormat,
+        readabilityMode,
         generatedOutline: generated.outline,
         generated_outline: generated.outline,
         templateDesign: {
@@ -1396,6 +1417,14 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     <option>Yes</option>
                     <option>No</option>
                   </select>
+                </div>
+                <div className="form-field">
+                  <label htmlFor="custom-deck-readability">Readability check</label>
+                  <select id="custom-deck-readability" value={readabilityMode} onChange={(event) => setReadabilityMode(event.target.value as ReadabilityMode)}>
+                    <option value="auto">Auto improve contrast</option>
+                    <option value="preserve">Preserve template colours</option>
+                  </select>
+                  <p className="field-help">Auto mode adjusts generated text when the template background makes it hard to read.</p>
                 </div>
               </div>
               <p className="helper-note">Choose the audience and the level of detail you want in the first draft.</p>
