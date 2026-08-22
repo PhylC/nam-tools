@@ -22,7 +22,7 @@ async function uploadPrivateFile(bucket: string, file: File, userId: string) {
 }
 
 export function uploadDeckTemplate(file: File, userId: string) {
-  return uploadPrivateFile("deck-template-uploads", file, userId);
+  return uploadPrivateFileViaApi("/api/storage/deck-template", file, userId, "Template storage is temporarily unavailable.");
 }
 
 export async function downloadDeckTemplate(path: string, filename: string) {
@@ -48,22 +48,22 @@ export function uploadRoiSpreadsheet(file: File, userId: string) {
   return uploadPrivateFile("roi-spreadsheet-uploads", file, userId);
 }
 
-export async function uploadGeneratedDeck(file: File, userId: string) {
+async function uploadPrivateFileViaApi(endpoint: string, file: File, userId: string, unavailableMessage: string) {
   void userId;
   const supabase = getSupabaseBrowserClient();
   if (!supabase) {
-    return { path: null, error: "File upload is temporarily unavailable." };
+    return { path: null, error: unavailableMessage };
   }
 
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) {
-    return { path: null, error: "Sign in again to save the generated deck file." };
+    return { path: null, error: "Sign in again to save the file." };
   }
 
   const formData = new FormData();
   formData.append("file", file);
-  const response = await fetch("/api/storage/generated-deck", {
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -72,8 +72,12 @@ export async function uploadGeneratedDeck(file: File, userId: string) {
   });
   const payload = (await response.json().catch(() => null)) as { ok?: boolean; path?: string; message?: string } | null;
   if (!response.ok || !payload?.ok || !payload.path) {
-    return { path: null, error: payload?.message ?? "File storage is temporarily unavailable." };
+    return { path: null, error: payload?.message ?? unavailableMessage };
   }
 
   return { path: payload.path, error: null };
+}
+
+export async function uploadGeneratedDeck(file: File, userId: string) {
+  return uploadPrivateFileViaApi("/api/storage/generated-deck", file, userId, "File storage is temporarily unavailable.");
 }
