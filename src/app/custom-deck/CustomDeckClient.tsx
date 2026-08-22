@@ -736,14 +736,15 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   );
   const activeUploadedTemplate = oneOffTemplateFiles[0] ?? supportingTemplateFile;
   const activeTemplateName = activeUploadedTemplate?.name
-    ?? (templateSource === "saved" && selectedSavedTemplate ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename : "APT default");
+    ?? (templateSource === "saved" && selectedSavedTemplate ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename : "Upload a .pptx or .potx template");
   const activeTemplateKind = oneOffTemplateFiles[0]
     ? "Uploaded deck design template"
     : supportingTemplateFile
       ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
       ? "Saved template"
-      : "APT default template";
+      : "No design template selected";
+  const hasActiveDesignTemplate = Boolean(activeUploadedTemplate || (templateSource === "saved" && selectedSavedTemplate));
 
   useEffect(() => {
     let isMounted = true;
@@ -835,6 +836,11 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           setTemplateError(downloaded.error ?? "Could not download the selected saved template.");
           return;
         }
+      }
+      if (!templateFileForDesign) {
+        setTemplateError("Upload a .pptx or .potx template before creating the deck.");
+        setRequestMessage("A PowerPoint template is required so the generated deck uses your design instead of the APT default.");
+        return;
       }
       const templateDesign = await extractTemplateDesign(templateFileForDesign);
       const generated = await createDeckFile({
@@ -1017,19 +1023,6 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     <small>The uploaded file above will be used as the design base.</small>
                   </span>
                 </label>
-                <label className="template-source-option">
-                  <input
-                    checked={templateSource === "apt_default"}
-                    name="template-source"
-                    type="radio"
-                    value="apt_default"
-                    onChange={() => setTemplateSource("apt_default")}
-                  />
-                  <span>
-                    <strong>Use APT default template</strong>
-                    <small>Use APT&apos;s standard structure and styling.</small>
-                  </span>
-                </label>
               </div>
               {savedTemplates.length === 0 ? (
                 <p className="helper-note">
@@ -1185,9 +1178,12 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck} type="submit">
+            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !hasActiveDesignTemplate} type="submit">
               {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
             </button>
+            {!hasActiveDesignTemplate ? (
+              <p className="field-error">Upload or choose a PowerPoint template before creating the deck.</p>
+            ) : null}
             <p>
               This creates an editable PowerPoint draft, saves the deck record to your workspace and stores the file when account storage is available.
             </p>
