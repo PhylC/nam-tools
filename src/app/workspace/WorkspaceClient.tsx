@@ -33,6 +33,23 @@ type SavedWorkItem = {
   record: SavedRecord;
 };
 
+function deckSelectionKey(id: string) {
+  return `deck:${id}`;
+}
+
+function standaloneScenarioSelectionKey(id: string) {
+  return `scenario:${id}`;
+}
+
+function comparisonScenarioSelectionKey(comparisonId: string, scenarioId: string) {
+  return `comparison-scenario:${comparisonId}:${scenarioId}`;
+}
+
+function parseSelectionKey(key: string) {
+  const [type, firstId, ...rest] = key.split(":");
+  return { type, firstId, secondId: rest.join(":") };
+}
+
 function getText(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
@@ -599,6 +616,39 @@ function WorkspaceMenuShell({ children }: { children: ReactNode }) {
   );
 }
 
+function WorkspaceBulkActions({
+  selectedCount,
+  selectLabel = "Select visible",
+  onClear,
+  onDelete,
+  onSelectVisible,
+}: {
+  selectedCount: number;
+  selectLabel?: string;
+  onClear: () => void;
+  onDelete: () => void | Promise<void>;
+  onSelectVisible: () => void;
+}) {
+  return (
+    <div className="workspace-bulk-actions">
+      <button className="button button-secondary button-small" onClick={onSelectVisible} type="button">
+        {selectLabel}
+      </button>
+      {selectedCount ? (
+        <>
+          <span>{selectedCount} selected</span>
+          <button className="button button-secondary button-small" onClick={onClear} type="button">
+            Clear
+          </button>
+          <button className="button button-small workspace-danger-button" onClick={onDelete} type="button">
+            Delete selected
+          </button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 function GeneralItemMenu({
   id,
   type,
@@ -719,10 +769,16 @@ function SavedWorkRow({
   item,
   onDuplicate,
   onDelete,
+  selected,
+  selectionKey,
+  onToggleSelected,
 }: {
   item: SavedWorkItem;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  selected?: boolean;
+  selectionKey?: string;
+  onToggleSelected?: (key: string) => void;
 }) {
   const title = getSavedItemTitle(item.record, item.type);
   const href = getItemHref(item.record, item.type);
@@ -731,6 +787,15 @@ function SavedWorkRow({
     <article className="workspace-list-row">
       <div className="workspace-list-main">
         <span className="workspace-table-type">
+          {selectionKey && onToggleSelected ? (
+            <input
+              aria-label={`Select ${title}`}
+              checked={Boolean(selected)}
+              className="workspace-select-checkbox"
+              type="checkbox"
+              onChange={() => onToggleSelected(selectionKey)}
+            />
+          ) : null}
           {item.type === "Analysis" ? "Calculator result" : "Deck brief"}
         </span>
         <div className="workspace-list-copy">
@@ -764,6 +829,9 @@ function ScenarioSubRow({
   onMoveScenarioBetweenComparisons,
   onDeleteScenarioFromComparison,
   updatedDate,
+  selected,
+  selectionKey,
+  onToggleSelected,
 }: {
   scenario: SavedRecord;
   scenarioId: string;
@@ -779,6 +847,9 @@ function ScenarioSubRow({
   onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
   onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  selected?: boolean;
+  selectionKey?: string;
+  onToggleSelected?: (key: string) => void;
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
@@ -786,7 +857,18 @@ function ScenarioSubRow({
     <div className="workspace-subrow-wrap">
       <div className="workspace-subrow">
         <div className="workspace-subrow-title">
-          <strong>{title}</strong>
+          <strong>
+            {selectionKey && onToggleSelected ? (
+              <input
+                aria-label={`Select ${title}`}
+                checked={Boolean(selected)}
+                className="workspace-select-checkbox"
+                type="checkbox"
+                onChange={() => onToggleSelected(selectionKey)}
+              />
+            ) : null}
+            {title}
+          </strong>
           <span>{getScenarioSummary(scenario)}</span>
         </div>
         <small className="workspace-table-date">{updatedDate}</small>
@@ -829,6 +911,8 @@ function ComparisonGroupRow({
   onMoveScenarioOut,
   onMoveScenarioBetweenComparisons,
   onDeleteScenarioFromComparison,
+  selectedKeys,
+  onToggleSelected,
 }: {
   item: SavedWorkItem;
   comparisons: SavedRecord[];
@@ -838,6 +922,8 @@ function ComparisonGroupRow({
   onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
   onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  selectedKeys: Set<string>;
+  onToggleSelected: (key: string) => void;
 }) {
   const title = getSavedItemTitle(item.record, "Comparison");
   const href = getItemHref(item.record, "Comparison");
@@ -861,6 +947,7 @@ function ComparisonGroupRow({
           scenarios.map((scenario, index) => {
             const scenarioId = getText(scenario.id, `${item.id}-scenario-${index}`);
             const scenarioTitle = getText(scenario.name, `Scenario ${index + 1}`);
+            const selectionKey = comparisonScenarioSelectionKey(item.id, scenarioId);
             return (
               <ScenarioSubRow
                 key={scenarioId}
@@ -870,6 +957,8 @@ function ComparisonGroupRow({
                 href={`${href}&scenario=${scenarioId}`}
                 comparisons={comparisons}
                 sourceComparisonId={item.id}
+                selected={selectedKeys.has(selectionKey)}
+                selectionKey={selectionKey}
                 updatedDate={getUpdatedDate(item.record)}
                 onDelete={onDelete}
                 onDuplicateScenario={onDuplicateScenario}
@@ -877,6 +966,7 @@ function ComparisonGroupRow({
                 onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
                 onMoveScenarioIntoComparison={() => undefined}
                 onMoveScenarioOut={onMoveScenarioOut}
+                onToggleSelected={onToggleSelected}
               />
             );
           })
@@ -897,6 +987,8 @@ function StandaloneScenarioGroup({
   onMoveScenarioOut,
   onMoveScenarioBetweenComparisons,
   onDeleteScenarioFromComparison,
+  selectedKeys,
+  onToggleSelected,
 }: {
   items: SavedWorkItem[];
   comparisons: SavedRecord[];
@@ -906,6 +998,8 @@ function StandaloneScenarioGroup({
   onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
   onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  selectedKeys: Set<string>;
+  onToggleSelected: (key: string) => void;
 }) {
   if (!items.length) return null;
 
@@ -921,6 +1015,7 @@ function StandaloneScenarioGroup({
         {items.map((item) => {
           const scenario = getScenarioRecord(item.record);
           const title = getSavedItemTitle(item.record, "Scenario");
+          const selectionKey = standaloneScenarioSelectionKey(item.id);
           return (
             <ScenarioSubRow
               key={item.id}
@@ -930,6 +1025,8 @@ function StandaloneScenarioGroup({
               href={getItemHref(item.record, "Scenario")}
               comparisons={comparisons}
               savedRecord={item.record}
+              selected={selectedKeys.has(selectionKey)}
+              selectionKey={selectionKey}
               updatedDate={getUpdatedDate(item.record)}
               onDelete={onDelete}
               onDuplicateScenario={onDuplicateScenario}
@@ -937,6 +1034,7 @@ function StandaloneScenarioGroup({
               onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
               onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
               onMoveScenarioOut={onMoveScenarioOut}
+              onToggleSelected={onToggleSelected}
             />
           );
         })}
@@ -953,6 +1051,10 @@ function WorkspaceSectionList({
   items,
   onDuplicate,
   onDelete,
+  selectedKeys,
+  onBulkDelete,
+  onSelectVisible,
+  onToggleSelected,
 }: {
   id: string;
   title: string;
@@ -961,7 +1063,13 @@ function WorkspaceSectionList({
   items: SavedWorkItem[];
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  selectedKeys?: Set<string>;
+  onBulkDelete?: () => void | Promise<void>;
+  onSelectVisible?: () => void;
+  onToggleSelected?: (key: string) => void;
 }) {
+  const selectedCount = items.filter((item) => selectedKeys?.has(deckSelectionKey(item.id))).length;
+
   return (
     <article className="card workspace-card workspace-saved-work-card" id={id}>
       <div className="workspace-card-header">
@@ -971,6 +1079,14 @@ function WorkspaceSectionList({
         </div>
         {action}
       </div>
+      {selectedKeys && onBulkDelete && onSelectVisible && onToggleSelected ? (
+        <WorkspaceBulkActions
+          selectedCount={selectedCount}
+          onClear={() => items.forEach((item) => selectedKeys.has(deckSelectionKey(item.id)) && onToggleSelected(deckSelectionKey(item.id)))}
+          onDelete={onBulkDelete}
+          onSelectVisible={onSelectVisible}
+        />
+      ) : null}
       {items.length ? (
         <div className="workspace-table-list">
           <div className="workspace-table-header" aria-hidden="true">
@@ -983,8 +1099,11 @@ function WorkspaceSectionList({
             <SavedWorkRow
               item={item}
               key={`${item.type}-${item.id}`}
+              selected={selectedKeys?.has(deckSelectionKey(item.id))}
+              selectionKey={onToggleSelected ? deckSelectionKey(item.id) : undefined}
               onDelete={onDelete}
               onDuplicate={onDuplicate}
+              onToggleSelected={onToggleSelected}
             />
           ))}
         </div>
@@ -1011,6 +1130,10 @@ function ComparisonScenarioList({
   onMoveScenarioOut,
   onMoveScenarioBetweenComparisons,
   onDeleteScenarioFromComparison,
+  selectedKeys,
+  onBulkDeleteScenarios,
+  onSelectVisibleScenarios,
+  onToggleSelected,
 }: {
   id: string;
   title: string;
@@ -1027,8 +1150,21 @@ function ComparisonScenarioList({
   onMoveScenarioOut: (comparisonId: string, scenarioId: string) => void | Promise<void>;
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
   onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  selectedKeys: Set<string>;
+  onBulkDeleteScenarios: () => void | Promise<void>;
+  onSelectVisibleScenarios: () => void;
+  onToggleSelected: (key: string) => void;
 }) {
   const hasItems = comparisons.length || standaloneScenarios.length || analyses.length;
+  const visibleScenarioKeys = [
+    ...comparisons.flatMap((item) =>
+      getComparisonScenarios(item.record).map((scenario, index) =>
+        comparisonScenarioSelectionKey(item.id, getText(scenario.id, `${item.id}-scenario-${index}`)),
+      ),
+    ),
+    ...standaloneScenarios.map((item) => standaloneScenarioSelectionKey(item.id)),
+  ];
+  const selectedScenarioCount = visibleScenarioKeys.filter((key) => selectedKeys.has(key)).length;
 
   return (
     <article className="card workspace-card workspace-saved-work-card" id={id}>
@@ -1039,6 +1175,15 @@ function ComparisonScenarioList({
         </div>
         {action}
       </div>
+      {visibleScenarioKeys.length ? (
+        <WorkspaceBulkActions
+          selectedCount={selectedScenarioCount}
+          selectLabel="Select visible scenarios"
+          onClear={() => visibleScenarioKeys.forEach((key) => selectedKeys.has(key) && onToggleSelected(key))}
+          onDelete={onBulkDeleteScenarios}
+          onSelectVisible={onSelectVisibleScenarios}
+        />
+      ) : null}
       {hasItems ? (
         <div className="workspace-grouped-list">
           <div className="workspace-grouped-header" aria-hidden="true">
@@ -1057,6 +1202,8 @@ function ComparisonScenarioList({
               onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
               onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
               onMoveScenarioOut={onMoveScenarioOut}
+              selectedKeys={selectedKeys}
+              onToggleSelected={onToggleSelected}
             />
           ))}
           <StandaloneScenarioGroup
@@ -1068,6 +1215,8 @@ function ComparisonScenarioList({
             onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
             onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
             onMoveScenarioOut={onMoveScenarioOut}
+            selectedKeys={selectedKeys}
+            onToggleSelected={onToggleSelected}
           />
           {analyses.length ? (
             <div className="workspace-analysis-rows">
@@ -1098,6 +1247,7 @@ export function WorkspaceClient() {
   const [loadMessage, setLoadMessage] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<WorkspaceSort>("updated-desc");
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const isPro = plan === "pro" || plan === "team";
   const commercialItems = useMemo(
     () => [
@@ -1160,6 +1310,95 @@ export function WorkspaceClient() {
     setSavedScenarios(scenarios.data);
     setDeckBriefs(decks.data);
     setLoadMessage(analyses.message ?? comparisons.message ?? scenarios.message ?? decks.message ?? "");
+  }
+
+  function toggleSelected(key: string) {
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  function selectVisibleDecks() {
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      visibleDeckItems.forEach((item) => next.add(deckSelectionKey(item.id)));
+      return next;
+    });
+  }
+
+  function selectVisibleScenarios() {
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      visibleStandaloneScenarioItems.forEach((item) => next.add(standaloneScenarioSelectionKey(item.id)));
+      visibleComparisonItems.forEach((item) => {
+        getComparisonScenarios(item.record).forEach((scenario, index) => {
+          next.add(comparisonScenarioSelectionKey(item.id, getText(scenario.id, `${item.id}-scenario-${index}`)));
+        });
+      });
+      return next;
+    });
+  }
+
+  async function bulkDeleteDecks() {
+    const deckIds = [...selectedKeys]
+      .map(parseSelectionKey)
+      .filter((item) => item.type === "deck" && item.firstId)
+      .map((item) => item.firstId);
+    if (!deckIds.length) return;
+    const confirmed = window.confirm(`Delete ${deckIds.length} selected deck${deckIds.length === 1 ? "" : "s"}?`);
+    if (!confirmed) return;
+
+    const results = await Promise.all(deckIds.map((id) => deleteDeckBrief(id)));
+    const deletedCount = results.filter((result) => result.data).length;
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      deckIds.forEach((id) => next.delete(deckSelectionKey(id)));
+      return next;
+    });
+    setLoadMessage(deletedCount === deckIds.length ? `${deletedCount} deck${deletedCount === 1 ? "" : "s"} deleted.` : `${deletedCount} of ${deckIds.length} decks deleted.`);
+    await refreshSavedWork();
+  }
+
+  async function bulkDeleteScenarios() {
+    const selected = [...selectedKeys].map(parseSelectionKey);
+    const standaloneIds = selected.filter((item) => item.type === "scenario" && item.firstId).map((item) => item.firstId);
+    const comparisonSelections = selected.filter((item) => item.type === "comparison-scenario" && item.firstId && item.secondId);
+    const selectedCount = standaloneIds.length + comparisonSelections.length;
+    if (!selectedCount) return;
+    const confirmed = window.confirm(`Delete ${selectedCount} selected scenario${selectedCount === 1 ? "" : "s"}?`);
+    if (!confirmed) return;
+
+    const standaloneResults = await Promise.all(standaloneIds.map((id) => deleteSavedScenario(id)));
+    const byComparison = new Map<string, Set<string>>();
+    comparisonSelections.forEach((item) => {
+      const ids = byComparison.get(item.firstId) ?? new Set<string>();
+      ids.add(item.secondId);
+      byComparison.set(item.firstId, ids);
+    });
+    const comparisonResults = await Promise.all(
+      [...byComparison.entries()].map(async ([comparisonId, scenarioIds]) => {
+        const comparison = savedComparisons.find((group) => group.id === comparisonId);
+        if (!comparison) return false;
+        const updated = await saveRoiPlan(buildUpdatedComparison(comparison, getComparisonScenarios(comparison).filter((scenario) => !scenarioIds.has(String(scenario.id)))));
+        return Boolean(updated.data);
+      }),
+    );
+    const deletedStandaloneCount = standaloneResults.filter((result) => result.data).length;
+    const updatedComparisonCount = comparisonResults.filter(Boolean).length;
+    setSelectedKeys((current) => {
+      const next = new Set(current);
+      standaloneIds.forEach((id) => next.delete(standaloneScenarioSelectionKey(id)));
+      comparisonSelections.forEach((item) => next.delete(comparisonScenarioSelectionKey(item.firstId, item.secondId)));
+      return next;
+    });
+    setLoadMessage(`${deletedStandaloneCount} standalone scenario(s) deleted. ${updatedComparisonCount} comparison group(s) updated.`);
+    await refreshSavedWork();
   }
 
   async function duplicateSavedItem(id: string, type: SavedItemType) {
@@ -1422,11 +1661,15 @@ export function WorkspaceClient() {
             analyses={visibleAnalysisItems}
             onDelete={deleteSavedItem}
             onDeleteScenarioFromComparison={deleteScenarioFromComparison}
+            onBulkDeleteScenarios={bulkDeleteScenarios}
             onDuplicate={duplicateSavedItem}
             onDuplicateScenario={duplicateScenarioToDestination}
             onMoveScenarioBetweenComparisons={moveScenarioBetweenComparisons}
             onMoveScenarioIntoComparison={moveStandaloneScenarioIntoComparison}
             onMoveScenarioOut={moveScenarioOutOfComparison}
+            onSelectVisibleScenarios={selectVisibleScenarios}
+            onToggleSelected={toggleSelected}
+            selectedKeys={selectedKeys}
           />
 
           <WorkspaceSectionList
@@ -1439,8 +1682,12 @@ export function WorkspaceClient() {
               </Link>
             }
             items={visibleDeckItems}
+            selectedKeys={selectedKeys}
+            onBulkDelete={bulkDeleteDecks}
             onDelete={deleteSavedItem}
             onDuplicate={duplicateSavedItem}
+            onSelectVisible={selectVisibleDecks}
+            onToggleSelected={toggleSelected}
           />
         </div>
         <AccountMenu active="workspace" actualPlan={plan} />
