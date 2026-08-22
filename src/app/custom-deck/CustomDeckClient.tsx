@@ -995,26 +995,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
             <section className="custom-deck-form-section">
               <h2>Deck template</h2>
               <p className="helper-note">
-                Upload a PowerPoint template to make the generated deck use that design. If you upload a file here, it overrides the saved/default options.
+                Choose a saved PowerPoint template or upload a one-off .pptx/.potx file for this deck.
               </p>
-              <DeckFileDropzone
-                accept=".pptx,.potx"
-                disabled={!isPro}
-                error={templateError}
-                files={oneOffTemplateFiles}
-                helper="Best supported: PowerPoint .pptx or .potx. The generated deck is created inside this uploaded file's slide design."
-                id="one-off-template-deck"
-                label="Upload deck design template"
-                onFilesSelected={validateOneOffTemplateFiles}
-                onRemoveFile={() => {
-                  setOneOffTemplateFiles([]);
-                  setTemplateError("");
-                }}
-              />
-              <div className="active-template-banner">
-                <span>{activeTemplateKind}</span>
-                <strong>{activeTemplateName}</strong>
-              </div>
               <div className="template-source-group" role="radiogroup" aria-label="Template source">
                 <label className="template-source-option">
                   <input
@@ -1040,9 +1022,31 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   />
                   <span>
                     <strong>Upload one-off template</strong>
-                    <small>The uploaded file above will be used as the design base.</small>
+                    <small>Upload a PowerPoint file just for this deck.</small>
                   </span>
                 </label>
+              </div>
+              {templateSource === "one_off" ? (
+                <div className="template-one-off-fields">
+                  <DeckFileDropzone
+                    accept=".pptx,.potx"
+                    disabled={!isPro}
+                    error={templateError}
+                    files={oneOffTemplateFiles}
+                    helper="Best supported: PowerPoint .pptx or .potx. The generated deck is created inside this uploaded file's slide design."
+                    id="one-off-template-deck"
+                    label="Upload one-off deck template"
+                    onFilesSelected={validateOneOffTemplateFiles}
+                    onRemoveFile={() => {
+                      setOneOffTemplateFiles([]);
+                      setTemplateError("");
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div className="active-template-banner">
+                <span>{activeTemplateKind}</span>
+                <strong>{activeTemplateName}</strong>
               </div>
               {reusableSavedTemplates.length === 0 ? (
                 <p className="helper-note">
