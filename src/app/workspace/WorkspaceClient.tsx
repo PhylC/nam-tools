@@ -252,6 +252,70 @@ function SavedItemDetails({ item, type }: { item: SavedRecord; type: SavedItemTy
   );
 }
 
+function formatDetailValue(value: unknown) {
+  if (Array.isArray(value)) return `${value.length} item(s)`;
+  if (isRecord(value)) return JSON.stringify(value);
+  return String(value);
+}
+
+function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord; savedRecord?: SavedRecord }) {
+  const savedInputs = getRecordEntries(savedRecord?.inputs).slice(0, 8);
+  const savedOutputs = getRecordEntries(savedRecord?.outputs).slice(0, 8);
+  const scenarioEntries = getRecordEntries(scenario).filter(([label]) => !["id", "name", "lines"].includes(label)).slice(0, 8);
+  const lines = Array.isArray(scenario.lines) ? scenario.lines.filter(isRecord) : [];
+  const summary = savedRecord ? getText(savedRecord.summaryText, "") : "";
+
+  if (!savedInputs.length && !savedOutputs.length && !scenarioEntries.length && !lines.length && !summary) {
+    return <div className="workspace-subrow-detail-panel">No extra scenario details saved.</div>;
+  }
+
+  return (
+    <div className="workspace-subrow-detail-panel">
+      {summary ? <p>{summary}</p> : null}
+      {scenarioEntries.length ? (
+        <dl>
+          {scenarioEntries.map(([label, value]) => (
+            <div key={`scenario-${label}`}>
+              <dt>{label}</dt>
+              <dd>{formatDetailValue(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {savedInputs.length ? (
+        <dl>
+          {savedInputs.map(([label, value]) => (
+            <div key={`input-${label}`}>
+              <dt>{label}</dt>
+              <dd>{formatDetailValue(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {savedOutputs.length ? (
+        <dl>
+          {savedOutputs.map(([label, value]) => (
+            <div key={`output-${label}`}>
+              <dt>{label}</dt>
+              <dd>{formatDetailValue(value)}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {lines.length ? (
+        <div className="workspace-subrow-lines">
+          {lines.slice(0, 8).map((line, index) => (
+            <span key={`${getText(line.id, "")}-${index}`}>
+              {getText(line.product ?? line.sku, `Line ${index + 1}`)}
+            </span>
+          ))}
+          {lines.length > 8 ? <span>{lines.length - 8} more line(s)</span> : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function WorkspaceControls({
   search,
   sort,
@@ -516,6 +580,7 @@ function ScenarioSubRow({
   onMoveScenarioOut,
   onMoveScenarioBetweenComparisons,
   onDeleteScenarioFromComparison,
+  updatedDate,
 }: {
   scenario: SavedRecord;
   scenarioId: string;
@@ -524,6 +589,7 @@ function ScenarioSubRow({
   comparisons: SavedRecord[];
   sourceComparisonId?: string;
   savedRecord?: SavedRecord;
+  updatedDate: string;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicateScenario: (scenarioId: string, targetComparisonId?: string, sourceComparisonId?: string) => void | Promise<void>;
   onMoveScenarioIntoComparison: (scenarioId: string, comparisonId: string) => void | Promise<void>;
@@ -531,28 +597,42 @@ function ScenarioSubRow({
   onMoveScenarioBetweenComparisons: (fromComparisonId: string, scenarioId: string, targetComparisonId: string) => void | Promise<void>;
   onDeleteScenarioFromComparison: (comparisonId: string, scenarioId: string) => void | Promise<void>;
 }) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
   return (
-    <div className="workspace-subrow">
-      <div className="workspace-subrow-title">
-        <strong>{title}</strong>
-        <span>{getScenarioSummary(scenario)}</span>
+    <div className="workspace-subrow-wrap">
+      <div className="workspace-subrow">
+        <div className="workspace-subrow-title">
+          <strong>{title}</strong>
+          <span>{getScenarioSummary(scenario)}</span>
+        </div>
+        <small className="workspace-table-date">{updatedDate}</small>
+        <div className="workspace-subrow-actions">
+          <button
+            aria-expanded={detailsOpen}
+            aria-label={`${detailsOpen ? "Hide" : "View"} details for ${title}`}
+            className="workspace-icon-button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            title={`${detailsOpen ? "Hide" : "View"} details`}
+            type="button"
+          >
+            <span aria-hidden="true">i</span>
+          </button>
+          <WorkspaceIconLink href={href} label={`Open ${title}`} />
+          <ScenarioItemMenu
+            scenarioId={scenarioId}
+            comparisonId={sourceComparisonId}
+            comparisons={comparisons}
+            onDelete={sourceComparisonId ? undefined : onDelete}
+            onDuplicateScenario={onDuplicateScenario}
+            onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+            onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+            onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+            onMoveScenarioOut={onMoveScenarioOut}
+          />
+        </div>
       </div>
-      <small className="workspace-table-date">{savedRecord ? getUpdatedDate(savedRecord) : ""}</small>
-      <div className="workspace-subrow-actions">
-        {savedRecord ? <SavedItemDetails item={savedRecord} type="Scenario" /> : null}
-        <WorkspaceIconLink href={href} label={`Open ${title}`} />
-        <ScenarioItemMenu
-          scenarioId={scenarioId}
-          comparisonId={sourceComparisonId}
-          comparisons={comparisons}
-          onDelete={sourceComparisonId ? undefined : onDelete}
-          onDuplicateScenario={onDuplicateScenario}
-          onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
-          onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-          onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
-          onMoveScenarioOut={onMoveScenarioOut}
-        />
-      </div>
+      {detailsOpen ? <ScenarioDetailsPanel scenario={scenario} savedRecord={savedRecord} /> : null}
     </div>
   );
 }
@@ -607,6 +687,7 @@ function ComparisonGroupRow({
                 href={`${href}&scenario=${scenarioId}`}
                 comparisons={comparisons}
                 sourceComparisonId={item.id}
+                updatedDate={getUpdatedDate(item.record)}
                 onDelete={onDelete}
                 onDuplicateScenario={onDuplicateScenario}
                 onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
@@ -666,6 +747,7 @@ function StandaloneScenarioGroup({
               href={getItemHref(item.record, "Scenario")}
               comparisons={comparisons}
               savedRecord={item.record}
+              updatedDate={getUpdatedDate(item.record)}
               onDelete={onDelete}
               onDuplicateScenario={onDuplicateScenario}
               onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
@@ -711,7 +793,7 @@ function WorkspaceSectionList({
           <div className="workspace-table-header" aria-hidden="true">
             <span>Type</span>
             <span>Name</span>
-            <span>Updated</span>
+            <span>Last updated</span>
             <span>Actions</span>
           </div>
           {items.map((item) => (
@@ -778,7 +860,7 @@ function ComparisonScenarioList({
         <div className="workspace-grouped-list">
           <div className="workspace-grouped-header" aria-hidden="true">
             <span>Name</span>
-            <span>Updated</span>
+            <span>Last updated</span>
             <span>Actions</span>
           </div>
           {comparisons.map((item) => (
