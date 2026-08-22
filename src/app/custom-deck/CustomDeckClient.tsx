@@ -565,16 +565,32 @@ async function trimPresentationToSlideCount(zip: ZipLike, targetSlideCount: numb
   if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
 }
 
-async function sanitizePowerPointPackage(zip: ZipLike) {
+function sanitizePowerPointXml(xml: string) {
+  return xml
+    .replace(/<a:ext uri="\{28A0092B-C50C-407E-A947-70E740481C1C\}">[\s\S]*?<\/a:ext>/g, "")
+    .replace(/<a:ext uri="\{C183D7F6-B498-43B3-948B-1728B52AA6E4\}">[\s\S]*?<\/a:ext>/g, "")
+    .replace(/<a:ext uri="\{05A4C25C-085E-4340-85A3-A5531E510DB2\}">[\s\S]*?<\/a:ext>/g, "")
+    .replace(/<p:ext uri="\{386F3935-93C4-4BCD-93E2-E3B085C9AB24\}">[\s\S]*?<\/p:ext>/g, "")
+    .replace(/<p:ext uri="\{E76CE94A-603C-4142-B9EB-6D1370010A27\}">[\s\S]*?<\/p:ext>/g, "")
+    .replace(/<p:ext uri="\{D31A062A-798A-4329-ABDD-BBA856620510\}">[\s\S]*?<\/p:ext>/g, "")
+    .replace(/<p:ext uri="\{FD5EFAAD-0ECE-453E-9831-46B23BE46B34\}">[\s\S]*?<\/p:ext>/g, "")
+    .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
+    .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
+}
+
+async function sanitizePowerPointPackage(zip: ZipLike, xmlPaths: string[]) {
   const presPropsXml = await zip.file("ppt/presProps.xml")?.async("text");
   if (presPropsXml) {
-    const sanitized = presPropsXml
-      .replace(/<p:ext uri="\{E76CE94A-603C-4142-B9EB-6D1370010A27\}">[\s\S]*?<\/p:ext>/g, "")
-      .replace(/<p:ext uri="\{D31A062A-798A-4329-ABDD-BBA856620510\}">[\s\S]*?<\/p:ext>/g, "")
-      .replace(/<p:ext uri="\{FD5EFAAD-0ECE-453E-9831-46B23BE46B34\}">[\s\S]*?<\/p:ext>/g, "")
-      .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
-    zip.file("ppt/presProps.xml", sanitized);
+    zip.file("ppt/presProps.xml", sanitizePowerPointXml(presPropsXml));
   }
+  await Promise.all(
+    xmlPaths
+      .filter((path) => path.startsWith("ppt/") && path.endsWith(".xml") && path !== "ppt/presProps.xml")
+      .map(async (path) => {
+        const xml = await zip.file(path)?.async("text");
+        if (xml) zip.file(path, sanitizePowerPointXml(xml));
+      }),
+  );
 }
 
 function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
@@ -678,7 +694,7 @@ async function createDeckFromUploadedTemplate({
 
     const appXml = await zip.file("docProps/app.xml")?.async("text");
     if (appXml) zip.file("docProps/app.xml", updateExtendedPresentationProperties(appXml, contents));
-    await sanitizePowerPointPackage(zip);
+    await sanitizePowerPointPackage(zip, Object.keys(zip.files));
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
