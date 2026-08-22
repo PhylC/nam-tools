@@ -214,10 +214,6 @@ export default async function PricingPage({
       </section>
       <section className="shell section">
         <SectionHeader eyebrow="Plans" title="Simple plans for different levels of work." />
-        <p className="pricing-context-note">
-          Pricing is localised where available. UK visitors see GBP, US visitors see USD and many European visitors see EUR.
-          Other markets may see GBP at checkout.
-        </p>
         <div className="grid pricing-plan-grid">
           {plans.map((plan) => (
             <article className={plan.recommended ? "card pricing-card pricing-card-featured" : "card pricing-card"} id={plan.name === "APT Pro" ? "apt-pro-plan" : undefined} key={plan.name}>
