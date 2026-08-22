@@ -15,11 +15,13 @@ const MAX_SUPPORTING_FILES = 5;
 const SAVED_TEMPLATE_DOWNLOAD_TIMEOUT_MS = 12000;
 const GENERATED_DECK_UPLOAD_TIMEOUT_MS = 15000;
 const WORKSPACE_SAVE_TIMEOUT_MS = 12000;
+const CUSTOM_DECK_DRAFT_STORAGE_KEY = "aptCustomDeckDraft";
 const deckTemplateExtensions = [".pptx", ".potx"];
 const supportingFileExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt", ".pptx", ".key", ".numbers", ".pages"];
 
 const deckTypes = [
   { label: "Joint Business Plan", value: "jbp" },
+  { label: "Account Plan", value: "account-plan" },
   { label: "Quarterly Business Review", value: "qbr" },
   { label: "Promotional Proposal", value: "promo-proposal" },
   { label: "Range Review", value: "range-review" },
@@ -107,6 +109,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function normaliseTemplate(value: string) {
   const aliases: Record<string, string> = {
     "joint-business-plan": "jbp",
+    "account-plan-generator": "account-plan",
+    "account-plan": "account-plan",
     "qbr-template": "qbr",
     "promotional-proposal": "promo-proposal",
     "promo-proposal": "promo-proposal",
@@ -228,6 +232,18 @@ function exampleDeckData(deckType: string, playbook: DeckPlaybook, deckLabel: st
       brief: "Build this as a retailer-ready JBP story with a clear growth agenda, investment choices, measures of success and governance plan.",
       audience: "Retailer/customer meeting",
       tone: "executive_polished",
+    },
+    "account-plan": {
+      name: "Tesco Internal Account Plan",
+      inputs: [
+        "Tesco chilled account: sales are growing behind promotions, but base rate of sale is flat. Validate the account scorecard before customer-facing use.",
+        "Growth opportunity is to improve distribution on priority SKUs, sharpen promotional mix and build premium seasonal execution.",
+        "Objective: grow profitable revenue while improving availability and execution quality. Investment needed: trade spend, category evidence and supply planning support.",
+        "Risks: margin pressure and competitor space gains. Owners: NAM for customer alignment, category for evidence, finance for guardrails and supply for availability. Next action: book internal account review before buyer meeting.",
+      ],
+      brief: "Build this as an internal account plan deck for leadership and cross-functional alignment, not as an external customer presentation.",
+      audience: "Internal review",
+      tone: "detailed_analytical",
     },
     qbr: {
       name: "Sainsbury's Q3 Business Review",
@@ -405,6 +421,36 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
     nextStepsSlide: {
       title: "Governance and next steps",
       lines: ["Confirm owners, dates and review cadence.", "Agree customer asks and internal approvals.", "Lock the measurement scorecard."],
+    },
+  },
+  "account-plan": {
+    proofPrompt: "Build an internal account plan: current position, priorities, risks, resources and action plan.",
+    inputPrompts: [
+      "Account context and current performance",
+      "Growth opportunity and priority products/ranges",
+      "Commercial objective, investment and support needed",
+      "Risks, owners, governance and next commercial actions",
+    ],
+    uploadPrompt: "Upload customer scorecards, account trackers, sales data or internal planning files",
+    briefPlaceholder: "Example: Build an internal account plan for Tesco covering current performance, growth opportunities, risks, owners, investment and 30/60/90 actions.",
+    fallbackBrief: ["Add the account context, internal objective and current performance.", "Attach sales or customer scorecard data to make the plan evidence-led."],
+    outline: ["Account situation", "Performance and evidence", "Growth priorities", "Investment and resource plan", "Risks and governance", "30/60/90 action plan"],
+    evidenceSlideTitle: "Account situation and evidence",
+    recommendationSlide: {
+      title: "Priority account plan",
+      lines: ["Summarise the internal account priorities.", "Connect each priority to the commercial objective.", "Make trade-offs, resources and decision needs explicit."],
+    },
+    financialSlide: {
+      title: "Value, investment and support",
+      lines: ["Show sales, margin, investment and support assumptions.", "Separate confirmed facts from planning assumptions.", "Highlight finance guardrails and approval needs."],
+    },
+    risksSlide: {
+      title: "Risks, owners and dependencies",
+      lines: ["Call out margin, supply, customer, range and execution risks.", "Assign owners for evidence, finance, supply and customer alignment.", "Identify decisions needed before external customer use."],
+    },
+    nextStepsSlide: {
+      title: "30/60/90 action plan",
+      lines: ["30 days: validate data and align internal owners.", "60 days: prepare recommendation and customer engagement plan.", "90 days: review progress and scale what works."],
     },
   },
   qbr: {
@@ -1504,6 +1550,35 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (basedOnDeckId || !isPro) return;
+    let timeoutId: number | null = null;
+    try {
+      const rawDraft = window.localStorage.getItem(CUSTOM_DECK_DRAFT_STORAGE_KEY);
+      if (!rawDraft) return undefined;
+      const draft = JSON.parse(rawDraft) as Record<string, unknown>;
+      window.localStorage.removeItem(CUSTOM_DECK_DRAFT_STORAGE_KEY);
+      const draftDeckType = normaliseTemplate(getText(draft.deckType, "jbp"));
+      const matchedDeckType = deckTypes.some((item) => item.value === draftDeckType) ? draftDeckType : "jbp";
+      timeoutId = window.setTimeout(() => {
+        setDeckType(matchedDeckType);
+        setDeckName(getText(draft.deckName, `${deckTypes.find((item) => item.value === matchedDeckType)?.label ?? "Custom"} deck`));
+        setDeckInputs(isRecord(draft.deckInputs) ? Object.fromEntries(Object.entries(draft.deckInputs).map(([key, value]) => [key, getText(value)])) : {});
+        setBrief(getText(draft.brief));
+        setAudience(getText(draft.audience, "Internal review"));
+        setTone(getText(draft.tone, "detailed_analytical"));
+        setFinancialSummary("Yes");
+        setNextStepsSlide("Yes");
+        setBasedOnDeckMessage("Account plan details copied in. Choose a template option, then create and save the internal account plan deck.");
+      }, 0);
+    } catch {
+      window.localStorage.removeItem(CUSTOM_DECK_DRAFT_STORAGE_KEY);
+    }
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [basedOnDeckId, isPro]);
 
   useEffect(() => {
     if (!basedOnDeckId || !isPro) return;

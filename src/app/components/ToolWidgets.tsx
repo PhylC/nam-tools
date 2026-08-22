@@ -42,6 +42,7 @@ const currencyChoices = [
 ];
 
 const DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY = "aptDismissedCreateAccountDefaultsPrompt";
+const CUSTOM_DECK_DRAFT_STORAGE_KEY = "aptCustomDeckDraft";
 const SUPPORT_HELP =
   "Supplier-funded support per unit, such as off-invoice support, allowance or trade funding.";
 
@@ -58,6 +59,14 @@ type SalesDataSummary = {
   topProduct: string;
   weakestProduct: string;
   summaryText: string;
+};
+type AccountPlanDeckDraft = {
+  deckName: string;
+  deckType: "account-plan";
+  deckInputs: Record<string, string>;
+  brief: string;
+  audience: "Internal review";
+  tone: "detailed_analytical" | "concise_commercial" | "executive_polished";
 };
 type TaxLabel = "VAT" | "IVA" | "Sales tax" | "GST" | "TVA" | "MwSt" | "Custom";
 type ToolDefaults = {
@@ -633,6 +642,34 @@ function rowsToRecord(rows: CsvRow[] | undefined) {
     record[row.label] = row.value;
     return record;
   }, {});
+}
+
+function BuildAccountPlanDeckAction({ deckDraft }: { deckDraft: AccountPlanDeckDraft }) {
+  const [message, setMessage] = useState("");
+
+  function openDeckBuilder() {
+    try {
+      window.localStorage.setItem(CUSTOM_DECK_DRAFT_STORAGE_KEY, JSON.stringify(deckDraft));
+      window.location.assign("/custom-deck?template=account-plan");
+    } catch {
+      setMessage("Could not prepare the deck builder. Please open Custom deck and choose Account Plan.");
+    }
+  }
+
+  return (
+    <div className="save-work-action">
+      <button className="button copy-button" type="button" onClick={openDeckBuilder}>
+        Build account plan deck
+      </button>
+      {message ? (
+        <div className="save-work-message" role="status">
+          <strong>{message}</strong>
+        </div>
+      ) : (
+        <p className="field-help">Uses the Custom deck builder, including saved templates, one-off template upload and simple blank template.</p>
+      )}
+    </div>
+  );
 }
 
 function SaveAnalysisAction({
@@ -3214,6 +3251,19 @@ export function AccountPlanGenerator() {
     ["Internal support needed", "Pricing guardrails, trade spend envelope, supply readiness, category evidence and senior sponsorship."],
     ["Review cadence", "Weekly internal action check, monthly customer trading review and quarterly strategic review."],
   ];
+  const accountPlanDeckDraft: AccountPlanDeckDraft = {
+    deckName: `${account} internal account plan`,
+    deckType: "account-plan",
+    deckInputs: {
+      "Account context and current performance": `${account}: ${performance} ${dataNarrative}`,
+      "Growth opportunity and priority products/ranges": `${opportunity} Priority products/ranges: ${products}`,
+      "Commercial objective, investment and support needed": `${objective} Required support: ${investment}`,
+      "Risks, owners, governance and next commercial actions": `Risks: ${risk}\nOwners: ${owners}\nNext action: ${action}\nReview cadence: weekly internal action check, monthly customer trading review and quarterly strategic review.`,
+    },
+    brief: "Create this as an internal account plan deck for leadership and cross-functional alignment. It is not intended as an external customer-facing deck without further editing.",
+    audience: "Internal review",
+    tone: "detailed_analytical",
+  };
 
   return (
     <GeneratorShell
@@ -3235,6 +3285,7 @@ export function AccountPlanGenerator() {
       toolId="account-plan-generator"
       toolName="Account plan generator"
       proFeatures={["Full account plan template", "Range review prep", "Annual customer plan", "Saved account plans", "Team sharing"]}
+      deckDraft={accountPlanDeckDraft}
     />
   );
 }
@@ -3290,6 +3341,7 @@ export function CustomerReviewTemplate() {
 
 function GeneratorShell({
   defaultTitle,
+  deckDraft,
   fields,
   sections,
   sourcePath,
@@ -3298,6 +3350,7 @@ function GeneratorShell({
   proFeatures,
 }: {
   defaultTitle: string;
+  deckDraft?: AccountPlanDeckDraft;
   fields: React.ReactNode;
   sections: [string, string][];
   sourcePath: string;
@@ -3328,6 +3381,7 @@ function GeneratorShell({
               summaryText={proOutput}
               sourcePath={sourcePath}
             />
+            {deckDraft ? <BuildAccountPlanDeckAction deckDraft={deckDraft} /> : null}
           </div>
         </aside>
       ) : (
