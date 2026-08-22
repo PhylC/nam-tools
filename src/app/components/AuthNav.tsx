@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useAuth } from "../../lib/useAuth";
 import { formatUserPlan, type UserPlan } from "../../lib/userPlan";
@@ -19,9 +19,39 @@ export function HeaderAuthNav() {
   const { user, isSignedIn, isLoadingAuth, signOut, actualPlan } = useAuth();
   const router = useRouter();
   const [message, setMessage] = useState("");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDetailsElement | null>(null);
   const email = user?.email ?? "";
 
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    function closeOnOutsideClick(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isMenuOpen]);
+
+  function closeMenu() {
+    setIsMenuOpen(false);
+  }
+
   async function handleSignOut() {
+    closeMenu();
     const result = await signOut();
     if (result.ok) {
       trackEvent("logout_completed");
@@ -46,16 +76,19 @@ export function HeaderAuthNav() {
 
   return (
     <div className="account-nav">
-      <details className="account-menu">
-        <summary>
+      <details className="account-menu" ref={menuRef} open={isMenuOpen} onToggle={(event) => setIsMenuOpen(event.currentTarget.open)}>
+        <summary onClick={(event) => {
+          event.preventDefault();
+          setIsMenuOpen((current) => !current);
+        }}>
           <span className="account-avatar" aria-hidden="true">{initialsFromEmail(email)}</span>
           <span className="account-email">{email}</span>
         </summary>
         <div className="account-menu-panel">
           <span className="account-plan">Current plan: {formatUserPlan(actualPlan)}</span>
-          <Link href="/account">Account</Link>
-          <Link href="/settings">Settings</Link>
-          <Link href="/workspace">My workspace</Link>
+          <Link href="/account" onClick={closeMenu}>Account</Link>
+          <Link href="/settings" onClick={closeMenu}>Settings</Link>
+          <Link href="/workspace" onClick={closeMenu}>My workspace</Link>
           <button className="text-button" onClick={handleSignOut} type="button">Sign out</button>
           {message ? <small>{message}</small> : null}
         </div>
