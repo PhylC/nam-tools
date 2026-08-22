@@ -301,26 +301,6 @@ function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
 export function PresentationTemplatesFree() {
   const { plan } = useSupabaseAuth();
   const isPro = plan === "pro" || plan === "team";
-  const [outlineStatus, setOutlineStatus] = useState<{ slug: string; message: string } | null>(null);
-  const [manualOutline, setManualOutline] = useState<{ slug: string; text: string } | null>(null);
-
-  async function copySlideOutline(template: FreeTemplate) {
-    const response = await fetch(`/templates/${template.slug}/outline.txt`);
-    const outline = await response.text();
-    setManualOutline(null);
-
-    try {
-      if (!navigator.clipboard?.writeText) {
-        throw new Error("Clipboard unavailable");
-      }
-      await navigator.clipboard.writeText(outline);
-      setOutlineStatus({ slug: template.slug, message: "Slide outline copied." });
-      window.setTimeout(() => setOutlineStatus(null), 1800);
-    } catch {
-      setManualOutline({ slug: template.slug, text: outline });
-      setOutlineStatus({ slug: template.slug, message: "Copy this outline manually." });
-    }
-  }
 
   return (
     <section className="shell section">
@@ -398,26 +378,6 @@ export function PresentationTemplatesFree() {
               <a className="button button-secondary button-small" download href={`/templates/${template.pptx}`}>
                 Download
               </a>
-              <div className="template-outline-utility">
-                <button
-                  aria-label={`Copy the slide outline for ${template.title}`}
-                  className="template-outline-link"
-                  onClick={() => copySlideOutline(template)}
-                  title="Copy the slide outline for this template"
-                  type="button"
-                >
-                  Copy outline
-                </button>
-              </div>
-              {outlineStatus?.slug === template.slug ? (
-                <p className="template-outline-status">{outlineStatus.message}</p>
-              ) : null}
-              {manualOutline?.slug === template.slug ? (
-                <label className="template-outline-manual">
-                  <span>Copy this outline manually.</span>
-                  <textarea readOnly value={manualOutline.text} onFocus={(event) => event.currentTarget.select()} />
-                </label>
-              ) : null}
             </div>
           </article>
         ))}
