@@ -363,6 +363,15 @@ function designForSlideReadability(slideXml: string, design: TemplateDesign) {
   };
 }
 
+function forceReadableTextColors(slideXml: string, design: TemplateDesign, readabilityXml = slideXml) {
+  const readable = designForSlideReadability(readabilityXml, design);
+  if (readable.textColor === design.textColor && readable.mutedTextColor === design.mutedTextColor) return slideXml;
+  return slideXml.replace(/<a:srgbClr val="(?:16202A|4B5966|000000|1F2937|334155|475569)"\/>/g, (match) => {
+    const color = match.includes("16202A") || match.includes("000000") || match.includes("1F2937") ? readable.textColor : readable.mutedTextColor;
+    return `<a:srgbClr val="${color}"/>`;
+  });
+}
+
 function templateTextBoxXml(id: number, name: string, x: number, y: number, w: number, h: number, paragraphs: string[], design: TemplateDesign, options?: { title?: boolean }) {
   return `
     <p:sp>
@@ -408,7 +417,7 @@ function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideCon
 function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign, readabilityXml = slideXml) {
   const slideDesign = designForSlideReadability(readabilityXml, design);
   const replaced = replaceTemplateTextPlaceholders(slideXml, content, slideDesign);
-  if (replaced.replacementCount > 0) return removeDuplicatedPowerPointCreationIds(replaced.xml);
+  if (replaced.replacementCount > 0) return removeDuplicatedPowerPointCreationIds(forceReadableTextColors(replaced.xml, design, readabilityXml));
 
   if (!slideXml.includes("</p:spTree>")) return removeDuplicatedPowerPointCreationIds(slideXml);
   const baseId = maxShapeId(slideXml) + 1;
@@ -416,7 +425,7 @@ function populateTemplateSlide(slideXml: string, content: DeckSlideContent, desi
     templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], slideDesign, { title: true }),
     templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), slideDesign),
   ].join("");
-  return removeDuplicatedPowerPointCreationIds(slideXml.replace("</p:spTree>", `${injected}</p:spTree>`));
+  return removeDuplicatedPowerPointCreationIds(forceReadableTextColors(slideXml.replace("</p:spTree>", `${injected}</p:spTree>`), design, readabilityXml));
 }
 
 function removeDuplicatedPowerPointCreationIds(slideXml: string) {
@@ -556,6 +565,18 @@ async function trimPresentationToSlideCount(zip: ZipLike, targetSlideCount: numb
   if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
 }
 
+async function sanitizePowerPointPackage(zip: ZipLike) {
+  const presPropsXml = await zip.file("ppt/presProps.xml")?.async("text");
+  if (presPropsXml) {
+    const sanitized = presPropsXml
+      .replace(/<p:ext uri="\{E76CE94A-603C-4142-B9EB-6D1370010A27\}">[\s\S]*?<\/p:ext>/g, "")
+      .replace(/<p:ext uri="\{D31A062A-798A-4329-ABDD-BBA856620510\}">[\s\S]*?<\/p:ext>/g, "")
+      .replace(/<p:ext uri="\{FD5EFAAD-0ECE-453E-9831-46B23BE46B34\}">[\s\S]*?<\/p:ext>/g, "")
+      .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
+    zip.file("ppt/presProps.xml", sanitized);
+  }
+}
+
 function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
   const elementPattern = new RegExp(`<${tagName}>[\\s\\S]*?<\\/${tagName}>`);
   if (elementPattern.test(xml)) return xml.replace(elementPattern, replacement);
@@ -657,6 +678,7 @@ async function createDeckFromUploadedTemplate({
 
     const appXml = await zip.file("docProps/app.xml")?.async("text");
     if (appXml) zip.file("docProps/app.xml", updateExtendedPresentationProperties(appXml, contents));
+    await sanitizePowerPointPackage(zip);
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
