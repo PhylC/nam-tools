@@ -78,6 +78,19 @@ type DeckSlideContent = {
   title: string;
   lines: string[];
 };
+type DeckPlaybook = {
+  proofPrompt: string;
+  inputPrompts: string[];
+  uploadPrompt: string;
+  briefPlaceholder: string;
+  fallbackBrief: string[];
+  outline: string[];
+  evidenceSlideTitle: string;
+  recommendationSlide: DeckSlideContent;
+  financialSlide?: DeckSlideContent;
+  risksSlide: DeckSlideContent;
+  nextStepsSlide: DeckSlideContent;
+};
 type ReusableSavedTemplate = SavedPresentationTemplate & {
   storagePathOrUrl: string;
 };
@@ -173,33 +186,289 @@ function briefSentences(value: string) {
     .slice(0, 5);
 }
 
-function deckOutline(deckLabel: string, brief: string, includeFinancialSummary: boolean, includeNextStepsSlide: boolean) {
-  const briefPoints = briefSentences(brief);
+const defaultDeckPlaybook: DeckPlaybook = {
+  proofPrompt: "Clarify the decision, the commercial ask and the evidence needed to support it.",
+  inputPrompts: [
+    "Audience, meeting objective and decision needed",
+    "Customer context, risks, asks and next steps",
+    "Key commercial numbers or where they are uploaded",
+    "Any specific slides, story flow or format to follow",
+  ],
+  uploadPrompt: "Upload supporting data",
+  briefPlaceholder: "Example: Build a QBR for Tesco covering Q3 performance, promo results, risks, next-quarter asks and recommended actions.",
+  fallbackBrief: ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."],
+  outline: ["Objective and context", "Commercial priorities", "Evidence and assumptions", "Recommended story", "Risks and watchouts"],
+  evidenceSlideTitle: "Brief and assumptions",
+  recommendationSlide: {
+    title: "Recommended story",
+    lines: [
+      "Lead with the customer opportunity and the decision needed.",
+      "Connect the commercial ask to the retailer or customer benefit.",
+      "Use the attached data to prove the size of prize, risk and payback.",
+    ],
+  },
+  financialSlide: {
+    title: "Financial summary",
+    lines: [
+      "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
+      "Separate confirmed facts from assumptions.",
+      "Show the decision threshold or negotiation guardrail clearly.",
+    ],
+  },
+  risksSlide: {
+    title: "Risks and watchouts",
+    lines: [
+      "Call out data gaps, approval dependencies and commercial assumptions.",
+      "Highlight where retailer/customer policy may affect final pricing or support treatment.",
+      "Use this draft as a working structure before customer-facing use.",
+    ],
+  },
+  nextStepsSlide: {
+    title: "Next steps",
+    lines: ["Confirm data sources and final commercial assumptions.", "Agree the recommended ask, owner and timing.", "Turn the draft into the customer-ready version."],
+  },
+};
+
+const deckPlaybooks: Record<string, DeckPlaybook> = {
+  jbp: {
+    proofPrompt: "Show the joint growth agenda, the investment choices and the measures of success.",
+    inputPrompts: [
+      "Customer growth ambition and planning period",
+      "Joint objectives, category roles and shopper opportunity",
+      "Investment plan, trade-offs, asks and expected return",
+      "Success measures, owners, milestones and governance",
+    ],
+    uploadPrompt: "Upload sales history, targets, customer scorecards or investment plans",
+    briefPlaceholder: "Example: Build a 2027 JBP for Tesco with three growth pillars, trade investment asks, category objectives and quarterly milestones.",
+    fallbackBrief: ["Add the planning period, customer growth ambition and core JBP ask.", "Attach sales history, targets or investment files to sharpen the plan."],
+    outline: ["Joint ambition", "Customer and category context", "Growth pillars", "Investment plan", "Measures of success", "Governance and next steps"],
+    evidenceSlideTitle: "Customer and category context",
+    recommendationSlide: {
+      title: "Growth pillars and recommendation",
+      lines: ["Anchor the plan around two or three growth pillars.", "Show what the customer gains and what support is needed.", "Make the preferred investment route explicit."],
+    },
+    financialSlide: {
+      title: "Investment and value plan",
+      lines: ["Show revenue, margin, trade investment and expected return by pillar.", "Separate base plan from stretch initiatives.", "Highlight decision thresholds and guardrails."],
+    },
+    risksSlide: {
+      title: "Risks and dependencies",
+      lines: ["Call out range, supply, funding, customer alignment and data risks.", "Show mitigations and decision owners.", "Identify assumptions that need sign-off."],
+    },
+    nextStepsSlide: {
+      title: "Governance and next steps",
+      lines: ["Confirm owners, dates and review cadence.", "Agree customer asks and internal approvals.", "Lock the measurement scorecard."],
+    },
+  },
+  qbr: {
+    proofPrompt: "Explain performance, what changed, what it means and what should happen next quarter.",
+    inputPrompts: ["Review period and customer/account scope", "Sales, margin, distribution and promo performance", "Drivers of over/under-performance", "Actions, risks and asks for the next period"],
+    uploadPrompt: "Upload performance trackers, promo results, EPOS or customer scorecards",
+    briefPlaceholder: "Example: Build a Q3 QBR for Sainsbury's showing performance vs target, promo ROI, distribution gaps, risks and Q4 actions.",
+    fallbackBrief: ["Add the review period, performance headlines and actions required.", "Attach scorecards or performance trackers to avoid a generic review."],
+    outline: ["Executive summary", "Performance vs plan", "Drivers and insights", "Risks and opportunities", "Recommended actions"],
+    evidenceSlideTitle: "Performance and drivers",
+    recommendationSlide: {
+      title: "Recommended actions",
+      lines: ["Prioritise the actions that change next-period performance.", "Link each action to evidence from the review.", "Separate customer asks from internal actions."],
+    },
+    financialSlide: {
+      title: "Commercial scorecard",
+      lines: ["Show sales, margin, volume, support and ROI where available.", "Compare actuals against target or prior period.", "Flag the biggest movement drivers."],
+    },
+    risksSlide: {
+      title: "Risks and watchouts",
+      lines: ["Identify supply, range, promo, pricing and execution risks.", "Call out open data gaps.", "Clarify impact if no action is taken."],
+    },
+    nextStepsSlide: {
+      title: "Next-quarter action plan",
+      lines: ["Confirm actions, owners and timing.", "Agree buyer/customer follow-ups.", "Lock the next review checkpoint."],
+    },
+  },
+  "promo-proposal": {
+    proofPrompt: "Prove why the promotion should run, what support is needed and what payback is expected.",
+    inputPrompts: ["Promotion mechanic, timing and customer", "Baseline and expected promo volume", "Invoice, SRP, support, COGS and ROI assumptions", "Customer benefit, negotiation ask and approval guardrails"],
+    uploadPrompt: "Upload ROI scenarios, promo history, rate cards or customer terms",
+    briefPlaceholder: "Example: Build a promo proposal for Asda with £1.50 mechanic, expected uplift, support ask, ROI and customer rationale.",
+    fallbackBrief: ["Add the mechanic, support ask and expected uplift.", "Attach ROI scenarios or promo history to build the financial case."],
+    outline: ["Promotion objective", "Mechanic and shopper rationale", "Commercial model", "Customer benefit", "Recommendation and guardrails"],
+    evidenceSlideTitle: "Mechanic and assumptions",
+    recommendationSlide: {
+      title: "Promotion recommendation",
+      lines: ["State the mechanic, timing and customer ask clearly.", "Connect the deal to shopper or retailer benefit.", "Show the preferred option and fallback position."],
+    },
+    financialSlide: {
+      title: "ROI and support summary",
+      lines: ["Show baseline, uplift, support cost, revenue and margin impact.", "Use APT ROI scenario outputs where available.", "Highlight payback threshold and approval guardrails."],
+    },
+    risksSlide: {
+      title: "Risks and guardrails",
+      lines: ["Call out cannibalisation, stock, execution and funding risks.", "Set conditions for approval.", "Define what would make the promotion unattractive."],
+    },
+    nextStepsSlide: {
+      title: "Approval and buyer next steps",
+      lines: ["Confirm internal sign-off.", "Prepare buyer negotiation asks.", "Lock timing, feature support and measurement plan."],
+    },
+  },
+  "range-review": {
+    proofPrompt: "Show which products should be kept, added, removed or expanded, and why.",
+    inputPrompts: ["Retailer range objective and category role", "SKU performance, ROS, distribution, margin and incrementality", "Competitor/benchmark gaps and shopper need", "Recommended adds, deletes, swaps or space changes"],
+    uploadPrompt: "Upload SKU sales, distribution, margin, rate-of-sale or assortment files",
+    briefPlaceholder: "Example: Build a range review for Morrisons recommending two new SKUs, one delist and a fixture-space change using ROS and margin evidence.",
+    fallbackBrief: ["Add the range decision needed and the SKU-level evidence.", "Attach sales, distribution or assortment files to support recommendations."],
+    outline: ["Range objective", "Current assortment performance", "Opportunity gaps", "Recommended range changes", "Commercial impact"],
+    evidenceSlideTitle: "Current range performance",
+    recommendationSlide: {
+      title: "Recommended range changes",
+      lines: ["Show add, keep, improve and remove recommendations.", "Explain the shopper and commercial reason for each move.", "Make the final assortment decision easy to scan."],
+    },
+    financialSlide: {
+      title: "Range value impact",
+      lines: ["Estimate sales, margin, distribution and space impact.", "Show key winners and risks by SKU.", "Call out assumptions behind the value case."],
+    },
+    risksSlide: {
+      title: "Range risks and dependencies",
+      lines: ["Flag supply, delist risk, substitution and retailer execution dependencies.", "Identify data gaps by SKU.", "Clarify launch or transition requirements."],
+    },
+    nextStepsSlide: {
+      title: "Range decision next steps",
+      lines: ["Confirm SKU decisions and rationale.", "Agree implementation timing.", "Prepare customer files and sell-in evidence."],
+    },
+  },
+  "product-launch": {
+    proofPrompt: "Prove why the new product deserves support, distribution and launch investment.",
+    inputPrompts: ["Launch objective, target customer and timing", "Consumer/shopper insight and category gap", "Forecast, distribution ask, margin and support plan", "Launch risks, activation plan and success measures"],
+    uploadPrompt: "Upload forecasts, launch plan, research, product images or customer sell-in data",
+    briefPlaceholder: "Example: Build a launch sell-in deck for a new premium SKU with consumer insight, forecast, distribution ask, launch support and risks.",
+    fallbackBrief: ["Add the launch objective, target customer and distribution ask.", "Attach forecasts, product details or launch plans to build the case."],
+    outline: ["Launch headline", "Consumer and category opportunity", "Product and customer fit", "Forecast and support plan", "Launch recommendation"],
+    evidenceSlideTitle: "Consumer and category opportunity",
+    recommendationSlide: {
+      title: "Launch recommendation",
+      lines: ["State the distribution and support ask.", "Show why the product fits the customer and category gap.", "Connect activation to forecast delivery."],
+    },
+    financialSlide: {
+      title: "Forecast and support plan",
+      lines: ["Show forecast volume, revenue, margin and support by phase.", "Separate launch investment from ongoing trade support.", "Highlight success thresholds."],
+    },
+    risksSlide: {
+      title: "Launch risks and watchouts",
+      lines: ["Call out supply, forecast confidence, pricing, activation and rate-of-sale risks.", "Define mitigations before sell-in.", "Identify assumptions to validate."],
+    },
+    nextStepsSlide: {
+      title: "Launch action plan",
+      lines: ["Confirm customer target list and timings.", "Lock assets, samples and activation.", "Set the post-launch measurement cadence."],
+    },
+  },
+  "annual-planning": {
+    proofPrompt: "Translate the annual ambition into priorities, investment choices and quarterly actions.",
+    inputPrompts: ["Planning year, customer and target ambition", "Last-year performance and key lessons", "Priority initiatives, investment asks and trade-offs", "Quarterly roadmap, owners and measures"],
+    uploadPrompt: "Upload annual targets, prior-year results, planning files or investment trackers",
+    briefPlaceholder: "Example: Build a 2027 annual plan for Waitrose with last-year learnings, target ambition, investment priorities and quarterly roadmap.",
+    fallbackBrief: ["Add the planning year, target ambition and priority initiatives.", "Attach prior-year performance or annual targets to anchor the plan."],
+    outline: ["Annual ambition", "Last-year lessons", "Strategic priorities", "Investment choices", "Quarterly roadmap"],
+    evidenceSlideTitle: "Performance context and lessons",
+    recommendationSlide: {
+      title: "Annual priorities",
+      lines: ["Focus the plan on a small set of commercial priorities.", "Explain why each priority matters now.", "Show what will be deprioritised or traded off."],
+    },
+    financialSlide: {
+      title: "Annual value and investment plan",
+      lines: ["Show target revenue, margin, support and growth assumptions.", "Connect investment to priority outcomes.", "Highlight approval decisions required."],
+    },
+    risksSlide: {
+      title: "Planning risks",
+      lines: ["Call out delivery risks, dependencies and open assumptions.", "Show mitigations by priority.", "Clarify what needs leadership alignment."],
+    },
+    nextStepsSlide: {
+      title: "Quarterly roadmap",
+      lines: ["Set quarterly milestones and owners.", "Confirm governance cadence.", "Agree first-quarter activation steps."],
+    },
+  },
+  "buyer-meeting": {
+    proofPrompt: "Prepare the buyer conversation: objective, likely objections, commercial ask and meeting close.",
+    inputPrompts: ["Buyer, meeting date and desired decision", "Buyer priorities, likely objections and negotiation context", "Your commercial ask, walk-away position and concessions", "Evidence, questions to ask and follow-up actions"],
+    uploadPrompt: "Upload buyer notes, meeting history, account facts, objections or negotiation prep",
+    briefPlaceholder: "Example: Build a buyer meeting planner for a Tesco range meeting with the decision needed, buyer objections, key questions, negotiation asks and follow-up plan.",
+    fallbackBrief: ["Add the buyer, meeting objective and decision needed.", "Add likely objections, negotiation guardrails and questions to ask."],
+    outline: ["Meeting objective", "Buyer context", "Questions and evidence", "Negotiation plan", "Close and follow-up"],
+    evidenceSlideTitle: "Buyer context and evidence",
+    recommendationSlide: {
+      title: "Meeting plan",
+      lines: ["Open with the decision needed and buyer benefit.", "Use questions to surface priorities before presenting the ask.", "Prepare evidence for the most likely objections."],
+    },
+    financialSlide: {
+      title: "Commercial ask and guardrails",
+      lines: ["Show the target ask, fallback position and concessions.", "Include revenue, margin or support impact where relevant.", "Clarify what needs internal approval."],
+    },
+    risksSlide: {
+      title: "Objections and responses",
+      lines: ["List likely buyer objections.", "Prepare evidence-led responses.", "Define when to pause, escalate or trade concessions."],
+    },
+    nextStepsSlide: {
+      title: "Meeting close and follow-up",
+      lines: ["Confirm the desired close.", "Capture actions, owners and timing.", "Prepare the follow-up note or internal recap."],
+    },
+  },
+  "category-opportunity": {
+    proofPrompt: "Size the category opportunity and show the actions needed to unlock it.",
+    inputPrompts: ["Category, customer and opportunity question", "Shopper/category trends and market context", "Benchmark gaps, distribution gaps or competitor evidence", "Recommended actions, value case and customer benefit"],
+    uploadPrompt: "Upload category data, market reports, shopper insights or competitor benchmarks",
+    briefPlaceholder: "Example: Build a category opportunity deck for chilled snacks showing shopper trend, distribution gaps, competitor benchmark and recommended growth actions.",
+    fallbackBrief: ["Add the category question, customer and opportunity to prove.", "Attach market, shopper or benchmark data to size the opportunity."],
+    outline: ["Opportunity headline", "Shopper and market context", "Customer gap", "Commercial opportunity", "Recommended actions"],
+    evidenceSlideTitle: "Shopper and market context",
+    recommendationSlide: {
+      title: "Recommended growth actions",
+      lines: ["Translate the opportunity into practical actions.", "Show how each action benefits the customer and shopper.", "Prioritise the actions by value and feasibility."],
+    },
+    financialSlide: {
+      title: "Size of prize",
+      lines: ["Estimate revenue, margin, distribution or penetration upside.", "Show assumptions clearly.", "Separate quick wins from longer-term bets."],
+    },
+    risksSlide: {
+      title: "Risks and proof gaps",
+      lines: ["Call out data confidence and benchmark limitations.", "Identify execution dependencies.", "Show what evidence is needed before scale-up."],
+    },
+    nextStepsSlide: {
+      title: "Opportunity next steps",
+      lines: ["Confirm the priority action list.", "Agree data validation or pilot needs.", "Prepare the customer decision path."],
+    },
+  },
+};
+
+function getDeckPlaybook(deckType: string) {
+  return deckPlaybooks[deckType] ?? defaultDeckPlaybook;
+}
+
+function deckOutline(deckLabel: string, deckType: string, includeFinancialSummary: boolean, includeNextStepsSlide: boolean) {
+  const playbook = getDeckPlaybook(deckType);
   return [
     `${deckLabel} overview`,
-    "Meeting objective and context",
-    ...(briefPoints.length ? ["Key brief points"] : ["Commercial priorities"]),
-    "Recommended story",
-    ...(includeFinancialSummary ? ["Financial summary"] : []),
-    "Risks and watchouts",
-    ...(includeNextStepsSlide ? ["Next steps"] : []),
+    ...playbook.outline,
+    ...(includeFinancialSummary && playbook.financialSlide ? [playbook.financialSlide.title] : []),
+    playbook.risksSlide.title,
+    ...(includeNextStepsSlide ? [playbook.nextStepsSlide.title] : []),
   ];
 }
 
 function buildDeckContent({
   deckLabel,
+  deckType,
   brief,
   includeFinancialSummary,
   includeNextStepsSlide,
   supportingFiles,
 }: {
   deckLabel: string;
+  deckType: string;
   brief: string;
   includeFinancialSummary: boolean;
   includeNextStepsSlide: boolean;
   supportingFiles: File[];
 }) {
-  const outline = deckOutline(deckLabel, brief, includeFinancialSummary, includeNextStepsSlide);
+  const playbook = getDeckPlaybook(deckType);
+  const outline = deckOutline(deckLabel, deckType, includeFinancialSummary, includeNextStepsSlide);
   const briefPoints = briefSentences(brief);
   const sourceSummary = supportingFiles.length
     ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
@@ -207,48 +476,12 @@ function buildDeckContent({
   const contents: DeckSlideContent[] = [
     { title: deckLabel, lines: brief ? [brief] : ["Generated from your custom deck brief. Add more detail to sharpen the next version."] },
     { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`) },
-    { title: "Brief and assumptions", lines: briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."] },
+    { title: playbook.evidenceSlideTitle, lines: briefPoints.length ? briefPoints : playbook.fallbackBrief },
     { title: "Supporting data used", lines: sourceSummary },
-    {
-      title: "Recommended story",
-      lines: [
-        "Lead with the customer opportunity and the decision needed.",
-        "Connect the commercial ask to the retailer or customer benefit.",
-        "Use the attached data to prove the size of prize, risk and payback.",
-      ],
-    },
-    ...(includeFinancialSummary
-      ? [
-          {
-            title: "Financial summary",
-            lines: [
-              "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
-              "Separate confirmed facts from assumptions.",
-              "Show the decision threshold or negotiation guardrail clearly.",
-            ],
-          },
-        ]
-      : []),
-    {
-      title: "Risks and watchouts",
-      lines: [
-        "Call out data gaps, approval dependencies and commercial assumptions.",
-        "Highlight where retailer/customer policy may affect final pricing or support treatment.",
-        "Use this draft as a working structure before customer-facing use.",
-      ],
-    },
-    ...(includeNextStepsSlide
-      ? [
-          {
-            title: "Next steps",
-            lines: [
-              "Confirm data sources and final commercial assumptions.",
-              "Replace placeholder bullets with account-specific evidence.",
-              "Agree the recommended ask, owner and timing.",
-            ],
-          },
-        ]
-      : []),
+    playbook.recommendationSlide,
+    ...(includeFinancialSummary && playbook.financialSlide ? [playbook.financialSlide] : []),
+    playbook.risksSlide,
+    ...(includeNextStepsSlide ? [playbook.nextStepsSlide] : []),
   ];
   return { outline, contents };
 }
@@ -830,6 +1063,7 @@ function addTextBlock(slide: PptxGenJS.Slide, title: string, lines: string[], de
 
 async function createDeckFile({
   deckLabel,
+  deckType,
   brief,
   audience,
   tone,
@@ -841,6 +1075,7 @@ async function createDeckFile({
   readabilityMode,
 }: {
   deckLabel: string;
+  deckType: string;
   brief: string;
   audience: string;
   tone: string;
@@ -860,7 +1095,7 @@ async function createDeckFile({
         mutedTextColor: mutedReadableTextColor(autoTextColor),
       }
     : templateDesign;
-  const { outline, contents } = buildDeckContent({ deckLabel, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
+  const { outline, contents } = buildDeckContent({ deckLabel, deckType, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
   if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
     const templatedDeck = await withTimeout(
       createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents }),
@@ -1055,6 +1290,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],
   );
+  const selectedPlaybook = useMemo(() => getDeckPlaybook(deckType), [deckType]);
   const selectedSavedTemplate = useMemo(
     () => reusableSavedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
     [reusableSavedTemplates, selectedSavedTemplateId],
@@ -1278,6 +1514,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       const generated = await withTimeout(
         createDeckFile({
           deckLabel: resolvedDeckName,
+          deckType,
           brief,
           audience,
           tone,
@@ -1426,7 +1663,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                       </option>
                     ))}
                   </select>
-                  <small>Controls the first-draft story structure.</small>
+                  <small>{selectedPlaybook.proofPrompt}</small>
                 </label>
               </div>
             </section>
@@ -1557,7 +1794,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
 
             <section className="custom-deck-form-section">
               <h2>Supporting data</h2>
-              <p className="helper-note">Upload spreadsheets, notes, briefing files or existing decks with the numbers and context for this deck.</p>
+              <p className="helper-note">{selectedPlaybook.uploadPrompt}.</p>
               {supportingTemplateFile ? (
                 <p className="helper-note">
                   PowerPoint design detected: {supportingTemplateFile.name}. This file will be used as the deck design template unless you upload a different
@@ -1571,7 +1808,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 files={supportingFiles}
                 helper=".xlsx, .csv, .pdf, .docx, .txt, .pptx, .key, .numbers or .pages, up to 10MB each."
                 id="supporting-data-files"
-                label="Upload supporting data"
+                label={selectedPlaybook.uploadPrompt}
                 multiple
                 onFilesSelected={validateSupportingFiles}
                 onRemoveFile={(index) => {
@@ -1584,23 +1821,22 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             <section className="custom-deck-form-section">
               <h2>Deck brief</h2>
               <div className="custom-deck-brief-guide">
-                <strong>Include what the deck needs to prove</strong>
+                <strong>{selectedDeck.label} inputs</strong>
                 <ul className="compact-list">
-                  <li>Audience, meeting objective and decision needed</li>
-                  <li>Customer context, risks, asks and next steps</li>
-                  <li>Key commercial numbers or where they are uploaded</li>
-                  <li>Any specific slides, story flow or format to follow</li>
+                  {selectedPlaybook.inputPrompts.map((prompt) => (
+                    <li key={prompt}>{prompt}</li>
+                  ))}
                 </ul>
               </div>
               <label className="field">
                 <span>Brief</span>
                 <textarea
                   className="deck-brief-textarea"
-                  placeholder="Example: Build a QBR for Tesco covering Q3 performance, promo results, risks, next-quarter asks and recommended actions."
+                  placeholder={selectedPlaybook.briefPlaceholder}
                   value={brief}
                   onChange={(event) => setBrief(event.target.value)}
                 />
-                <small>The better the brief, the stronger the first draft.</small>
+                <small>The first draft will follow a {selectedDeck.label.toLowerCase()} story, then use your files and brief to fill the evidence.</small>
               </label>
             </section>
 
