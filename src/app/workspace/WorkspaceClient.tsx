@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   deleteDeckBrief,
@@ -296,6 +296,40 @@ function EmptyState() {
         </Link>
       </div>
     </div>
+  );
+}
+
+function CreateComparisonGroup({
+  onCreate,
+}: {
+  onCreate: (name: string) => void | Promise<void>;
+}) {
+  const [name, setName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onCreate(trimmed);
+      setName("");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <form className="workspace-create-group" onSubmit={submit}>
+      <label>
+        <span>New comparison group</span>
+        <input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Q4 promo options" />
+      </label>
+      <button className="button button-secondary button-small" disabled={!name.trim() || isSaving} type="submit">
+        {isSaving ? "Creating..." : "Add group"}
+      </button>
+    </form>
   );
 }
 
@@ -726,6 +760,24 @@ export function WorkspaceClient() {
     await refreshSavedWork();
   }
 
+  async function createComparisonGroup(name: string) {
+    const now = nowIso();
+    const result = await saveRoiPlan({
+      id: crypto.randomUUID(),
+      name,
+      group_name: name,
+      scenarios: [],
+      sourcePath: "/roi-tool",
+      savedAt: now,
+      createdAt: now,
+      updatedAt: now,
+      created_at: now,
+      updated_at: now,
+    });
+    setLoadMessage(result.data ? `Created comparison group "${name}".` : result.message ?? "Could not create comparison group.");
+    await refreshSavedWork();
+  }
+
   async function moveStandaloneScenarioIntoComparison(scenarioId: string, comparisonId: string) {
     const standalone = savedScenarios.find((scenario) => scenario.id === scenarioId);
     const comparison = savedComparisons.find((group) => group.id === comparisonId);
@@ -751,10 +803,6 @@ export function WorkspaceClient() {
     const comparison = savedComparisons.find((group) => group.id === comparisonId);
     if (!comparison) return;
     const scenarios = getComparisonScenarios(comparison);
-    if (scenarios.length <= 1) {
-      setLoadMessage("A comparison needs at least one scenario. Add another scenario before moving this one out.");
-      return;
-    }
     const scenario = scenarios.find((item) => item.id === scenarioId);
     if (!scenario) return;
     const title = getText(scenario.name, "ROI scenario");
@@ -774,10 +822,6 @@ export function WorkspaceClient() {
     const target = savedComparisons.find((group) => group.id === targetComparisonId);
     if (!source || !target) return;
     const sourceScenarios = getComparisonScenarios(source);
-    if (sourceScenarios.length <= 1) {
-      setLoadMessage("A comparison needs at least one scenario. Add another scenario before moving this one.");
-      return;
-    }
     const scenario = sourceScenarios.find((item) => item.id === scenarioId);
     if (!scenario) return;
     const updatedSource = buildUpdatedComparison(source, sourceScenarios.filter((item) => item.id !== scenarioId));
@@ -793,10 +837,6 @@ export function WorkspaceClient() {
     const comparison = savedComparisons.find((group) => group.id === comparisonId);
     if (!comparison) return;
     const scenarios = getComparisonScenarios(comparison);
-    if (scenarios.length <= 1) {
-      setLoadMessage("A comparison needs at least one scenario. Add another scenario before deleting this one.");
-      return;
-    }
     const updated = await saveRoiPlan(buildUpdatedComparison(comparison, scenarios.filter((scenario) => scenario.id !== scenarioId)));
     setLoadMessage(updated.data ? "Scenario deleted from comparison." : updated.message ?? "Could not delete scenario from comparison.");
     await refreshSavedWork();
@@ -900,9 +940,12 @@ export function WorkspaceClient() {
             title="Comparisons & scenarios"
             description="Comparison groups, standalone ROI scenarios and saved calculator results. Expand a comparison to manage the scenarios inside it."
             action={
-              <Link className="button button-secondary button-small" href="/roi-tool">
-                New ROI comparison
-              </Link>
+              <div className="workspace-header-actions">
+                <CreateComparisonGroup onCreate={createComparisonGroup} />
+                <Link className="button button-secondary button-small" href="/roi-tool">
+                  Build in ROI tool
+                </Link>
+              </div>
             }
             items={visibleCommercialItems}
             comparisons={savedComparisons}
