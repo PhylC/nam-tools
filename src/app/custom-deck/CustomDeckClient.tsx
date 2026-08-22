@@ -3,10 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import type PptxGenJS from "pptxgenjs";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
 import { saveDeckBrief } from "../../lib/saveStore";
+import { uploadGeneratedDeck } from "../../lib/storageUploads";
 
 const DECK_TEMPLATE_MAX_FILE_BYTES = 20 * 1024 * 1024;
 const SUPPORTING_FILE_MAX_BYTES = 10 * 1024 * 1024;
@@ -42,6 +44,11 @@ type FileMeta = {
   size: number;
   type: string;
   extension: string;
+};
+type GeneratedDeckResult = {
+  file: File;
+  filename: string;
+  outline: string[];
 };
 
 function normaliseTemplate(value: string) {
@@ -81,6 +88,145 @@ function isGoogleSlidesUrl(value: string) {
   } catch {
     return false;
   }
+}
+
+function safeFilename(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "custom-deck";
+}
+
+function briefSentences(value: string) {
+  return value
+    .split(/[\n.]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function deckOutline(deckLabel: string, brief: string, includeFinancialSummary: boolean, includeNextStepsSlide: boolean) {
+  const briefPoints = briefSentences(brief);
+  return [
+    `${deckLabel} overview`,
+    "Meeting objective and context",
+    ...(briefPoints.length ? ["Key brief points"] : ["Commercial priorities"]),
+    "Recommended story",
+    ...(includeFinancialSummary ? ["Financial summary"] : []),
+    "Risks and watchouts",
+    ...(includeNextStepsSlide ? ["Next steps"] : []),
+  ];
+}
+
+function addTextBlock(slide: PptxGenJS.Slide, title: string, lines: string[], y = 1.55) {
+  slide.addText(title, { x: 0.7, y: 0.62, w: 11.9, h: 0.45, fontFace: "Aptos Display", fontSize: 23, bold: true, color: "16202A", margin: 0 });
+  slide.addShape("line", { x: 0.7, y: 1.23, w: 11.9, h: 0, line: { color: "0F766E", width: 1.2 } });
+  slide.addText(
+    lines.map((line) => `- ${line}`).join("\n"),
+    { x: 0.9, y, w: 11.35, h: 4.8, fontFace: "Aptos", fontSize: 16, color: "27323D", breakLine: false, fit: "shrink", valign: "top" },
+  );
+}
+
+async function createDeckFile({
+  deckLabel,
+  brief,
+  audience,
+  tone,
+  includeFinancialSummary,
+  includeNextStepsSlide,
+  supportingFiles,
+}: {
+  deckLabel: string;
+  brief: string;
+  audience: string;
+  tone: string;
+  includeFinancialSummary: boolean;
+  includeNextStepsSlide: boolean;
+  supportingFiles: File[];
+}): Promise<GeneratedDeckResult> {
+  const { default: PptxGenJS } = await import("pptxgenjs");
+  const pptx = new PptxGenJS();
+  pptx.layout = "LAYOUT_WIDE";
+  pptx.author = "APT Account Planning Tools";
+  pptx.company = "APT";
+  pptx.subject = `${deckLabel} generated draft`;
+  pptx.title = deckLabel;
+  pptx.theme = {
+    headFontFace: "Aptos Display",
+    bodyFontFace: "Aptos",
+  };
+
+  const outline = deckOutline(deckLabel, brief, includeFinancialSummary, includeNextStepsSlide);
+  const briefPoints = briefSentences(brief);
+  const sourceSummary = supportingFiles.length
+    ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
+    : ["No supporting files attached to this draft."];
+
+  const cover = pptx.addSlide();
+  cover.background = { color: "F7FAF9" };
+  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: 0.16, fill: { color: "0F766E" }, line: { color: "0F766E" } });
+  cover.addText(deckLabel, { x: 0.72, y: 1.35, w: 8.8, h: 0.7, fontFace: "Aptos Display", fontSize: 34, bold: true, color: "16202A", margin: 0 });
+  cover.addText(`Draft for ${audience}`, { x: 0.75, y: 2.18, w: 7.5, h: 0.35, fontSize: 15, bold: true, color: "0F766E", margin: 0 });
+  cover.addText(brief || "Generated from your custom deck brief. Add more detail to sharpen the next version.", {
+    x: 0.75,
+    y: 2.8,
+    w: 6.5,
+    h: 1.2,
+    fontSize: 16,
+    color: "4B5966",
+    fit: "shrink",
+    margin: 0,
+  });
+  cover.addShape(pptx.ShapeType.rect, { x: 8.1, y: 1.35, w: 4.25, h: 3.85, fill: { color: "FFFFFF" }, line: { color: "CFE1DE" } });
+  cover.addText(`Audience\n${audience}\n\nTone\n${toneOptions.find((item) => item.value === tone)?.label ?? tone}`, {
+    x: 8.45,
+    y: 1.75,
+    w: 3.55,
+    h: 2.4,
+    fontSize: 15,
+    color: "16202A",
+    bold: true,
+    breakLine: true,
+    margin: 0.06,
+  });
+
+  addTextBlock(pptx.addSlide(), "Draft story flow", outline.map((item, index) => `${index + 1}. ${item}`));
+  addTextBlock(pptx.addSlide(), "Brief and assumptions", briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."]);
+  addTextBlock(pptx.addSlide(), "Supporting data used", sourceSummary);
+  addTextBlock(pptx.addSlide(), "Recommended story", [
+    "Lead with the customer opportunity and the decision needed.",
+    "Connect the commercial ask to the retailer or customer benefit.",
+    "Use the attached data to prove the size of prize, risk and payback.",
+  ]);
+  if (includeFinancialSummary) {
+    addTextBlock(pptx.addSlide(), "Financial summary", [
+      "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
+      "Separate confirmed facts from assumptions.",
+      "Show the decision threshold or negotiation guardrail clearly.",
+    ]);
+  }
+  addTextBlock(pptx.addSlide(), "Risks and watchouts", [
+    "Call out data gaps, approval dependencies and commercial assumptions.",
+    "Highlight where retailer/customer policy may affect final pricing or support treatment.",
+    "Use this draft as a working structure before customer-facing use.",
+  ]);
+  if (includeNextStepsSlide) {
+    addTextBlock(pptx.addSlide(), "Next steps", [
+      "Confirm data sources and final commercial assumptions.",
+      "Replace placeholder bullets with account-specific evidence.",
+      "Agree the recommended ask, owner and timing.",
+    ]);
+  }
+
+  const output = await pptx.write({ outputType: "blob" });
+  const blob = output as Blob;
+  const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
+  return {
+    file: new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
+    filename,
+    outline,
+  };
 }
 
 function DeckFileDropzone({
@@ -170,7 +316,7 @@ function DeckFileDropzone({
 }
 
 export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: string }) {
-  const { plan } = useSupabaseAuth();
+  const { plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const [deckType, setDeckType] = useState(
@@ -193,6 +339,9 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
   const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
   const [requestMessage, setRequestMessage] = useState("");
+  const [generatedDeckUrl, setGeneratedDeckUrl] = useState("");
+  const [generatedDeckFilename, setGeneratedDeckFilename] = useState("");
+  const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const isPro = plan === "pro" || plan === "team";
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
@@ -214,6 +363,12 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
+    };
+  }, [generatedDeckUrl]);
 
   function validateOneOffTemplateFiles(files: File[]) {
     setTemplateError("");
@@ -250,44 +405,85 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     setSupportingFiles(next);
   }
 
-  async function saveDeckRequest() {
+  async function createAndSaveDeck() {
     if (!requirePro(() => undefined, { feature: "custom-deck", location: "custom_deck_save_request" })) return;
+    if (!user?.id) {
+      setRequestMessage("Sign in to create and save a deck.");
+      return;
+    }
     setRequestMessage("");
     setGoogleSlidesError("");
     if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
       setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
       return;
     }
-    const requestPayload = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `deck-request-${Date.now()}`,
-      name: `${selectedDeck.label} deck brief`,
-      deck_name: `${selectedDeck.label} deck brief`,
-      template_type: selectedDeck.label,
-      deckType,
-      templateSource,
-      savedTemplateId: templateSource === "saved" ? selectedSavedTemplateId : "",
-      oneOffTemplateFileMeta: templateSource === "one_off" && oneOffTemplateFiles[0] ? toFileMeta(oneOffTemplateFiles[0]) : null,
-      googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
-      supportingFilesMeta: supportingFiles.map(toFileMeta),
-      brief,
-      audience,
-      tone,
-      includeFinancialSummary: financialSummary === "Yes",
-      includeNextStepsSlide: nextStepsSlide === "Yes",
-      exportFormat,
-      createdAt: new Date().toISOString(),
-    };
-    const result = await saveDeckBrief(requestPayload);
-    if (!result.data) {
-      setRequestMessage(result.message ?? "Could not save deck brief.");
-      return;
+    setIsCreatingDeck(true);
+    try {
+      if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
+      setGeneratedDeckUrl("");
+      setGeneratedDeckFilename("");
+      const generated = await createDeckFile({
+        deckLabel: selectedDeck.label,
+        brief,
+        audience,
+        tone,
+        includeFinancialSummary: financialSummary === "Yes",
+        includeNextStepsSlide: nextStepsSlide === "Yes",
+        supportingFiles,
+      });
+      const downloadUrl = URL.createObjectURL(generated.file);
+      const uploaded = await uploadGeneratedDeck(generated.file, user.id);
+      const requestPayload = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `deck-request-${Date.now()}`,
+        name: `${selectedDeck.label} generated deck`,
+        deck_name: `${selectedDeck.label} generated deck`,
+        template_type: selectedDeck.label,
+        deckType,
+        templateSource,
+        savedTemplateId: templateSource === "saved" ? selectedSavedTemplateId : "",
+        oneOffTemplateFileMeta: templateSource === "one_off" && oneOffTemplateFiles[0] ? toFileMeta(oneOffTemplateFiles[0]) : null,
+        googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
+        supportingFilesMeta: supportingFiles.map(toFileMeta),
+        brief,
+        audience,
+        tone,
+        includeFinancialSummary: financialSummary === "Yes",
+        includeNextStepsSlide: nextStepsSlide === "Yes",
+        exportFormat,
+        generatedOutline: generated.outline,
+        generated_outline: generated.outline,
+        generatedDeck: {
+          filename: generated.filename,
+          fileSize: generated.file.size,
+          fileType: generated.file.type,
+          storagePath: uploaded.path,
+          generatedAt: new Date().toISOString(),
+        },
+        createdAt: new Date().toISOString(),
+      };
+      const result = await saveDeckBrief(requestPayload);
+      if (!result.data) {
+        URL.revokeObjectURL(downloadUrl);
+        setRequestMessage(result.message ?? "Could not save deck brief.");
+        return;
+      }
+      setGeneratedDeckUrl(downloadUrl);
+      setGeneratedDeckFilename(generated.filename);
+      setRequestMessage(
+        uploaded.path
+          ? "Deck created and saved to your account."
+          : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
+      );
+    } catch {
+      setRequestMessage("Could not create the deck. Please try again.");
+    } finally {
+      setIsCreatingDeck(false);
     }
-    setRequestMessage("Deck brief saved to your account.");
   }
 
   function preventSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    void saveDeckRequest();
+    void createAndSaveDeck();
   }
 
   return (
@@ -543,13 +739,18 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} type="submit">
-              Save deck request
+            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck} type="submit">
+              {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
             </button>
             <p>
-              This saves your brief, selected format and file details on this device so you can review the request.
+              This creates an editable PowerPoint draft, saves the deck record to your workspace and stores the file when account storage is available.
             </p>
             {requestMessage ? <p className="settings-message settings-message-success">{requestMessage}</p> : null}
+            {generatedDeckUrl ? (
+              <a className="button button-secondary button-small" download={generatedDeckFilename} href={generatedDeckUrl}>
+                Download generated deck
+              </a>
+            ) : null}
           </div>
         </form>
 
