@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
 import { listDeckBriefs } from "../../lib/saveStore";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
@@ -23,6 +23,7 @@ type FreeTemplate = {
 };
 
 type SavedRecord = Record<string, unknown>;
+type SavedDeckSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
 
 // Templates intentionally use editable example content so users can adapt them for real customer meetings.
 const freeTemplates: FreeTemplate[] = [
@@ -151,16 +152,56 @@ function getUpdatedDate(item: SavedRecord) {
   return `Last updated ${new Date(time).toLocaleDateString("en-GB")}`;
 }
 
+function getDeckTitle(deck: SavedRecord) {
+  return getText(deck.name ?? deck.deck_name ?? deck.title, "Saved deck");
+}
+
+function getDeckDescription(deck: SavedRecord) {
+  const template = getText(deck.template_type, "Custom deck");
+  const customer = getText(deck.customer, "");
+  const audience = getText(deck.audience, "");
+  if (customer) return `${template} for ${customer}`;
+  return audience ? `${template} · ${audience}` : template;
+}
+
+function getDeckSearchText(deck: SavedRecord) {
+  return [
+    getDeckTitle(deck),
+    getDeckDescription(deck),
+    getUpdatedDate(deck),
+    getText(deck.tone, ""),
+    getText(deck.deckType, ""),
+    getText(deck.brief, ""),
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
 function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
   const [decks, setDecks] = useState<SavedRecord[]>([]);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SavedDeckSort>("updated-desc");
   const [message, setMessage] = useState("");
+  const query = search.trim().toLowerCase();
+  const visibleDecks = useMemo(() => {
+    return decks
+      .filter((deck) => !query || getDeckSearchText(deck).includes(query))
+      .toSorted((left, right) => {
+        if (sort === "name-asc" || sort === "name-desc") {
+          const direction = sort === "name-asc" ? 1 : -1;
+          return direction * getDeckTitle(left).localeCompare(getDeckTitle(right), "en-GB", { sensitivity: "base" });
+        }
+        const direction = sort === "updated-desc" ? -1 : 1;
+        return direction * (getTimestamp(left) - getTimestamp(right));
+      });
+  }, [decks, query, sort]);
 
   useEffect(() => {
     if (!isPro) return;
     let isMounted = true;
     listDeckBriefs().then((result) => {
       if (!isMounted) return;
-      setDecks(result.data.slice(0, 5));
+      setDecks(result.data);
       setMessage(result.message ?? "");
     });
     return () => {
@@ -183,31 +224,59 @@ function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
       </div>
       {message ? <p className="saved-panel-note">{message}</p> : null}
       {decks.length ? (
-        <div className="saved-bottom-list">
-          {decks.map((deck) => {
-            const id = String(deck.id ?? "");
-            const name = getText(deck.name ?? deck.deck_name, "Saved deck");
-            const template = getText(deck.template_type, "Custom deck");
-            const customer = getText(deck.customer, "");
-            return (
-              <div className="saved-bottom-row" key={id}>
-                <div>
-                  <strong>{name}</strong>
-                  <span>{customer ? `${template} for ${customer}` : template}</span>
-                </div>
-                <span>{getUpdatedDate(deck)}</span>
-                <div className="summary-actions">
-                  <Link className="button button-secondary button-small" href={`/custom-deck?deck=${id}`}>
-                    Create new from this
-                  </Link>
-                  <Link className="button button-secondary button-small" href="/workspace#decks">
-                    Details
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <>
+          <div className="saved-bottom-controls">
+            <label className="field">
+              <span>Search saved decks</span>
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search deck, customer, template or brief" />
+            </label>
+            <label className="field">
+              <span>Sort by</span>
+              <select value={sort} onChange={(event) => setSort(event.target.value as SavedDeckSort)}>
+                <option value="updated-desc">Newest first</option>
+                <option value="updated-asc">Oldest first</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="name-desc">Name Z-A</option>
+              </select>
+            </label>
+          </div>
+          <div className="saved-bottom-table-scroll">
+            <div className="saved-bottom-table-head" aria-hidden="true">
+              <span>Saved deck</span>
+              <span>Last updated</span>
+              <span>Actions</span>
+            </div>
+            <div className="saved-bottom-grouped-list">
+              {visibleDecks.length ? (
+                visibleDecks.map((deck) => {
+                  const id = String(deck.id ?? "");
+                  const name = getDeckTitle(deck);
+                  return (
+                    <article className="saved-bottom-group" key={id}>
+                      <div className="saved-bottom-group-row">
+                        <div>
+                          <strong>{name}</strong>
+                          <span>{getDeckDescription(deck)}</span>
+                        </div>
+                        <small>{getUpdatedDate(deck)}</small>
+                        <div className="saved-bottom-actions">
+                          <Link className="button button-secondary button-small" href={`/custom-deck?deck=${id}`}>
+                            Create new from this
+                          </Link>
+                          <Link className="workspace-icon-button" href="/workspace#decks" aria-label={`View details for ${name}`} title="Details">
+                            <span aria-hidden="true">i</span>
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="saved-bottom-subrow saved-bottom-subrow-empty">No saved decks match this search.</div>
+              )}
+            </div>
+          </div>
+        </>
       ) : (
         <div className="saved-panel-empty">
           <strong>No saved decks yet.</strong>
