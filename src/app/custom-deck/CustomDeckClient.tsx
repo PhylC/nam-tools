@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import type PptxGenJS from "pptxgenjs";
@@ -1302,6 +1301,15 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
 
             <section className="custom-deck-form-section">
               <h2>Deck brief</h2>
+              <div className="custom-deck-brief-guide">
+                <strong>Include what the deck needs to prove</strong>
+                <ul className="compact-list">
+                  <li>Audience, meeting objective and decision needed</li>
+                  <li>Customer context, risks, asks and next steps</li>
+                  <li>Key commercial numbers or where they are uploaded</li>
+                  <li>Any specific slides, story flow or format to follow</li>
+                </ul>
+              </div>
               <label className="field">
                 <span>Brief</span>
                 <textarea
@@ -1391,32 +1399,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             ) : null}
           </div>
         </form>
-
-        <aside className="card custom-deck-sidebar">
-          <Image
-            alt="APT custom deck builder showing deck type, uploads and brief fields"
-            className="custom-deck-preview-image"
-            height={525}
-            loading="lazy"
-            src="/images/apt/apt-custom-deck-builder-preview.webp"
-            width={663}
-          />
-          <h2>What to include</h2>
-          <ul className="compact-list">
-            <li>Your audience and meeting objective</li>
-            <li>Customer or retailer context</li>
-            <li>Key commercial numbers</li>
-            <li>Risks, asks and next steps</li>
-            <li>Any slides or format you want followed</li>
-          </ul>
-          <div className="custom-deck-side-note">
-            <strong>{selectedDeck.label}</strong>
-            <span>APT will use this as the starting structure for the brief.</span>
-          </div>
-          <Link className="text-link" href="/presentation-templates">
-            Back to presentation templates
-          </Link>
-        </aside>
       </div>
     </section>
   );
