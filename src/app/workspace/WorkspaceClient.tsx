@@ -21,6 +21,7 @@ import {
   saveRoiPlan,
   saveScenario,
 } from "../../lib/saveStore";
+import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
 
@@ -87,6 +88,32 @@ function getDeckDescription(item: SavedRecord) {
   const template = getText(item.template_type, "Presentation deck");
   const customer = getText(item.customer, "");
   return customer ? `${template} for ${customer}` : template;
+}
+
+function safeDeckFilename(value: string) {
+  const cleaned = value.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 120);
+  return cleaned || "saved-presentation.pptx";
+}
+
+function getGeneratedDeckFile(item: SavedRecord) {
+  const generatedDeck = isRecord(item.generatedDeck) ? item.generatedDeck : {};
+  const storagePath = getText(generatedDeck.storagePath, "");
+  if (!storagePath) return null;
+  return {
+    storagePath,
+    filename: safeDeckFilename(getText(generatedDeck.filename, `${getSavedItemTitle(item, "Deck")}.pptx`)),
+  };
+}
+
+function downloadBrowserFile(file: File) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function getAnalysisDescription(item: SavedRecord) {
@@ -657,6 +684,8 @@ function GeneralItemMenu({
   type,
   primaryHref,
   primaryLabel,
+  downloadDisabled,
+  onDownloadDeck,
   onRename,
   onDuplicate,
   onDelete,
@@ -665,6 +694,8 @@ function GeneralItemMenu({
   type: SavedItemType;
   primaryHref?: string;
   primaryLabel?: string;
+  downloadDisabled?: boolean;
+  onDownloadDeck?: (id: string) => void | Promise<void>;
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
@@ -675,6 +706,11 @@ function GeneralItemMenu({
         <Link className="workspace-menu-action" href={primaryHref}>
           {primaryLabel ?? "Edit"}
         </Link>
+      ) : null}
+      {type === "Deck" && onDownloadDeck ? (
+        <button className="workspace-menu-action" disabled={downloadDisabled} onClick={() => onDownloadDeck(id)} type="button">
+          Download presentation
+        </button>
       ) : null}
       <button className="workspace-menu-action" onClick={() => onRename(id, type)} type="button">
         Rename
@@ -800,6 +836,7 @@ function SavedWorkRow({
   onRename,
   onDuplicate,
   onDelete,
+  onDownloadDeck,
   selected,
   selectionKey,
   onToggleSelected,
@@ -808,12 +845,14 @@ function SavedWorkRow({
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDownloadDeck?: (id: string) => void | Promise<void>;
   selected?: boolean;
   selectionKey?: string;
   onToggleSelected?: (key: string) => void;
 }) {
   const title = getSavedItemTitle(item.record, item.type);
   const href = getItemHref(item.record, item.type);
+  const generatedDeckFile = item.type === "Deck" ? getGeneratedDeckFile(item.record) : null;
 
   return (
     <article className="workspace-list-row">
@@ -842,6 +881,8 @@ function SavedWorkRow({
             type={item.type}
             primaryHref={item.type === "Comparison" || item.type === "Scenario" ? href : item.type === "Deck" ? `/custom-deck?deck=${item.id}` : undefined}
             primaryLabel={item.type === "Deck" ? "Create new from this" : "Edit"}
+            downloadDisabled={item.type === "Deck" && !generatedDeckFile}
+            onDownloadDeck={item.type === "Deck" ? onDownloadDeck : undefined}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onRename={onRename}
@@ -1104,6 +1145,7 @@ function WorkspaceSectionList({
   onRename,
   onDuplicate,
   onDelete,
+  onDownloadDeck,
   selectedKeys,
   onBulkDelete,
   onSelectVisible,
@@ -1117,6 +1159,7 @@ function WorkspaceSectionList({
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
+  onDownloadDeck?: (id: string) => void | Promise<void>;
   selectedKeys?: Set<string>;
   onBulkDelete?: () => void | Promise<void>;
   onSelectVisible?: () => void;
@@ -1156,6 +1199,7 @@ function WorkspaceSectionList({
               selected={selectedKeys?.has(deckSelectionKey(item.id))}
               selectionKey={onToggleSelected ? deckSelectionKey(item.id) : undefined}
               onDelete={onDelete}
+              onDownloadDeck={onDownloadDeck}
               onDuplicate={onDuplicate}
               onRename={onRename}
               onToggleSelected={onToggleSelected}
@@ -1489,6 +1533,25 @@ export function WorkspaceClient() {
     await refreshSavedWork();
   }
 
+  async function downloadSavedDeck(id: string) {
+    const deck = deckBriefs.find((item) => item.id === id);
+    if (!deck) return;
+    const generatedDeckFile = getGeneratedDeckFile(deck);
+    if (!generatedDeckFile) {
+      setLoadMessage("This saved deck does not have a stored presentation file. Open it and create a new copy to download.");
+      return;
+    }
+
+    setLoadMessage("Preparing saved presentation download...");
+    const result = await downloadGeneratedDeck(generatedDeckFile.storagePath, generatedDeckFile.filename);
+    if (!result.file) {
+      setLoadMessage(result.error ?? "Could not download the saved presentation.");
+      return;
+    }
+    downloadBrowserFile(result.file);
+    setLoadMessage(`Downloaded ${generatedDeckFile.filename}.`);
+  }
+
   async function renameSavedItem(id: string, type: SavedItemType) {
     const source =
       type === "Analysis"
@@ -1803,6 +1866,7 @@ export function WorkspaceClient() {
             selectedKeys={selectedKeys}
             onBulkDelete={bulkDeleteDecks}
             onDelete={deleteSavedItem}
+            onDownloadDeck={downloadSavedDeck}
             onDuplicate={duplicateSavedItem}
             onRename={renameSavedItem}
             onSelectVisible={selectVisibleDecks}
