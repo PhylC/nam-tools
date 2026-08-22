@@ -2597,6 +2597,11 @@ p {
   gap: 1rem;
 }
 
+.tool-example-action {
+  display: flex;
+  justify-content: flex-start;
+}
+
 .quick-calculator-list {
   display: grid;
   gap: 1rem;

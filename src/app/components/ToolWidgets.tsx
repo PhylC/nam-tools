@@ -465,6 +465,7 @@ function TextInput({
   value,
   onChange,
   multiline,
+  placeholder,
   required = true,
 }: {
   label: string;
@@ -472,14 +473,15 @@ function TextInput({
   value: string;
   onChange: (value: string) => void;
   multiline?: boolean;
+  placeholder?: string;
   required?: boolean;
 }) {
   return (
     <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
       {multiline ? (
-        <textarea className="calc-input" required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+        <textarea className="calc-input" placeholder={placeholder} required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       ) : (
-        <input className="calc-input" required={required} value={value} onChange={(event) => onChange(event.target.value)} />
+        <input className="calc-input" placeholder={placeholder} required={required} value={value} onChange={(event) => onChange(event.target.value)} />
       )}
     </Field>
   );
@@ -3140,45 +3142,116 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   );
 }
 
+const buyerMeetingExample = {
+  customer: "Retailer A",
+  objective: "Secure agreement for a summer promotional plan",
+  issue: "The buyer needs stronger value perception without adding range complexity.",
+  ask: "Approve a 6-week feature and display plan on the core range.",
+  evidence: "Last event delivered +18% units, 94% availability and positive shopper feedback.",
+  buyerPriority: "Value perception, availability and profitable category growth.",
+  tradeOff: "We can narrow the range or shorten the event if investment becomes the blocker.",
+  stakeholders: "Buyer, category manager, supply contact and internal finance owner.",
+  nextStep: "Agree the mechanic, timing and approval route this week.",
+};
+
+const jbpExample = {
+  customer: "Retailer A",
+  opportunity: "Grow premium penetration in high-value missions.",
+  objective: "Deliver profitable category growth over the next 12 months.",
+  initiative: "Quarterly feature plan, range optimisation and joint digital support.",
+  investment: "£45k trade and media investment",
+  measure: "Incremental revenue, margin, distribution gains and repeat rate.",
+};
+
+const accountPlanExample = {
+  account: "Retailer A",
+  performance: "Sales are growing behind promotions, but base rate of sale is flat.",
+  opportunity: "Improve distribution on priority SKUs and sharpen promotional mix.",
+  risk: "Margin pressure and competitor space gains.",
+  products: "Core range, premium formats and seasonal packs.",
+  objective: "Grow profitable revenue while improving availability and execution quality.",
+  investment: "Trade spend, category evidence and supply planning support.",
+  owners: "NAM owns customer alignment; category owns evidence; finance owns guardrails; supply owns availability.",
+  action: "Book buyer meeting to agree range and promo recommendations.",
+};
+
+const customerReviewExample = {
+  customer: "Retailer A",
+  period: "Q2",
+  performance: "Revenue grew 6%, with strong promo weeks but weaker base sales.",
+  worked: "Distribution gains, better feature compliance and improved availability.",
+  missed: "Promotion margin was below target and one launch missed the timing window.",
+  priority: "Improve base rate of sale, protect margin and tighten launch planning.",
+  customerObjective: "Grow the category profitably while improving availability and shopper value.",
+  decisionNeeded: "Agree the next period priorities, support levels and owners.",
+  actions: "Confirm promotion mechanics, fix launch timeline, agree base-rate actions and schedule monthly scorecard reviews.",
+};
+
+function planningText(value: string, fallback: string) {
+  return value.trim() || fallback;
+}
+
 export function BuyerMeetingPrepTool() {
-  const [customer, setCustomer] = useState("Retailer A");
-  const [objective, setObjective] = useState("Secure agreement for a summer promotional plan");
-  const [issue, setIssue] = useState("The buyer needs stronger value perception without adding range complexity.");
-  const [ask, setAsk] = useState("Approve a 6-week feature and display plan on the core range.");
-  const [evidence, setEvidence] = useState("Last event delivered +18% units, 94% availability and positive shopper feedback.");
-  const [buyerPriority, setBuyerPriority] = useState("Value perception, availability and profitable category growth.");
-  const [tradeOff, setTradeOff] = useState("We can narrow the range or shorten the event if investment becomes the blocker.");
-  const [stakeholders, setStakeholders] = useState("Buyer, category manager, supply contact and internal finance owner.");
-  const [nextStep, setNextStep] = useState("Agree the mechanic, timing and approval route this week.");
+  const [customer, setCustomer] = useState("");
+  const [objective, setObjective] = useState("");
+  const [issue, setIssue] = useState("");
+  const [ask, setAsk] = useState("");
+  const [evidence, setEvidence] = useState("");
+  const [buyerPriority, setBuyerPriority] = useState("");
+  const [tradeOff, setTradeOff] = useState("");
+  const [stakeholders, setStakeholders] = useState("");
+  const [nextStep, setNextStep] = useState("");
   const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
-  const evidenceBase = salesData ? `${evidence} Uploaded data: ${salesData.summaryText}` : evidence;
+  const customerName = planningText(customer, "Customer");
+  const objectiveText = planningText(objective, "define the meeting objective");
+  const issueText = planningText(issue, "Add the buyer issue or opportunity.");
+  const askText = planningText(ask, "Add the specific customer ask.");
+  const evidenceText = planningText(evidence, "Add evidence, numbers or customer context.");
+  const buyerPriorityText = planningText(buyerPriority, "Add the buyer priority.");
+  const tradeOffText = planningText(tradeOff, "Add the negotiation trade-off.");
+  const stakeholdersText = planningText(stakeholders, "Add the stakeholders to align.");
+  const nextStepText = planningText(nextStep, "Add the desired next step.");
+  const evidenceBase = salesData ? `${evidenceText} Uploaded data: ${salesData.summaryText}` : evidenceText;
+
+  function populateExampleData() {
+    setCustomer(buyerMeetingExample.customer);
+    setObjective(buyerMeetingExample.objective);
+    setIssue(buyerMeetingExample.issue);
+    setAsk(buyerMeetingExample.ask);
+    setEvidence(buyerMeetingExample.evidence);
+    setBuyerPriority(buyerMeetingExample.buyerPriority);
+    setTradeOff(buyerMeetingExample.tradeOff);
+    setStakeholders(buyerMeetingExample.stakeholders);
+    setNextStep(buyerMeetingExample.nextStep);
+  }
 
   const sections: [string, string][] = [
-    ["Meeting objective", `For ${customer}, the objective is to ${objective.toLowerCase()}. Desired next step: ${nextStep}`],
-    ["Buyer context", `The buyer priority is ${buyerPriority.toLowerCase()} The current issue is: ${issue}`],
-    ["5-minute opening", `Thanks for making the time. I want to focus on ${issue.toLowerCase()} and show a practical way forward: ${ask}. I have kept the recommendation tied to ${buyerPriority.toLowerCase()}`],
+    ["Meeting objective", `For ${customerName}, the objective is to ${objectiveText.toLowerCase()}. Desired next step: ${nextStepText}`],
+    ["Buyer context", `The buyer priority is ${buyerPriorityText.toLowerCase()} The current issue is: ${issueText}`],
+    ["5-minute opening", `Thanks for making the time. I want to focus on ${issueText.toLowerCase()} and show a practical way forward: ${askText}. I have kept the recommendation tied to ${buyerPriorityText.toLowerCase()}`],
     ["Commercial story", `The case is built on this evidence: ${evidenceBase}. The recommendation is to keep the plan focused, measurable and easy to execute.`],
-    ["Negotiation guardrails", `Primary ask: ${ask}\nTrade-off available: ${tradeOff}\nStakeholders to align: ${stakeholders}`],
+    ["Negotiation guardrails", `Primary ask: ${askText}\nTrade-off available: ${tradeOffText}\nStakeholders to align: ${stakeholdersText}`],
     ["Likely buyer objections", "The investment is too high.\nThe timing is difficult.\nThe uplift is not proven.\nThe plan adds store workload.\nThere is not enough space or support."],
     ["Suggested responses", "Link the investment to the customer objective.\nOffer a controlled test if full approval is hard.\nUse the evidence and define success measures.\nShow how execution is kept simple.\nAsk what condition would make the plan acceptable."],
     ["Questions to ask the buyer", "What would make this worth approving?\nWhich measure matters most for this event?\nWhat execution risk worries you?\nWhat internal approval is needed?\nWhat timing would work best?"],
-    ["Closing ask", `Can we agree ${nextStep.toLowerCase()}?`],
-    ["Follow-up email draft", `Thanks for your time today. As discussed, the opportunity is: ${issue}. My proposed ask is: ${ask}. The supporting evidence is: ${evidence}. The next step we discussed is: ${nextStep}.`],
+    ["Closing ask", `Can we agree ${nextStepText.toLowerCase()}?`],
+    ["Follow-up email draft", `Thanks for your time today. As discussed, the opportunity is: ${issueText}. My proposed ask is: ${askText}. The supporting evidence is: ${evidenceText}. The next step we discussed is: ${nextStepText}.`],
   ];
 
   return (
     <GeneratorShell
-      defaultTitle={`${customer} buyer meeting prep`}
+      defaultTitle={`${customerName} buyer meeting prep`}
+      exampleAction={<button className="button button-secondary button-small" type="button" onClick={populateExampleData}>Populate example data</button>}
       fields={<>
-        <TextInput label="Customer name" help="Retailer, channel or buyer group." value={customer} onChange={setCustomer} />
-        <TextInput label="Meeting objective" help="The decision you want from the meeting." value={objective} onChange={setObjective} multiline />
-        <TextInput label="Current issue/opportunity" help="The buyer pressure point or growth opportunity." value={issue} onChange={setIssue} multiline />
-        <TextInput label="Proposed ask" help="The specific commitment you want." value={ask} onChange={setAsk} multiline />
-        <TextInput label="Evidence or numbers" help="The proof you will bring." value={evidence} onChange={setEvidence} multiline />
-        <TextInput label="Buyer priority" help="What the buyer is measured on or cares about most." value={buyerPriority} onChange={setBuyerPriority} multiline />
-        <TextInput label="Negotiation trade-off" help="What you can flex if the buyer challenges the ask." value={tradeOff} onChange={setTradeOff} multiline />
-        <TextInput label="Stakeholders" help="People who need to approve, support or execute the plan." value={stakeholders} onChange={setStakeholders} multiline />
-        <TextInput label="Desired next step" help="The action you want agreed." value={nextStep} onChange={setNextStep} multiline />
+        <TextInput label="Customer name" help="Retailer, channel or buyer group." placeholder={buyerMeetingExample.customer} value={customer} onChange={setCustomer} />
+        <TextInput label="Meeting objective" help="The decision you want from the meeting." placeholder={buyerMeetingExample.objective} value={objective} onChange={setObjective} multiline />
+        <TextInput label="Current issue/opportunity" help="The buyer pressure point or growth opportunity." placeholder={buyerMeetingExample.issue} value={issue} onChange={setIssue} multiline />
+        <TextInput label="Proposed ask" help="The specific commitment you want." placeholder={buyerMeetingExample.ask} value={ask} onChange={setAsk} multiline />
+        <TextInput label="Evidence or numbers" help="The proof you will bring." placeholder={buyerMeetingExample.evidence} value={evidence} onChange={setEvidence} multiline />
+        <TextInput label="Buyer priority" help="What the buyer is measured on or cares about most." placeholder={buyerMeetingExample.buyerPriority} value={buyerPriority} onChange={setBuyerPriority} multiline />
+        <TextInput label="Negotiation trade-off" help="What you can flex if the buyer challenges the ask." placeholder={buyerMeetingExample.tradeOff} value={tradeOff} onChange={setTradeOff} multiline />
+        <TextInput label="Stakeholders" help="People who need to approve, support or execute the plan." placeholder={buyerMeetingExample.stakeholders} value={stakeholders} onChange={setStakeholders} multiline />
+        <TextInput label="Desired next step" help="The action you want agreed." placeholder={buyerMeetingExample.nextStep} value={nextStep} onChange={setNextStep} multiline />
         <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
@@ -3191,47 +3264,62 @@ export function BuyerMeetingPrepTool() {
 }
 
 export function JbpBuilder() {
-  const [customer, setCustomer] = useState("Retailer A");
-  const [opportunity, setOpportunity] = useState("Grow premium penetration in high-value missions.");
-  const [objective, setObjective] = useState("Deliver profitable category growth over the next 12 months.");
-  const [initiative, setInitiative] = useState("Quarterly feature plan, range optimisation and joint digital support.");
-  const [investment, setInvestment] = useState("£45k trade and media investment");
-  const [measure, setMeasure] = useState("Incremental revenue, margin, distribution gains and repeat rate.");
+  const [customer, setCustomer] = useState("");
+  const [opportunity, setOpportunity] = useState("");
+  const [objective, setObjective] = useState("");
+  const [initiative, setInitiative] = useState("");
+  const [investment, setInvestment] = useState("");
+  const [measure, setMeasure] = useState("");
+  const customerName = planningText(customer, "Customer");
+  const opportunityText = planningText(opportunity, "the agreed category growth opportunity");
+  const objectiveText = planningText(objective, "Add the shared commercial objective.");
+  const initiativeText = planningText(initiative, "Add the growth initiative or activation plan.");
+  const investmentText = planningText(investment, "Add the investment needed.");
+  const measureText = planningText(measure, "Add the success measures.");
+
+  function populateExampleData() {
+    setCustomer(jbpExample.customer);
+    setOpportunity(jbpExample.opportunity);
+    setObjective(jbpExample.objective);
+    setInitiative(jbpExample.initiative);
+    setInvestment(jbpExample.investment);
+    setMeasure(jbpExample.measure);
+  }
 
   const sections: [string, string][] = [
-    ["One-page JBP summary", `${customer} can grow ${opportunity.toLowerCase()} through ${initiative.toLowerCase()}`],
-    ["Shared objective", objective],
+    ["One-page JBP summary", `${customerName} can grow ${opportunityText.toLowerCase()} through ${initiativeText.toLowerCase()}`],
+    ["Shared objective", objectiveText],
     ["Growth pillars", "Grow the priority shopper mission.\nImprove distribution and availability on priority SKUs.\nExecute fewer, stronger activations with clearer measures."],
-    ["Activation plan", initiative],
-    ["Investment ask", investment],
-    ["Measures of success", measure],
+    ["Activation plan", initiativeText],
+    ["Investment ask", investmentText],
+    ["Measures of success", measureText],
     ["Risks and dependencies", "Customer feature space, internal funding approval, availability, accurate baseline data and clear review ownership."],
     ["Next steps", "Confirm owners, validate the financial case, agree timings and schedule the first review checkpoint."],
   ];
   const jbpDeckDraft: PlanningDeckDraft = {
-    deckName: `${customer} Joint Business Plan`,
+    deckName: `${customerName} Joint Business Plan`,
     deckType: "jbp",
     deckInputs: {
-      "Customer growth ambition and planning period": `${customer}: ${opportunity} Planning period: next 12 months.`,
-      "Joint objectives, category roles and shopper opportunity": objective,
-      "Investment plan, trade-offs, asks and expected return": `${initiative} Investment ask: ${investment}. Trade-offs should be agreed through finance and customer governance before final commitment.`,
-      "Success measures, owners, milestones and governance": `${measure}. Owners to align: NAM, category, finance, shopper marketing and supply. Review quarterly against the shared scorecard.`,
+      "Customer growth ambition and planning period": `${customerName}: ${opportunityText} Planning period: next 12 months.`,
+      "Joint objectives, category roles and shopper opportunity": objectiveText,
+      "Investment plan, trade-offs, asks and expected return": `${initiativeText} Investment ask: ${investmentText}. Trade-offs should be agreed through finance and customer governance before final commitment.`,
+      "Success measures, owners, milestones and governance": `${measureText}. Owners to align: NAM, category, finance, shopper marketing and supply. Review quarterly against the shared scorecard.`,
     },
     brief: "Create this as a customer-ready Joint Business Plan deck, supported by a spreadsheet-style tracker for pillars, investment, owners and measures.",
     audience: "Retailer/customer meeting",
     tone: "executive_polished",
   };
   const jbpSpreadsheetRows: CsvRow[] = [
-    { label: "Customer", value: customer },
+    { label: "Customer", value: customerName },
     { label: "Planning period", value: "Next 12 months" },
-    { label: "Shared objective", value: objective },
-    { label: "Growth opportunity", value: opportunity },
+    { label: "Shared objective", value: objectiveText },
+    { label: "Growth opportunity", value: opportunityText },
     { label: "Growth pillar 1", value: "Grow the priority shopper mission" },
     { label: "Growth pillar 2", value: "Improve distribution and availability on priority SKUs" },
     { label: "Growth pillar 3", value: "Execute fewer, stronger activations with clearer measures" },
-    { label: "Activation plan", value: initiative },
-    { label: "Investment ask", value: investment },
-    { label: "Success measures", value: measure },
+    { label: "Activation plan", value: initiativeText },
+    { label: "Investment ask", value: investmentText },
+    { label: "Success measures", value: measureText },
     { label: "Owner - NAM", value: "Customer alignment and JBP governance" },
     { label: "Owner - Category", value: "Category evidence, shopper story and range logic" },
     { label: "Owner - Finance", value: "Investment guardrails, return assumptions and sign-off" },
@@ -3244,14 +3332,15 @@ export function JbpBuilder() {
 
   return (
     <GeneratorShell
-      defaultTitle={`${customer} JBP`}
+      defaultTitle={`${customerName} JBP`}
+      exampleAction={<button className="button button-secondary button-small" type="button" onClick={populateExampleData}>Populate example data</button>}
       fields={<>
-        <TextInput label="Customer" help="Customer or account name." value={customer} onChange={setCustomer} />
-        <TextInput label="Category opportunity" help="The category or shopper growth prize." value={opportunity} onChange={setOpportunity} multiline />
-        <TextInput label="Joint objective" help="The shared commercial outcome." value={objective} onChange={setObjective} multiline />
-        <TextInput label="Growth initiative" help="The core activation or growth idea." value={initiative} onChange={setInitiative} multiline />
-        <TextInput label="Investment needed" help="Funding, media, range support or resource." value={investment} onChange={setInvestment} />
-        <TextInput label="Success measure" help="How success will be judged." value={measure} onChange={setMeasure} multiline />
+        <TextInput label="Customer" help="Customer or account name." placeholder={jbpExample.customer} value={customer} onChange={setCustomer} />
+        <TextInput label="Category opportunity" help="The category or shopper growth prize." placeholder={jbpExample.opportunity} value={opportunity} onChange={setOpportunity} multiline />
+        <TextInput label="Joint objective" help="The shared commercial outcome." placeholder={jbpExample.objective} value={objective} onChange={setObjective} multiline />
+        <TextInput label="Growth initiative" help="The core activation or growth idea." placeholder={jbpExample.initiative} value={initiative} onChange={setInitiative} multiline />
+        <TextInput label="Investment needed" help="Funding, media, range support or resource." placeholder={jbpExample.investment} value={investment} onChange={setInvestment} />
+        <TextInput label="Success measure" help="How success will be judged." placeholder={jbpExample.measure} value={measure} onChange={setMeasure} multiline />
       </>}
       sections={sections}
       sourcePath="/tools/joint-business-plan-builder"
@@ -3259,44 +3348,65 @@ export function JbpBuilder() {
       toolName="Joint business plan builder"
       proFeatures={["Full JBP pack", "Quarterly milestones", "Customer-specific action tracker", "PDF/export", "Internal sell-in version"]}
       deckDraft={jbpDeckDraft}
-      spreadsheetFilename={`apt-${slugifyFilename(customer)}-jbp-tracker.csv`}
+      spreadsheetFilename={`apt-${slugifyFilename(customerName)}-jbp-tracker.csv`}
       spreadsheetRows={jbpSpreadsheetRows}
     />
   );
 }
 
 export function AccountPlanGenerator() {
-  const [account, setAccount] = useState("Retailer A");
-  const [performance, setPerformance] = useState("Sales are growing behind promotions, but base rate of sale is flat.");
-  const [opportunity, setOpportunity] = useState("Improve distribution on priority SKUs and sharpen promotional mix.");
-  const [risk, setRisk] = useState("Margin pressure and competitor space gains.");
-  const [products, setProducts] = useState("Core range, premium formats and seasonal packs.");
-  const [objective, setObjective] = useState("Grow profitable revenue while improving availability and execution quality.");
-  const [investment, setInvestment] = useState("Trade spend, category evidence and supply planning support.");
-  const [owners, setOwners] = useState("NAM owns customer alignment; category owns evidence; finance owns guardrails; supply owns availability.");
-  const [action, setAction] = useState("Book buyer meeting to agree range and promo recommendations.");
+  const [account, setAccount] = useState("");
+  const [performance, setPerformance] = useState("");
+  const [opportunity, setOpportunity] = useState("");
+  const [risk, setRisk] = useState("");
+  const [products, setProducts] = useState("");
+  const [objective, setObjective] = useState("");
+  const [investment, setInvestment] = useState("");
+  const [owners, setOwners] = useState("");
+  const [action, setAction] = useState("");
   const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
+  const accountName = planningText(account, "Account");
+  const performanceText = planningText(performance, "Add the current performance narrative.");
+  const opportunityText = planningText(opportunity, "Add the biggest growth opportunity.");
+  const riskText = planningText(risk, "Add the biggest account risk.");
+  const productsText = planningText(products, "Add the priority products or ranges.");
+  const objectiveText = planningText(objective, "Add the commercial objective.");
+  const investmentText = planningText(investment, "Add the investment and support needed.");
+  const ownersText = planningText(owners, "Add owners and roles.");
+  const actionText = planningText(action, "Add the next commercial action.");
   const dataNarrative = salesData ? `Uploaded sales evidence: ${salesData.summaryText}` : "No actual sales data uploaded yet; validate priorities against customer scorecard before sharing.";
 
+  function populateExampleData() {
+    setAccount(accountPlanExample.account);
+    setPerformance(accountPlanExample.performance);
+    setOpportunity(accountPlanExample.opportunity);
+    setRisk(accountPlanExample.risk);
+    setProducts(accountPlanExample.products);
+    setObjective(accountPlanExample.objective);
+    setInvestment(accountPlanExample.investment);
+    setOwners(accountPlanExample.owners);
+    setAction(accountPlanExample.action);
+  }
+
   const sections: [string, string][] = [
-    ["Account overview", `${account}: ${performance} ${dataNarrative}`],
-    ["Commercial objective", objective],
-    ["Opportunity summary", `${opportunity}${salesData ? ` Prioritise ${salesData.topProduct} and investigate ${salesData.weakestProduct}.` : ""}`],
-    ["Risk summary", risk],
-    ["Commercial strategy", `Prioritise ${products}. Focus investment on actions that improve rate of sale, distribution quality and margin. Required support: ${investment}`],
-    ["Resource and ownership", owners],
-    ["30/60/90 day plan", `30 days: validate numbers and align internal owners.\n60 days: present recommendation and secure customer agreement.\n90 days: review execution and scale what works. Next action: ${action}`],
+    ["Account overview", `${accountName}: ${performanceText} ${dataNarrative}`],
+    ["Commercial objective", objectiveText],
+    ["Opportunity summary", `${opportunityText}${salesData ? ` Prioritise ${salesData.topProduct} and investigate ${salesData.weakestProduct}.` : ""}`],
+    ["Risk summary", riskText],
+    ["Commercial strategy", `Prioritise ${productsText}. Focus investment on actions that improve rate of sale, distribution quality and margin. Required support: ${investmentText}`],
+    ["Resource and ownership", ownersText],
+    ["30/60/90 day plan", `30 days: validate numbers and align internal owners.\n60 days: present recommendation and secure customer agreement.\n90 days: review execution and scale what works. Next action: ${actionText}`],
     ["Internal support needed", "Pricing guardrails, trade spend envelope, supply readiness, category evidence and senior sponsorship."],
     ["Review cadence", "Weekly internal action check, monthly customer trading review and quarterly strategic review."],
   ];
   const accountPlanDeckDraft: PlanningDeckDraft = {
-    deckName: `${account} internal account plan`,
+    deckName: `${accountName} internal account plan`,
     deckType: "account-plan",
     deckInputs: {
-      "Account context and current performance": `${account}: ${performance} ${dataNarrative}`,
-      "Growth opportunity and priority products/ranges": `${opportunity} Priority products/ranges: ${products}`,
-      "Commercial objective, investment and support needed": `${objective} Required support: ${investment}`,
-      "Risks, owners, governance and next commercial actions": `Risks: ${risk}\nOwners: ${owners}\nNext action: ${action}\nReview cadence: weekly internal action check, monthly customer trading review and quarterly strategic review.`,
+      "Account context and current performance": `${accountName}: ${performanceText} ${dataNarrative}`,
+      "Growth opportunity and priority products/ranges": `${opportunityText} Priority products/ranges: ${productsText}`,
+      "Commercial objective, investment and support needed": `${objectiveText} Required support: ${investmentText}`,
+      "Risks, owners, governance and next commercial actions": `Risks: ${riskText}\nOwners: ${ownersText}\nNext action: ${actionText}\nReview cadence: weekly internal action check, monthly customer trading review and quarterly strategic review.`,
     },
     brief: "Create this as an internal account plan deck for leadership and cross-functional alignment. It is not intended as an external customer-facing deck without further editing.",
     audience: "Internal review",
@@ -3305,17 +3415,18 @@ export function AccountPlanGenerator() {
 
   return (
     <GeneratorShell
-      defaultTitle={`${account} account plan`}
+      defaultTitle={`${accountName} account plan`}
+      exampleAction={<button className="button button-secondary button-small" type="button" onClick={populateExampleData}>Populate example data</button>}
       fields={<>
-        <TextInput label="Account name" help="Retailer, customer or channel." value={account} onChange={setAccount} />
-        <TextInput label="Current performance" help="What is happening now?" value={performance} onChange={setPerformance} multiline />
-        <TextInput label="Biggest growth opportunity" help="Where growth is most likely." value={opportunity} onChange={setOpportunity} multiline />
-        <TextInput label="Biggest risk" help="What could derail the plan." value={risk} onChange={setRisk} multiline />
-        <TextInput label="Priority products/ranges" help="The range or products to focus on." value={products} onChange={setProducts} multiline />
-        <TextInput label="Commercial objective" help="The measurable outcome the plan should deliver." value={objective} onChange={setObjective} multiline />
-        <TextInput label="Investment and support" help="Funding, evidence, supply or internal resource needed." value={investment} onChange={setInvestment} multiline />
-        <TextInput label="Owners and roles" help="Who owns the customer, evidence, finance and execution work." value={owners} onChange={setOwners} multiline />
-        <TextInput label="Next commercial action" help="The next real action." value={action} onChange={setAction} multiline />
+        <TextInput label="Account name" help="Retailer, customer or channel." placeholder={accountPlanExample.account} value={account} onChange={setAccount} />
+        <TextInput label="Current performance" help="What is happening now?" placeholder={accountPlanExample.performance} value={performance} onChange={setPerformance} multiline />
+        <TextInput label="Biggest growth opportunity" help="Where growth is most likely." placeholder={accountPlanExample.opportunity} value={opportunity} onChange={setOpportunity} multiline />
+        <TextInput label="Biggest risk" help="What could derail the plan." placeholder={accountPlanExample.risk} value={risk} onChange={setRisk} multiline />
+        <TextInput label="Priority products/ranges" help="The range or products to focus on." placeholder={accountPlanExample.products} value={products} onChange={setProducts} multiline />
+        <TextInput label="Commercial objective" help="The measurable outcome the plan should deliver." placeholder={accountPlanExample.objective} value={objective} onChange={setObjective} multiline />
+        <TextInput label="Investment and support" help="Funding, evidence, supply or internal resource needed." placeholder={accountPlanExample.investment} value={investment} onChange={setInvestment} multiline />
+        <TextInput label="Owners and roles" help="Who owns the customer, evidence, finance and execution work." placeholder={accountPlanExample.owners} value={owners} onChange={setOwners} multiline />
+        <TextInput label="Next commercial action" help="The next real action." placeholder={accountPlanExample.action} value={action} onChange={setAction} multiline />
         <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
@@ -3329,43 +3440,65 @@ export function AccountPlanGenerator() {
 }
 
 export function CustomerReviewTemplate() {
-  const [customer, setCustomer] = useState("Retailer A");
-  const [period, setPeriod] = useState("Q2");
-  const [performance, setPerformance] = useState("Revenue grew 6%, with strong promo weeks but weaker base sales.");
-  const [worked, setWorked] = useState("Distribution gains, better feature compliance and improved availability.");
-  const [missed, setMissed] = useState("Promotion margin was below target and one launch missed the timing window.");
-  const [priority, setPriority] = useState("Improve base rate of sale, protect margin and tighten launch planning.");
-  const [customerObjective, setCustomerObjective] = useState("Grow the category profitably while improving availability and shopper value.");
-  const [decisionNeeded, setDecisionNeeded] = useState("Agree the next period priorities, support levels and owners.");
-  const [actions, setActions] = useState("Confirm promotion mechanics, fix launch timeline, agree base-rate actions and schedule monthly scorecard reviews.");
+  const [customer, setCustomer] = useState("");
+  const [period, setPeriod] = useState("");
+  const [performance, setPerformance] = useState("");
+  const [worked, setWorked] = useState("");
+  const [missed, setMissed] = useState("");
+  const [priority, setPriority] = useState("");
+  const [customerObjective, setCustomerObjective] = useState("");
+  const [decisionNeeded, setDecisionNeeded] = useState("");
+  const [actions, setActions] = useState("");
   const [salesData, setSalesData] = useState<SalesDataSummary | null>(null);
+  const customerName = planningText(customer, "Customer");
+  const periodText = planningText(period, "Review period");
+  const performanceText = planningText(performance, "Add the headline sales and margin story.");
+  const workedText = planningText(worked, "Add what worked well.");
+  const missedText = planningText(missed, "Add what missed or caused friction.");
+  const priorityText = planningText(priority, "Add the next period priority.");
+  const customerObjectiveText = planningText(customerObjective, "Add the customer objective.");
+  const decisionNeededText = planningText(decisionNeeded, "Add the decision needed.");
+  const actionsText = planningText(actions, "Add follow-up actions and owners.");
   const evidenceNarrative = salesData ? `Actual data uploaded from ${salesData.fileName}: ${salesData.summaryText}` : "Actual sales data has not been uploaded yet; add customer scorecard data before final use.";
 
+  function populateExampleData() {
+    setCustomer(customerReviewExample.customer);
+    setPeriod(customerReviewExample.period);
+    setPerformance(customerReviewExample.performance);
+    setWorked(customerReviewExample.worked);
+    setMissed(customerReviewExample.missed);
+    setPriority(customerReviewExample.priority);
+    setCustomerObjective(customerReviewExample.customerObjective);
+    setDecisionNeeded(customerReviewExample.decisionNeeded);
+    setActions(customerReviewExample.actions);
+  }
+
   const sections: [string, string][] = [
-    ["Executive summary", `${customer} ${period}: ${performance} The next priority is to ${priority.toLowerCase()} Decision needed: ${decisionNeeded}`],
+    ["Executive summary", `${customerName} ${periodText}: ${performanceText} The next priority is to ${priorityText.toLowerCase()} Decision needed: ${decisionNeededText}`],
     ["Performance evidence", evidenceNarrative],
-    ["Customer objective", customerObjective],
-    ["Performance narrative", `${performance}${salesData ? ` Top contributor: ${salesData.topProduct}. Watch item: ${salesData.weakestProduct}.` : ""}`],
-    ["Wins", worked],
-    ["Misses", missed],
-    ["Recommended actions", `Focus the next period on: ${priority}`],
-    ["Proposed asks", `Agree the priority actions, confirm support levels, align success measures and remove execution blockers. Specific decision: ${decisionNeeded}`],
-    ["Follow-up actions", actions],
+    ["Customer objective", customerObjectiveText],
+    ["Performance narrative", `${performanceText}${salesData ? ` Top contributor: ${salesData.topProduct}. Watch item: ${salesData.weakestProduct}.` : ""}`],
+    ["Wins", workedText],
+    ["Misses", missedText],
+    ["Recommended actions", `Focus the next period on: ${priorityText}`],
+    ["Proposed asks", `Agree the priority actions, confirm support levels, align success measures and remove execution blockers. Specific decision: ${decisionNeededText}`],
+    ["Follow-up actions", actionsText],
   ];
 
   return (
     <GeneratorShell
-      defaultTitle={`${customer} ${period} customer review`}
+      defaultTitle={`${customerName} ${periodText} customer review`}
+      exampleAction={<button className="button button-secondary button-small" type="button" onClick={populateExampleData}>Populate example data</button>}
       fields={<>
-        <TextInput label="Customer" help="Customer or account name." value={customer} onChange={setCustomer} />
-        <TextInput label="Review period" help="Quarter, half year or trading period." value={period} onChange={setPeriod} />
-        <TextInput label="Sales performance" help="Headline sales and margin story." value={performance} onChange={setPerformance} multiline />
-        <TextInput label="What worked" help="What went well and why." value={worked} onChange={setWorked} multiline />
-        <TextInput label="What missed" help="What underperformed or caused friction." value={missed} onChange={setMissed} multiline />
-        <TextInput label="Next priority" help="The main focus for the next period." value={priority} onChange={setPriority} multiline />
-        <TextInput label="Customer objective" help="What the customer is trying to achieve commercially." value={customerObjective} onChange={setCustomerObjective} multiline />
-        <TextInput label="Decision needed" help="The decision or commitment the review should secure." value={decisionNeeded} onChange={setDecisionNeeded} multiline />
-        <TextInput label="Follow-up actions" help="Actions, owners or meeting commitments to capture." value={actions} onChange={setActions} multiline />
+        <TextInput label="Customer" help="Customer or account name." placeholder={customerReviewExample.customer} value={customer} onChange={setCustomer} />
+        <TextInput label="Review period" help="Quarter, half year or trading period." placeholder={customerReviewExample.period} value={period} onChange={setPeriod} />
+        <TextInput label="Sales performance" help="Headline sales and margin story." placeholder={customerReviewExample.performance} value={performance} onChange={setPerformance} multiline />
+        <TextInput label="What worked" help="What went well and why." placeholder={customerReviewExample.worked} value={worked} onChange={setWorked} multiline />
+        <TextInput label="What missed" help="What underperformed or caused friction." placeholder={customerReviewExample.missed} value={missed} onChange={setMissed} multiline />
+        <TextInput label="Next priority" help="The main focus for the next period." placeholder={customerReviewExample.priority} value={priority} onChange={setPriority} multiline />
+        <TextInput label="Customer objective" help="What the customer is trying to achieve commercially." placeholder={customerReviewExample.customerObjective} value={customerObjective} onChange={setCustomerObjective} multiline />
+        <TextInput label="Decision needed" help="The decision or commitment the review should secure." placeholder={customerReviewExample.decisionNeeded} value={decisionNeeded} onChange={setDecisionNeeded} multiline />
+        <TextInput label="Follow-up actions" help="Actions, owners or meeting commitments to capture." placeholder={customerReviewExample.actions} value={actions} onChange={setActions} multiline />
         <SalesDataUpload value={salesData} onChange={setSalesData} />
       </>}
       sections={sections}
@@ -3380,6 +3513,7 @@ export function CustomerReviewTemplate() {
 function GeneratorShell({
   defaultTitle,
   deckDraft,
+  exampleAction,
   fields,
   sections,
   sourcePath,
@@ -3391,6 +3525,7 @@ function GeneratorShell({
 }: {
   defaultTitle: string;
   deckDraft?: PlanningDeckDraft;
+  exampleAction?: React.ReactNode;
   fields: React.ReactNode;
   sections: [string, string][];
   sourcePath: string;
@@ -3409,6 +3544,7 @@ function GeneratorShell({
 
   return (
     <article className="card tool-form">
+      {exampleAction ? <div className="tool-example-action">{exampleAction}</div> : null}
       <div className="form-grid">{fields}</div>
       {isPro ? (
         <aside className="pro-panel">
