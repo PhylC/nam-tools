@@ -631,6 +631,14 @@ function sanitizePowerPointXml(xml: string) {
     .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
 }
 
+function removeEmptyCustomGeometryShapes(xml: string) {
+  return xml.replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, (shape) => {
+    if (!shape.includes("<a:custGeom")) return shape;
+    if (/<a:t\b/.test(shape)) return shape;
+    return "";
+  });
+}
+
 async function sanitizePowerPointPackage(zip: ZipLike, xmlPaths: string[]) {
   const presPropsXml = await zip.file("ppt/presProps.xml")?.async("text");
   if (presPropsXml) {
@@ -641,9 +649,21 @@ async function sanitizePowerPointPackage(zip: ZipLike, xmlPaths: string[]) {
       .filter((path) => path.startsWith("ppt/") && path.endsWith(".xml") && path !== "ppt/presProps.xml")
       .map(async (path) => {
         const xml = await zip.file(path)?.async("text");
-        if (xml) zip.file(path, sanitizePowerPointXml(xml));
+        if (!xml) return;
+        const sanitized = path.startsWith("ppt/slideMasters/")
+          ? removeEmptyCustomGeometryShapes(sanitizePowerPointXml(xml).replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, ""))
+          : removeEmptyCustomGeometryShapes(sanitizePowerPointXml(xml));
+        zip.file(path, sanitized);
       }),
   );
+}
+
+async function removeUnusedMasterImageRelationships(zip: ZipLike) {
+  const masterRelPath = "ppt/slideMasters/_rels/slideMaster1.xml.rels";
+  const masterRelsXml = await zip.file(masterRelPath)?.async("text");
+  if (!masterRelsXml) return;
+  const nextMasterRelsXml = masterRelsXml.replace(/<Relationship\b(?=[^>]*Type="[^"]*\/image")[^>]*\/>/g, "");
+  zip.file(masterRelPath, nextMasterRelsXml);
 }
 
 function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
@@ -750,6 +770,7 @@ async function createDeckFromUploadedTemplate({
     const packagePaths = Object.keys(zip.files);
     await sanitizePowerPointPackage(zip, packagePaths);
     await trimUnusedTemplateLayouts(zip, Object.keys(zip.files));
+    await removeUnusedMasterImageRelationships(zip);
 
     const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
     const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
