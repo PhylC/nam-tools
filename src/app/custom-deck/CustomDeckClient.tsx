@@ -49,6 +49,19 @@ type GeneratedDeckResult = {
   file: File;
   filename: string;
   outline: string[];
+  templateDesignApplied: boolean;
+};
+type TemplateDesign = {
+  sourceName: string;
+  backgroundColor: string;
+  panelFillColor: string;
+  accentColor: string;
+  secondaryColor: string;
+  textColor: string;
+  mutedTextColor: string;
+  borderColor: string;
+  headFontFace: string;
+  bodyFontFace: string;
 };
 
 function normaliseTemplate(value: string) {
@@ -119,12 +132,82 @@ function deckOutline(deckLabel: string, brief: string, includeFinancialSummary: 
   ];
 }
 
-function addTextBlock(slide: PptxGenJS.Slide, title: string, lines: string[], y = 1.55) {
-  slide.addText(title, { x: 0.7, y: 0.62, w: 11.9, h: 0.45, fontFace: "Aptos Display", fontSize: 23, bold: true, color: "16202A", margin: 0 });
-  slide.addShape("line", { x: 0.7, y: 1.23, w: 11.9, h: 0, line: { color: "0F766E", width: 1.2 } });
+const defaultTemplateDesign: TemplateDesign = {
+  sourceName: "APT default",
+  backgroundColor: "F7FAF9",
+  panelFillColor: "FFFFFF",
+  accentColor: "0F766E",
+  secondaryColor: "AAC6C2",
+  textColor: "16202A",
+  mutedTextColor: "4B5966",
+  borderColor: "CFE1DE",
+  headFontFace: "Aptos Display",
+  bodyFontFace: "Aptos",
+};
+
+function normaliseHex(value: string | undefined, fallback: string) {
+  const cleaned = value?.replace(/[^a-fA-F0-9]/g, "").slice(0, 6).toUpperCase();
+  return cleaned && cleaned.length === 6 ? cleaned : fallback;
+}
+
+function colorLuminance(hex: string) {
+  const value = normaliseHex(hex, "FFFFFF");
+  const [red, green, blue] = [0, 2, 4].map((start) => parseInt(value.slice(start, start + 2), 16) / 255);
+  return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+}
+
+function readableTextColor(background: string) {
+  return colorLuminance(background) > 0.62 ? "16202A" : "FFFFFF";
+}
+
+function extractSchemeColor(xml: string, name: string, fallback: string) {
+  const block = new RegExp(`<a:${name}[^>]*>([\\s\\S]*?)<\\/a:${name}>`).exec(xml)?.[1] ?? "";
+  return normaliseHex(/<a:srgbClr[^>]+val="([^"]+)"/.exec(block)?.[1] ?? /<a:sysClr[^>]+lastClr="([^"]+)"/.exec(block)?.[1], fallback);
+}
+
+function extractTypeface(xml: string, fontGroup: "majorFont" | "minorFont", fallback: string) {
+  const block = new RegExp(`<a:${fontGroup}[^>]*>([\\s\\S]*?)<\\/a:${fontGroup}>`).exec(xml)?.[1] ?? "";
+  return /<a:latin[^>]+typeface="([^"]+)"/.exec(block)?.[1] || fallback;
+}
+
+async function extractTemplateDesign(file: File | null): Promise<TemplateDesign> {
+  if (!file || ![".pptx", ".potx"].includes(fileExtension(file.name))) return defaultTemplateDesign;
+
+  try {
+    const { default: JSZip } = await import("jszip");
+    const zip = await JSZip.loadAsync(await file.arrayBuffer());
+    const themeXml = (await zip.file("ppt/theme/theme1.xml")?.async("text")) ?? "";
+    const slideXml = (await zip.file("ppt/slides/slide1.xml")?.async("text")) ?? "";
+    const backgroundFromSlide = /<p:bg[\s\S]*?<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1];
+    const accentColor = extractSchemeColor(themeXml, "accent1", defaultTemplateDesign.accentColor);
+    const secondaryColor = extractSchemeColor(themeXml, "accent2", defaultTemplateDesign.secondaryColor);
+    const backgroundColor = normaliseHex(backgroundFromSlide, extractSchemeColor(themeXml, "lt1", defaultTemplateDesign.backgroundColor));
+    const textColor = extractSchemeColor(themeXml, "dk1", readableTextColor(backgroundColor));
+
+    return {
+      sourceName: file.name,
+      backgroundColor,
+      panelFillColor: colorLuminance(backgroundColor) > 0.84 ? "FFFFFF" : "F7FAF9",
+      accentColor,
+      secondaryColor,
+      textColor,
+      mutedTextColor: colorLuminance(backgroundColor) > 0.62 ? "4B5966" : "E5EEF0",
+      borderColor: secondaryColor,
+      headFontFace: extractTypeface(themeXml, "majorFont", defaultTemplateDesign.headFontFace),
+      bodyFontFace: extractTypeface(themeXml, "minorFont", defaultTemplateDesign.bodyFontFace),
+    };
+  } catch {
+    return defaultTemplateDesign;
+  }
+}
+
+function addTextBlock(slide: PptxGenJS.Slide, title: string, lines: string[], design: TemplateDesign, y = 1.55) {
+  slide.background = { color: design.backgroundColor };
+  slide.addText(title, { x: 0.7, y: 0.62, w: 11.9, h: 0.45, fontFace: design.headFontFace, fontSize: 23, bold: true, color: design.textColor, margin: 0 });
+  slide.addShape("line", { x: 0.7, y: 1.23, w: 11.9, h: 0, line: { color: design.accentColor, width: 1.2 } });
   slide.addText(
     lines.map((line) => `- ${line}`).join("\n"),
-    { x: 0.9, y, w: 11.35, h: 4.8, fontFace: "Aptos", fontSize: 16, color: "27323D", breakLine: false, fit: "shrink", valign: "top" },
+    { x: 0.9, y, w: 11.35, h: 4.8, fontFace: design.bodyFontFace, fontSize: 16, color: design.textColor, breakLine: false, fit: "shrink", valign: "top" },
   );
 }
 
@@ -136,6 +219,7 @@ async function createDeckFile({
   includeFinancialSummary,
   includeNextStepsSlide,
   supportingFiles,
+  templateDesign,
 }: {
   deckLabel: string;
   brief: string;
@@ -144,8 +228,10 @@ async function createDeckFile({
   includeFinancialSummary: boolean;
   includeNextStepsSlide: boolean;
   supportingFiles: File[];
+  templateDesign: TemplateDesign;
 }): Promise<GeneratedDeckResult> {
   const { default: PptxGenJS } = await import("pptxgenjs");
+  const design = templateDesign;
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "APT Account Planning Tools";
@@ -153,8 +239,8 @@ async function createDeckFile({
   pptx.subject = `${deckLabel} generated draft`;
   pptx.title = deckLabel;
   pptx.theme = {
-    headFontFace: "Aptos Display",
-    bodyFontFace: "Aptos",
+    headFontFace: design.headFontFace,
+    bodyFontFace: design.bodyFontFace,
   };
 
   const outline = deckOutline(deckLabel, brief, includeFinancialSummary, includeNextStepsSlide);
@@ -164,59 +250,62 @@ async function createDeckFile({
     : ["No supporting files attached to this draft."];
 
   const cover = pptx.addSlide();
-  cover.background = { color: "F7FAF9" };
-  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: 0.16, fill: { color: "0F766E" }, line: { color: "0F766E" } });
-  cover.addText(deckLabel, { x: 0.72, y: 1.35, w: 8.8, h: 0.7, fontFace: "Aptos Display", fontSize: 34, bold: true, color: "16202A", margin: 0 });
-  cover.addText(`Draft for ${audience}`, { x: 0.75, y: 2.18, w: 7.5, h: 0.35, fontSize: 15, bold: true, color: "0F766E", margin: 0 });
+  cover.background = { color: design.backgroundColor };
+  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 13.333, h: 0.18, fill: { color: design.accentColor }, line: { color: design.accentColor } });
+  cover.addShape(pptx.ShapeType.rect, { x: 0, y: 7.22, w: 13.333, h: 0.28, fill: { color: design.secondaryColor }, line: { color: design.secondaryColor } });
+  cover.addText(deckLabel, { x: 0.72, y: 1.35, w: 8.8, h: 0.7, fontFace: design.headFontFace, fontSize: 34, bold: true, color: design.textColor, margin: 0 });
+  cover.addText(`Draft for ${audience}`, { x: 0.75, y: 2.18, w: 7.5, h: 0.35, fontFace: design.bodyFontFace, fontSize: 15, bold: true, color: design.accentColor, margin: 0 });
   cover.addText(brief || "Generated from your custom deck brief. Add more detail to sharpen the next version.", {
     x: 0.75,
     y: 2.8,
     w: 6.5,
     h: 1.2,
     fontSize: 16,
-    color: "4B5966",
+    fontFace: design.bodyFontFace,
+    color: design.mutedTextColor,
     fit: "shrink",
     margin: 0,
   });
-  cover.addShape(pptx.ShapeType.rect, { x: 8.1, y: 1.35, w: 4.25, h: 3.85, fill: { color: "FFFFFF" }, line: { color: "CFE1DE" } });
-  cover.addText(`Audience\n${audience}\n\nTone\n${toneOptions.find((item) => item.value === tone)?.label ?? tone}`, {
+  cover.addShape(pptx.ShapeType.rect, { x: 8.1, y: 1.35, w: 4.25, h: 3.85, fill: { color: design.panelFillColor }, line: { color: design.borderColor } });
+  cover.addText(`Audience\n${audience}\n\nTone\n${toneOptions.find((item) => item.value === tone)?.label ?? tone}\n\nTemplate\n${design.sourceName}`, {
     x: 8.45,
     y: 1.75,
     w: 3.55,
-    h: 2.4,
+    h: 2.9,
+    fontFace: design.bodyFontFace,
     fontSize: 15,
-    color: "16202A",
+    color: design.textColor,
     bold: true,
     breakLine: true,
     margin: 0.06,
   });
 
-  addTextBlock(pptx.addSlide(), "Draft story flow", outline.map((item, index) => `${index + 1}. ${item}`));
-  addTextBlock(pptx.addSlide(), "Brief and assumptions", briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."]);
-  addTextBlock(pptx.addSlide(), "Supporting data used", sourceSummary);
+  addTextBlock(pptx.addSlide(), "Draft story flow", outline.map((item, index) => `${index + 1}. ${item}`), design);
+  addTextBlock(pptx.addSlide(), "Brief and assumptions", briefPoints.length ? briefPoints : ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."], design);
+  addTextBlock(pptx.addSlide(), "Supporting data used", sourceSummary, design);
   addTextBlock(pptx.addSlide(), "Recommended story", [
     "Lead with the customer opportunity and the decision needed.",
     "Connect the commercial ask to the retailer or customer benefit.",
     "Use the attached data to prove the size of prize, risk and payback.",
-  ]);
+  ], design);
   if (includeFinancialSummary) {
     addTextBlock(pptx.addSlide(), "Financial summary", [
       "Add revenue, margin, support and ROI outputs from the relevant APT calculator.",
       "Separate confirmed facts from assumptions.",
       "Show the decision threshold or negotiation guardrail clearly.",
-    ]);
+    ], design);
   }
   addTextBlock(pptx.addSlide(), "Risks and watchouts", [
     "Call out data gaps, approval dependencies and commercial assumptions.",
     "Highlight where retailer/customer policy may affect final pricing or support treatment.",
     "Use this draft as a working structure before customer-facing use.",
-  ]);
+  ], design);
   if (includeNextStepsSlide) {
     addTextBlock(pptx.addSlide(), "Next steps", [
       "Confirm data sources and final commercial assumptions.",
       "Replace placeholder bullets with account-specific evidence.",
       "Agree the recommended ask, owner and timing.",
-    ]);
+    ], design);
   }
 
   const output = await pptx.write({ outputType: "blob" });
@@ -226,6 +315,7 @@ async function createDeckFile({
     file: new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
     filename,
     outline,
+    templateDesignApplied: design.sourceName !== defaultTemplateDesign.sourceName,
   };
 }
 
@@ -422,6 +512,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
+      const templateFileForDesign = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? null : null;
+      const templateDesign = await extractTemplateDesign(templateFileForDesign);
       const generated = await createDeckFile({
         deckLabel: selectedDeck.label,
         brief,
@@ -430,6 +522,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         includeFinancialSummary: financialSummary === "Yes",
         includeNextStepsSlide: nextStepsSlide === "Yes",
         supportingFiles,
+        templateDesign,
       });
       const downloadUrl = URL.createObjectURL(generated.file);
       const uploaded = await uploadGeneratedDeck(generated.file, user.id);
@@ -452,6 +545,15 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         exportFormat,
         generatedOutline: generated.outline,
         generated_outline: generated.outline,
+        templateDesign: {
+          applied: generated.templateDesignApplied,
+          sourceName: templateDesign.sourceName,
+          accentColor: templateDesign.accentColor,
+          secondaryColor: templateDesign.secondaryColor,
+          backgroundColor: templateDesign.backgroundColor,
+          headFontFace: templateDesign.headFontFace,
+          bodyFontFace: templateDesign.bodyFontFace,
+        },
         generatedDeck: {
           filename: generated.filename,
           fileSize: generated.file.size,
@@ -471,7 +573,9 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       setGeneratedDeckFilename(generated.filename);
       setRequestMessage(
         uploaded.path
-          ? "Deck created and saved to your account."
+          ? generated.templateDesignApplied
+            ? `Deck created and saved to your account using design cues from ${templateDesign.sourceName}.`
+            : "Deck created and saved to your account."
           : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
       );
     } catch {
@@ -556,7 +660,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   />
                   <span>
                     <strong>Upload one-off template</strong>
-                    <small>PowerPoint files work best. Keynote and PDF files may be used as reference files.</small>
+                    <small>PowerPoint files are read for theme colours and fonts. Keynote and PDF files are saved as references.</small>
                   </span>
                 </label>
                 <label className="template-source-option">
@@ -609,7 +713,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     disabled={!isPro}
                     error={templateError}
                     files={oneOffTemplateFiles}
-                    helper="Best supported: PowerPoint .pptx. Keynote and PDF uploads can be used as reference files where supported."
+                    helper="Best supported: PowerPoint .pptx or .potx for design cues. Keynote and PDF uploads are saved as reference files."
                     id="one-off-template-deck"
                     label="Upload one-off template"
                     onFilesSelected={validateOneOffTemplateFiles}
