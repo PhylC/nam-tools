@@ -377,15 +377,22 @@ function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideCon
 
 function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign) {
   const replaced = replaceTemplateTextPlaceholders(slideXml, content, design);
-  if (replaced.replacementCount > 0) return replaced.xml;
+  if (replaced.replacementCount > 0) return removeDuplicatedPowerPointCreationIds(replaced.xml);
 
-  if (!slideXml.includes("</p:spTree>")) return slideXml;
+  if (!slideXml.includes("</p:spTree>")) return removeDuplicatedPowerPointCreationIds(slideXml);
   const baseId = maxShapeId(slideXml) + 1;
   const injected = [
     templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], design, { title: true }),
     templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), design),
   ].join("");
-  return slideXml.replace("</p:spTree>", `${injected}</p:spTree>`);
+  return removeDuplicatedPowerPointCreationIds(slideXml.replace("</p:spTree>", `${injected}</p:spTree>`));
+}
+
+function removeDuplicatedPowerPointCreationIds(slideXml: string) {
+  return slideXml
+    .replace(/<a:ext uri="\{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236\}">[\s\S]*?<\/a:ext>/g, "")
+    .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
+    .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
 }
 
 function ensurePresentationSlideReferences(zipFileNames: string[], presentationXml: string, presentationRelsXml: string, targetSlideCount: number) {
@@ -495,9 +502,10 @@ async function createDeckFromUploadedTemplate({
       const expanded = ensurePresentationSlideReferences(Object.keys(zip.files), presentationXml, presentationRelsXml, contents.length);
       zip.file("ppt/presentation.xml", expanded.presentationXml);
       zip.file("ppt/_rels/presentation.xml.rels", expanded.presentationRelsXml);
+      const contentTemplatePath = slidePaths[1] ?? slidePaths[0];
       await Promise.all(
-        expanded.additions.map(async (item, index) => {
-          const sourcePath = slidePaths[(slidePaths.length + index) % slidePaths.length];
+        expanded.additions.map(async (item) => {
+          const sourcePath = contentTemplatePath;
           const sourceXml = await zip.file(sourcePath)?.async("text");
           if (sourceXml) zip.file(`ppt/slides/slide${item.slideNumber}.xml`, sourceXml);
           const sourceRelPath = sourcePath.replace("ppt/slides/", "ppt/slides/_rels/") + ".rels";
@@ -517,7 +525,7 @@ async function createDeckFromUploadedTemplate({
     const generatedSlidePaths = Object.keys(zip.files)
       .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
       .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
-      .slice(0, Math.max(contents.length, slidePaths.length));
+      .slice(0, contents.length);
 
     await Promise.all(
       generatedSlidePaths.map(async (path, index) => {
