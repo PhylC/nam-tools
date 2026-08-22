@@ -97,6 +97,10 @@ function toFileMeta(file: File): FileMeta {
   };
 }
 
+function isPowerPointTemplateFile(file: File) {
+  return [".pptx", ".potx"].includes(fileExtension(file.name));
+}
+
 function isGoogleSlidesUrl(value: string) {
   if (!value.trim()) return true;
   try {
@@ -726,10 +730,17 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     () => savedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
     [savedTemplates, selectedSavedTemplateId],
   );
-  const activeTemplateName = oneOffTemplateFiles[0]?.name
+  const supportingTemplateFile = useMemo(
+    () => supportingFiles.find(isPowerPointTemplateFile) ?? null,
+    [supportingFiles],
+  );
+  const activeUploadedTemplate = oneOffTemplateFiles[0] ?? supportingTemplateFile;
+  const activeTemplateName = activeUploadedTemplate?.name
     ?? (templateSource === "saved" && selectedSavedTemplate ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename : "APT default");
   const activeTemplateKind = oneOffTemplateFiles[0]
-    ? "Uploaded PowerPoint template"
+    ? "Uploaded deck design template"
+    : supportingTemplateFile
+      ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
       ? "Saved template"
       : "APT default template";
@@ -815,7 +826,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
-      let templateFileForDesign = oneOffTemplateFiles[0] ?? null;
+      let templateFileForDesign = activeUploadedTemplate ?? null;
       if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate?.storagePathOrUrl) {
         const downloaded = await downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename);
         if (downloaded.file) {
@@ -845,9 +856,9 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         deck_name: resolvedDeckName,
         template_type: selectedDeck.label,
         deckType,
-        templateSource: oneOffTemplateFiles[0] ? "one_off" : templateSource,
-        savedTemplateId: !oneOffTemplateFiles[0] && templateSource === "saved" ? selectedSavedTemplateId : "",
-        oneOffTemplateFileMeta: oneOffTemplateFiles[0] ? toFileMeta(oneOffTemplateFiles[0]) : null,
+        templateSource: activeUploadedTemplate ? "one_off" : templateSource,
+        savedTemplateId: !activeUploadedTemplate && templateSource === "saved" ? selectedSavedTemplateId : "",
+        oneOffTemplateFileMeta: activeUploadedTemplate ? toFileMeta(activeUploadedTemplate) : null,
         googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
         supportingFilesMeta: supportingFiles.map(toFileMeta),
         brief,
@@ -1077,6 +1088,12 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
             <section className="custom-deck-form-section">
               <h2>Supporting data</h2>
               <p className="helper-note">Upload spreadsheets, notes, briefing files or existing decks with the numbers and context for this deck.</p>
+              {supportingTemplateFile ? (
+                <p className="helper-note">
+                  PowerPoint design detected: {supportingTemplateFile.name}. This file will be used as the deck design template unless you upload a different
+                  template above.
+                </p>
+              ) : null}
               <DeckFileDropzone
                 accept=".xlsx,.csv,.pdf,.docx,.txt,.pptx,.key,.numbers,.pages"
                 disabled={!isPro}
