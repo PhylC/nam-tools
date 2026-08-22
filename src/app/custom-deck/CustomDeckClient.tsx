@@ -1217,17 +1217,15 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                   ) : null}
                 </label>
               ) : null}
-              <label className="checkbox-row checkbox-row-disabled">
-                <input disabled type="checkbox" />
-                <span>Also save this to my template library</span>
-              </label>
-              <small className="helper-note">
-                {savedTemplates.length >= 3
-                  ? "You already have 3 saved templates. Remove one in Settings to save another."
-                  : "Save reusable templates from Settings for now."}
-              </small>
+              <p className="helper-note">
+                Reusable templates are managed in{" "}
+                <Link className="text-link" href="/settings#presentation-templates">
+                  Settings
+                </Link>
+                . One-off uploads are used for this deck only.
+              </p>
               <label className="field">
-                <span>Google Slides link</span>
+                <span>Google Slides reference link</span>
                 <input
                   placeholder="https://docs.google.com/presentation/..."
                   type="url"
@@ -1237,7 +1235,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     setGoogleSlidesError("");
                   }}
                 />
-                <small>Paste a shareable Google Slides link as a reference. Make sure sharing is enabled.</small>
+                <small>Optional reference only. Use a PowerPoint template above when you want the generated deck to follow a design.</small>
                 {googleSlidesError ? <small className="field-error">{googleSlidesError}</small> : null}
               </label>
             </section>

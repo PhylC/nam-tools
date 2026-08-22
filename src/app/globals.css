@@ -6751,10 +6751,6 @@ p {
   font-weight: 800;
 }
 
-.checkbox-row-disabled {
-  color: var(--muted);
-}
-
 .selected-file {
   color: var(--muted);
   font-size: 0.82rem;
