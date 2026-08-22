@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
@@ -40,6 +39,16 @@ const freeTemplates: FreeTemplate[] = [
     previewAlt: "Preview of the APT Joint Business Plan PowerPoint template",
     previewWidth: 466,
     previewHeight: 287,
+  },
+  {
+    title: "Account Plan",
+    slug: "account-plan",
+    pptx: "annual-planning-template.pptx",
+    deckType: "Account Plan",
+    description: "Create an internal account plan deck covering customer context, priorities, risks, growth levers and actions.",
+    bestFor: "Internal account planning, account reviews and sales leadership updates",
+    slides: "9",
+    includes: "customer context, priorities, risks, opportunity map and action plan",
   },
   {
     title: "Quarterly Business Review",
@@ -125,6 +134,7 @@ function customDeckHref(template: FreeTemplate) {
   if (template.slug === "joint-business-plan") return "/tools/joint-business-plan-builder";
   const queryBySlug: Record<string, string> = {
     "joint-business-plan": "jbp",
+    "account-plan": "account-plan",
     "qbr-template": "qbr",
     "promo-proposal": "promo-proposal",
     "range-review": "range-review",
@@ -314,105 +324,118 @@ export function PresentationTemplatesFree() {
 
   return (
     <section className="shell section">
-      <div className="section-header">
-        <h2>Choose the output you need.</h2>
+      <div className="presentation-workbench">
+        <article className="card presentation-command-panel">
+          <div>
+            <p className="eyebrow">Start</p>
+            <h2>Create a deck</h2>
+            <p>
+              Pick a deck type, use your own PowerPoint template if needed, add
+              supporting files, and save the finished deck into Workspace.
+            </p>
+          </div>
+          <div className="presentation-command-actions">
+            <Link className="button" href="/custom-deck">
+              New custom deck
+            </Link>
+            <Link className="button button-secondary" href="/tools/joint-business-plan-builder">
+              Joint Business Plan
+            </Link>
+            <Link className="button button-secondary" href="/custom-deck?template=account-plan">
+              Account Plan deck
+            </Link>
+          </div>
+        </article>
+        <article className="card presentation-command-panel presentation-command-panel-muted">
+          <div>
+            <p className="eyebrow">Use existing work</p>
+            <h2>Saved decks</h2>
+            <p>
+              Reopen saved deck requests from Workspace, download generated
+              presentations, or create a new version from an existing deck.
+            </p>
+          </div>
+          <Link className="button button-secondary" href="/workspace#decks">
+            View deck workspace
+          </Link>
+        </article>
+      </div>
+
+      <SavedDecksBottomPanel isPro={isPro} />
+
+      <div className="section-header presentation-list-header">
+        <h2>Deck builders and templates</h2>
         <p className="section-lead">
-          Create buyer-ready and internal sign-off outputs from your planning work.
-          Buyer meeting decks, account reviews, JBP plans, promo proposals and range
-          reviews all live here.
+          Choose the closest working format. Each option can start a guided deck
+          build or download an editable PowerPoint template.
         </p>
       </div>
-      <div className="card-grid presentation-template-grid" id="template-card-grid">
+      <div className="presentation-template-list" id="template-card-grid">
+        <div className="presentation-template-list-head" aria-hidden="true">
+          <span>Deck type</span>
+          <span>Use for</span>
+          <span>Slides</span>
+          <span>Actions</span>
+        </div>
         {freeTemplates.map((template) => (
-          <div className="template-card-wrap" id={`template-${template.slug}`} key={template.title}>
-            <article className="template-card">
-              <div className="template-card-content">
-                {template.previewSrc ? (
-                  <Image
-                    alt={template.previewAlt ?? `Preview of the APT ${template.title} PowerPoint template`}
-                    className="template-card-image"
-                    height={template.previewHeight ?? 287}
-                    loading="lazy"
-                    src={template.previewSrc}
-                    width={template.previewWidth ?? 466}
-                  />
-                ) : null}
-                <h2>{template.title}</h2>
-                <p className="template-support">Editable PowerPoint template</p>
-                <p className="template-description">{template.description}</p>
-                <dl className="template-details">
-                  <div>
-                    <dt>Best for</dt>
-                    <dd>{template.bestFor}</dd>
-                  </div>
-                  <div>
-                    <dt>Slides</dt>
-                    <dd>{template.slides}</dd>
-                  </div>
-                  <div>
-                    <dt>Includes</dt>
-                    <dd>{template.includes}</dd>
-                  </div>
-                </dl>
+          <article className="presentation-template-row" id={`template-${template.slug}`} key={template.title}>
+            <div className="presentation-template-primary">
+              <h2>{template.title}</h2>
+              <p className="template-description">{template.description}</p>
+              <span>{template.includes}</span>
+            </div>
+            <div className="presentation-template-use">
+              <span>{template.bestFor}</span>
+            </div>
+            <div className="presentation-template-slides">
+              <strong>{template.slides}</strong>
+              <span>slides</span>
+            </div>
+            <div className="presentation-template-actions">
+              <Link className="button button-small" href={customDeckHref(template)}>
+                {template.slug === "joint-business-plan" ? "Open builder" : "Build deck"}
+              </Link>
+              <a className="button button-secondary button-small" download href={`/templates/${template.pptx}`}>
+                Download
+              </a>
+              <div className="template-outline-utility">
+                <button
+                  aria-label={`Copy the slide outline for ${template.title}`}
+                  className="template-outline-link"
+                  onClick={() => copySlideOutline(template)}
+                  title="Copy the slide outline for this template"
+                  type="button"
+                >
+                  Copy outline
+                </button>
               </div>
-              <div className="template-card-actions">
-                <a className="button" download href={`/templates/${template.pptx}`}>
-                  Download PowerPoint template
-                </a>
-                <Link className="button button-secondary" href={customDeckHref(template)}>
-                  {template.slug === "joint-business-plan" ? "Open JBP builder" : "Build custom deck"}
-                </Link>
-                <div className="template-outline-utility">
-                  <span>Need the structure only?</span>
-                  <button
-                    aria-label={`Copy the slide outline for ${template.title}`}
-                    className="template-outline-link"
-                    onClick={() => copySlideOutline(template)}
-                    title="Copy the slide outline for this template"
-                    type="button"
-                  >
-                    Copy slide outline
-                  </button>
-                </div>
-                {outlineStatus?.slug === template.slug ? (
-                  <p className="template-outline-status">{outlineStatus.message}</p>
-                ) : null}
-                {manualOutline?.slug === template.slug ? (
-                  <label className="template-outline-manual">
-                    <span>Copy this outline manually.</span>
-                    <textarea readOnly value={manualOutline.text} onFocus={(event) => event.currentTarget.select()} />
-                  </label>
-                ) : null}
-                <p className="template-pro-note">
-                  APT Pro can use your data and brief to build a custom version.
-                </p>
-              </div>
-            </article>
-          </div>
+              {outlineStatus?.slug === template.slug ? (
+                <p className="template-outline-status">{outlineStatus.message}</p>
+              ) : null}
+              {manualOutline?.slug === template.slug ? (
+                <label className="template-outline-manual">
+                  <span>Copy this outline manually.</span>
+                  <textarea readOnly value={manualOutline.text} onFocus={(event) => event.currentTarget.select()} />
+                </label>
+              ) : null}
+            </div>
+          </article>
         ))}
       </div>
       {isPro ? null : (
-        <article className="card pro-explainer-panel">
+        <article className="card pro-explainer-panel presentation-pro-panel">
           <div>
-            <h3>Build custom decks with Pro</h3>
+            <h3>Need generated decks?</h3>
             <p>
-              Start from any PowerPoint template, then tailor it with your customer,
-              agenda, data, risks, opportunities and commercial ask.
+              Pro turns a brief, template and supporting files into a first-draft
+              PowerPoint and keeps saved deck work in Workspace.
             </p>
-            <ul className="compact-list">
-              <li>Build a custom deck from any template</li>
-              <li>Upload customer or sales data</li>
-              <li>Add meeting notes, agenda and commercial context</li>
-              <li>Generate a first-draft slide outline</li>
-              <li>Save deck briefs and return to them later</li>
-            </ul>
           </div>
           <Link className="button" href="/pricing" onClick={() => trackUpgradeClicked("presentation_templates_prompt")}>
             Switch to Pro
           </Link>
         </article>
       )}
-      <SavedDecksBottomPanel isPro={isPro} />
     </section>
   );
 }

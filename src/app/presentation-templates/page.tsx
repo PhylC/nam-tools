@@ -1,7 +1,7 @@
-import { FaqSection } from "../components/FaqSection";
+import Link from "next/link";
 import { JsonLd } from "../components/JsonLd";
 import { Hero } from "../components/Shell";
-import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
+import { breadcrumbJsonLd, seoMetadata } from "../seo";
 import { PresentationTemplatesProduct } from "./PresentationTemplatesClient";
 
 export const metadata = seoMetadata({
@@ -11,45 +11,37 @@ export const metadata = seoMetadata({
   path: "/presentation-templates",
 });
 
-const presentationTemplateFaqs = [
-  {
-    question: "What presentation templates are included?",
-    answer:
-      "APT includes templates for joint business plans, quarterly business reviews, promotional proposals, range reviews, launches and buyer meeting preparation.",
-  },
-  {
-    question: "Are the templates editable?",
-    answer:
-      "Yes. The templates are intended to be edited for your customer, category, numbers and internal meeting format.",
-  },
-  {
-    question: "Can teams use branded templates?",
-    answer:
-      "Yes. Pro and team workflows can use saved template references, branding details and export preferences for more consistent outputs.",
-  },
-];
-
 export default function PresentationTemplatesPage() {
   return (
-    <div className="page-stack presentation-templates-page snapshot-hero-page">
+    <div className="page-stack presentation-templates-page">
       <JsonLd
         data={[
           breadcrumbJsonLd([
             { name: "Home", path: "/" },
             { name: "Presentation Templates", path: "/presentation-templates" },
           ]),
-          faqJsonLd(presentationTemplateFaqs),
         ]}
       />
-      <Hero title="Buyer-ready presentations and planning templates">
+      <Hero
+        eyebrow="Presentation workspace"
+        title="Create and manage decks"
+        actions={
+          <>
+            <Link className="button" href="/custom-deck">
+              Create custom deck
+            </Link>
+            <Link className="button button-secondary" href="/workspace#decks">
+              Open saved decks
+            </Link>
+          </>
+        }
+      >
         <p>
-          Use this when you have the numbers but still need to turn them into a
-          clean, meeting-ready story for a buyer conversation or internal
-          sign-off.
+          Start a deck, choose the right presentation type, download a template,
+          or reopen saved deck work from one place.
         </p>
       </Hero>
       <PresentationTemplatesProduct />
-      <FaqSection title="Presentation template FAQs." faqs={presentationTemplateFaqs} />
     </div>
   );
 }
