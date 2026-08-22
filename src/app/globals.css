@@ -6268,6 +6268,17 @@ p {
   padding-bottom: 1rem;
 }
 
+.custom-deck-name-section {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.9rem;
+}
+
+.custom-deck-name-section h2 {
+  font-size: 1.08rem;
+}
+
 .custom-deck-form-section:last-child {
   border-bottom: 0;
   padding-bottom: 0;

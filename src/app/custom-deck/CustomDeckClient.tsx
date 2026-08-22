@@ -259,6 +259,16 @@ function maxShapeId(slideXml: string) {
   return ids.length ? Math.max(...ids) : 1000;
 }
 
+function maxSlideId(presentationXml: string) {
+  const ids = [...presentationXml.matchAll(/<p:sldId[^>]+id="(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
+  return ids.length ? Math.max(...ids) : 255;
+}
+
+function maxRelationshipId(relsXml: string) {
+  const ids = [...relsXml.matchAll(/\bId="rId(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
+  return ids.length ? Math.max(...ids) : 0;
+}
+
 function textParagraph(text: string, fontFace: string, color: string, size: number, bold = false) {
   return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t>${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
 }
@@ -311,6 +321,7 @@ function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideCon
       : [
           templateTextBodyXml([content.title], design, { title: true }),
           templateTextBodyXml(content.lines.slice(0, 9), design),
+          ...textShapes.slice(2).map(() => templateTextBodyXml([], design)),
         ];
   let replacementIndex = 0;
   const xml = slideXml.replace(shapeRegex, (shape) => {
@@ -321,6 +332,64 @@ function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideCon
   });
 
   return { xml, replacementCount: replacementIndex };
+}
+
+function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign) {
+  const replaced = replaceTemplateTextPlaceholders(slideXml, content, design);
+  if (replaced.replacementCount > 0) return replaced.xml;
+
+  if (!slideXml.includes("</p:spTree>")) return slideXml;
+  const baseId = maxShapeId(slideXml) + 1;
+  const injected = [
+    templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], design, { title: true }),
+    templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), design),
+  ].join("");
+  return slideXml.replace("</p:spTree>", `${injected}</p:spTree>`);
+}
+
+function ensurePresentationSlideReferences(zipFileNames: string[], presentationXml: string, presentationRelsXml: string, targetSlideCount: number) {
+  const existingSlideNumbers = zipFileNames
+    .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
+    .map((path) => Number(path.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
+    .filter(Number.isFinite);
+  const nextSlideNumber = Math.max(0, ...existingSlideNumbers) + 1;
+  const nextSlideId = maxSlideId(presentationXml) + 1;
+  const nextRelId = maxRelationshipId(presentationRelsXml) + 1;
+  const additions = Array.from({ length: targetSlideCount - existingSlideNumbers.length }, (_, index) => ({
+    slideNumber: nextSlideNumber + index,
+    slideId: nextSlideId + index,
+    relId: `rId${nextRelId + index}`,
+  }));
+
+  if (!additions.length) return { additions, presentationXml, presentationRelsXml };
+
+  const slideIdXml = additions.map((item) => `<p:sldId id="${item.slideId}" r:id="${item.relId}"/>`).join("");
+  const relsXml = additions
+    .map(
+      (item) =>
+        `<Relationship Id="${item.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${item.slideNumber}.xml"/>`,
+    )
+    .join("");
+
+  return {
+    additions,
+    presentationXml: presentationXml.replace("</p:sldIdLst>", `${slideIdXml}</p:sldIdLst>`),
+    presentationRelsXml: presentationRelsXml.replace("</Relationships>", `${relsXml}</Relationships>`),
+  };
+}
+
+function ensureSlideContentTypes(contentTypesXml: string, slideNumbers: number[]) {
+  let nextXml = contentTypesXml.replace(
+    "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
+  );
+  const overrideType = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
+  slideNumbers.forEach((slideNumber) => {
+    const partName = `/ppt/slides/slide${slideNumber}.xml`;
+    if (nextXml.includes(`PartName="${partName}"`)) return;
+    nextXml = nextXml.replace("</Types>", `<Override PartName="${partName}" ContentType="${overrideType}"/></Types>`);
+  });
+  return nextXml;
 }
 
 function contentForTemplateSlide(contents: DeckSlideContent[], index: number, slideCount: number) {
@@ -356,22 +425,42 @@ async function createDeckFromUploadedTemplate({
       .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0));
     if (!slidePaths.length) return null;
 
+    const presentationXml = await zip.file("ppt/presentation.xml")?.async("text");
+    const presentationRelsXml = await zip.file("ppt/_rels/presentation.xml.rels")?.async("text");
+    if (presentationXml && presentationRelsXml && contents.length > slidePaths.length) {
+      const expanded = ensurePresentationSlideReferences(Object.keys(zip.files), presentationXml, presentationRelsXml, contents.length);
+      zip.file("ppt/presentation.xml", expanded.presentationXml);
+      zip.file("ppt/_rels/presentation.xml.rels", expanded.presentationRelsXml);
+      await Promise.all(
+        expanded.additions.map(async (item, index) => {
+          const sourcePath = slidePaths[(slidePaths.length + index) % slidePaths.length];
+          const sourceXml = await zip.file(sourcePath)?.async("text");
+          if (sourceXml) zip.file(`ppt/slides/slide${item.slideNumber}.xml`, sourceXml);
+          const sourceRelPath = sourcePath.replace("ppt/slides/", "ppt/slides/_rels/") + ".rels";
+          const sourceRelXml = await zip.file(sourceRelPath)?.async("text");
+          if (sourceRelXml) zip.file(`ppt/slides/_rels/slide${item.slideNumber}.xml.rels`, sourceRelXml);
+        }),
+      );
+      const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
+      if (contentTypesXml) {
+        zip.file("[Content_Types].xml", ensureSlideContentTypes(contentTypesXml, expanded.additions.map((item) => item.slideNumber)));
+      }
+    } else {
+      const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
+      if (contentTypesXml) zip.file("[Content_Types].xml", ensureSlideContentTypes(contentTypesXml, []));
+    }
+
+    const generatedSlidePaths = Object.keys(zip.files)
+      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
+      .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
+      .slice(0, Math.max(contents.length, slidePaths.length));
+
     await Promise.all(
-      slidePaths.map(async (path, index) => {
+      generatedSlidePaths.map(async (path, index) => {
         const slideXml = await zip.file(path)?.async("text");
-        if (!slideXml?.includes("</p:spTree>")) return;
-        const content = contentForTemplateSlide(contents, index, slidePaths.length);
-        const replaced = replaceTemplateTextPlaceholders(slideXml, content, templateDesign);
-        if (replaced.replacementCount > 0) {
-          zip.file(path, replaced.xml);
-          return;
-        }
-        const baseId = maxShapeId(slideXml) + 1;
-        const injected = [
-          templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], templateDesign, { title: true }),
-          templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), templateDesign),
-        ].join("");
-        zip.file(path, slideXml.replace("</p:spTree>", `${injected}</p:spTree>`));
+        if (!slideXml) return;
+        const content = contentForTemplateSlide(contents, index, generatedSlidePaths.length);
+        zip.file(path, populateTemplateSlide(slideXml, content, templateDesign));
       }),
     );
 
@@ -453,10 +542,11 @@ async function createDeckFile({
   const { default: PptxGenJS } = await import("pptxgenjs");
   const design = templateDesign;
   const { outline, contents } = buildDeckContent({ deckLabel, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
-  const templatedDeck = templateFile
-    ? await createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents })
-    : null;
-  if (templatedDeck) return templatedDeck;
+  if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
+    const templatedDeck = await createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents });
+    if (templatedDeck) return templatedDeck;
+    throw new Error("The uploaded PowerPoint template could not be used. Please try a .pptx or .potx file with editable slides.");
+  }
 
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
@@ -603,10 +693,10 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const { plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
-  const [deckType, setDeckType] = useState(
-    deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp",
-  );
-  const [deckName, setDeckName] = useState("");
+  const initialDeckType = deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp";
+  const initialDeckLabel = deckTypes.find((item) => item.value === initialDeckType)?.label ?? deckTypes[0].label;
+  const [deckType, setDeckType] = useState(initialDeckType);
+  const [deckName, setDeckName] = useState(`${initialDeckLabel} deck`);
   const [savedTemplates, setSavedTemplates] = useState<SavedPresentationTemplate[]>([]);
   const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
   const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
@@ -699,6 +789,10 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
     setRequestMessage("");
     setTemplateError("");
     setGoogleSlidesError("");
+    if (!deckName.trim()) {
+      setRequestMessage("Name the deck before creating it so it is easy to find in Workspace.");
+      return;
+    }
     if (googleSlidesTemplateUrl.trim() && !isGoogleSlidesUrl(googleSlidesTemplateUrl)) {
       setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
       return;
@@ -786,8 +880,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
             : "Deck created and saved to your account."
           : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
       );
-    } catch {
-      setRequestMessage("Could not create the deck. Please try again.");
+    } catch (error) {
+      setRequestMessage(error instanceof Error ? error.message : "Could not create the deck. Please try again.");
     } finally {
       setIsCreatingDeck(false);
     }
@@ -823,6 +917,20 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
           ) : null}
 
           <fieldset className="settings-fieldset" disabled={!isPro}>
+            <section className="custom-deck-form-section custom-deck-name-section">
+              <h2>Name your deck</h2>
+              <label className="field">
+                <span>Deck name</span>
+                <input
+                  required
+                  placeholder={`${selectedDeck.label} for Tesco Q3`}
+                  value={deckName}
+                  onChange={(event) => setDeckName(event.target.value)}
+                />
+                <small>This is the name shown in Workspace and used for the generated file.</small>
+              </label>
+            </section>
+
             <section className="custom-deck-form-section">
               <h2>Deck setup</h2>
               <label className="field">
@@ -834,15 +942,6 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="field">
-                <span>Deck name</span>
-                <input
-                  placeholder={`${selectedDeck.label} for Tesco Q3`}
-                  value={deckName}
-                  onChange={(event) => setDeckName(event.target.value)}
-                />
-                <small>This is the name shown in Workspace and used for the generated file.</small>
               </label>
               <p className="helper-note">Selected template: {selectedDeck.label}</p>
             </section>
