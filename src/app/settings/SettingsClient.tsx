@@ -39,7 +39,7 @@ const exportFormats = [
   { label: "Google Slides compatible", value: "google_slides_compatible" },
   { label: "Keynote compatible", value: "keynote_compatible" },
 ] as const;
-const templateLibraryExtensions = [".pptx", ".potx", ".key"];
+const templateLibraryExtensions = [".pptx", ".potx"];
 
 type Message = { tone: "success" | "error" | "info"; text: string } | null;
 
@@ -115,7 +115,7 @@ export function SettingsClient() {
 
     const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
     if (!templateLibraryExtensions.includes(extension) || file.size > PRESENTATION_TEMPLATE_LIMIT_BYTES) {
-      setMessage({ tone: "error", text: "Please upload a .pptx, .potx or .key file under 20MB." });
+      setMessage({ tone: "error", text: "Please upload a .pptx or .potx PowerPoint template under 20MB." });
       return;
     }
 
@@ -127,10 +127,13 @@ export function SettingsClient() {
     let storagePath: string | null = null;
     let uploadError: string | null = null;
     if (isAuthenticated && user) {
-      // TODO: Persist this storage path and template metadata against the authenticated Pro user profile.
       const upload = await uploadDeckTemplate(file, user.id);
       storagePath = upload.path;
       uploadError = upload.error;
+    }
+    if (!storagePath || uploadError) {
+      setMessage({ tone: "error", text: uploadError ?? "Could not save the template file. Nothing was added to your template library." });
+      return;
     }
 
     const nextTemplate: SavedPresentationTemplate = {
@@ -537,7 +540,7 @@ export function SettingsClient() {
                               Replace
                             </label>
                             <input
-                              accept=".pptx,.potx,.key"
+                              accept=".pptx,.potx"
                               className="visually-hidden"
                               id={inputId}
                               type="file"
@@ -560,13 +563,13 @@ export function SettingsClient() {
                         <>
                           <div>
                             <strong>Template slot available</strong>
-                            <small>.pptx works best · .potx and .key accepted · maximum 20MB</small>
+                            <small>.pptx or .potx · maximum 20MB</small>
                           </div>
                           <label className="button button-secondary button-small" htmlFor={inputId}>
                             Upload template
                           </label>
                           <input
-                            accept=".pptx,.potx,.key"
+                            accept=".pptx,.potx"
                             className="visually-hidden"
                             id={inputId}
                             type="file"
@@ -582,7 +585,7 @@ export function SettingsClient() {
                 <p className="helper-note">You can save up to 3 templates. Remove or replace one to add another.</p>
               ) : null}
               <p className="helper-note">
-                Template details are saved on this device. PowerPoint files work best; Keynote files can be kept as template references.
+                Template files are saved to your account so custom decks can reuse the PowerPoint design.
               </p>
             </div>
           )}

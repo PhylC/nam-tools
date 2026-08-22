@@ -67,6 +67,9 @@ type DeckSlideContent = {
   title: string;
   lines: string[];
 };
+type ReusableSavedTemplate = SavedPresentationTemplate & {
+  storagePathOrUrl: string;
+};
 
 function normaliseTemplate(value: string) {
   const aliases: Record<string, string> = {
@@ -99,6 +102,10 @@ function toFileMeta(file: File): FileMeta {
 
 function isPowerPointTemplateFile(file: File) {
   return [".pptx", ".potx"].includes(fileExtension(file.name));
+}
+
+function isReusableSavedTemplate(template: SavedPresentationTemplate): template is ReusableSavedTemplate {
+  return Boolean(template.storagePathOrUrl && [".pptx", ".potx"].includes(fileExtension(template.filename)));
 }
 
 function isGoogleSlidesUrl(value: string) {
@@ -722,13 +729,21 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
   const [generatedDeckFilename, setGeneratedDeckFilename] = useState("");
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const isPro = plan === "pro" || plan === "team";
+  const reusableSavedTemplates = useMemo(
+    () => savedTemplates.filter(isReusableSavedTemplate),
+    [savedTemplates],
+  );
+  const unavailableSavedTemplates = useMemo(
+    () => savedTemplates.filter((template) => !isReusableSavedTemplate(template)),
+    [savedTemplates],
+  );
   const selectedDeck = useMemo(
     () => deckTypes.find((item) => item.value === deckType) ?? deckTypes[0],
     [deckType],
   );
   const selectedSavedTemplate = useMemo(
-    () => savedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
-    [savedTemplates, selectedSavedTemplateId],
+    () => reusableSavedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
+    [reusableSavedTemplates, selectedSavedTemplateId],
   );
   const supportingTemplateFile = useMemo(
     () => supportingFiles.find(isPowerPointTemplateFile) ?? null,
@@ -752,7 +767,8 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       if (!isMounted) return;
       const templates = result.data.presentationTemplates;
       setSavedTemplates(templates);
-      const defaultTemplate = templates.find((template) => template.isDefault) ?? templates[0] ?? null;
+      const reusableTemplates = templates.filter(isReusableSavedTemplate);
+      const defaultTemplate = reusableTemplates.find((template) => template.isDefault) ?? reusableTemplates[0] ?? null;
       if (!defaultTemplate) return;
       setSelectedSavedTemplateId((current) => current || defaultTemplate.id);
       setTemplateSource((current) => (current === "apt_default" ? "saved" : current));
@@ -828,7 +844,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
       setGeneratedDeckFilename("");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
       let templateFileForDesign = activeUploadedTemplate ?? null;
-      if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate?.storagePathOrUrl) {
+      if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate) {
         const downloaded = await downloadDeckTemplate(selectedSavedTemplate.storagePathOrUrl, selectedSavedTemplate.filename);
         if (downloaded.file) {
           templateFileForDesign = downloaded.file;
@@ -838,8 +854,12 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
         }
       }
       if (!templateFileForDesign) {
-        setTemplateError("Upload a .pptx or .potx template before creating the deck.");
-        setRequestMessage("A PowerPoint template is required so the generated deck uses your design instead of the APT default.");
+        setTemplateError(
+          savedTemplates.length
+            ? "Choose a reusable saved PowerPoint template, or replace your older saved template with a .pptx/.potx upload."
+            : "Upload a .pptx or .potx template before creating the deck.",
+        );
+        setRequestMessage("A reusable PowerPoint template is required so the generated deck uses your design instead of the APT default.");
         return;
       }
       const templateDesign = await extractTemplateDesign(templateFileForDesign);
@@ -999,7 +1019,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                 <label className="template-source-option">
                   <input
                     checked={templateSource === "saved"}
-                    disabled={savedTemplates.length === 0}
+                    disabled={reusableSavedTemplates.length === 0}
                     name="template-source"
                     type="radio"
                     value="saved"
@@ -1007,7 +1027,7 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   />
                   <span>
                     <strong>Use saved template</strong>
-                    <small>Choose one of your saved Pro templates.</small>
+                    <small>Choose a saved .pptx/.potx template that has a stored file.</small>
                   </span>
                 </label>
                 <label className="template-source-option">
@@ -1024,31 +1044,34 @@ export function CustomDeckClient({ selectedTemplate }: { selectedTemplate: strin
                   </span>
                 </label>
               </div>
-              {savedTemplates.length === 0 ? (
+              {reusableSavedTemplates.length === 0 ? (
                 <p className="helper-note">
-                  No saved templates yet. Add up to 3 in{" "}
+                  No reusable saved PowerPoint templates yet. Add or replace one in{" "}
                   <Link className="text-link" href="/settings#presentation-templates">
                     Manage templates
                   </Link>
                   .
                 </p>
               ) : null}
-              {templateSource === "saved" && savedTemplates.length > 0 ? (
+              {unavailableSavedTemplates.length > 0 ? (
+                <p className="helper-note">
+                  Some older saved templates need replacing before they can be used here:{" "}
+                  {unavailableSavedTemplates.map((template) => template.displayName || template.filename).join(", ")}.
+                </p>
+              ) : null}
+              {templateSource === "saved" && reusableSavedTemplates.length > 0 ? (
                 <label className="field">
                   <span>Saved template</span>
                   <select value={selectedSavedTemplateId} onChange={(event) => setSelectedSavedTemplateId(event.target.value)}>
-                    {savedTemplates.map((template) => (
+                    {reusableSavedTemplates.map((template) => (
                       <option key={template.id} value={template.id}>
                         {template.displayName}{template.isDefault ? " (Default)" : ""}
                       </option>
                     ))}
                   </select>
-                  {savedTemplates.find((template) => template.id === selectedSavedTemplateId) ? (
+                  {selectedSavedTemplate ? (
                     <small>
-                      {savedTemplates.find((template) => template.id === selectedSavedTemplateId)?.filename} · uploaded{" "}
-                      {new Date(
-                        savedTemplates.find((template) => template.id === selectedSavedTemplateId)?.uploadedAt ?? "",
-                      ).toLocaleDateString("en-GB")}
+                      {selectedSavedTemplate.filename} · uploaded {new Date(selectedSavedTemplate.uploadedAt).toLocaleDateString("en-GB")}
                     </small>
                   ) : null}
                 </label>
