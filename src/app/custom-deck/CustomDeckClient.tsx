@@ -709,7 +709,7 @@ function DeckFileDropzone({
 }
 
 export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnDeckId: string; selectedTemplate: string }) {
-  const { plan, user } = useSupabaseAuth();
+  const { isLoading: isAuthLoading, plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const initialDeckType = deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp";
@@ -901,12 +901,20 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   }
 
   async function createAndSaveDeck() {
-    if (!requirePro(() => undefined, { feature: "custom-deck", location: "custom_deck_save_request" })) return;
+    if (isAuthLoading) {
+      setRequestMessage("Checking your account before creating the deck...");
+      return;
+    }
+    if (!isPro) {
+      setRequestMessage("Custom deck building is included with APT Pro.");
+      requirePro(() => undefined, { feature: "custom-deck", location: "custom_deck_save_request" });
+      return;
+    }
     if (!user?.id) {
       setRequestMessage("Sign in to create and save a deck.");
       return;
     }
-    setRequestMessage("");
+    setRequestMessage("Checking deck setup...");
     setTemplateError("");
     setGoogleSlidesError("");
     if (!deckName.trim()) {
@@ -917,6 +925,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setGoogleSlidesError("Paste a shareable Google Slides presentation link.");
       return;
     }
+    setRequestMessage("Creating deck...");
     setIsCreatingDeck(true);
     try {
       if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
@@ -1299,7 +1308,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || !isPro} type="button" onClick={() => void createAndSaveDeck()}>
+            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || isAuthLoading} type="button" onClick={() => void createAndSaveDeck()}>
               {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
             </button>
             {!canCreateDeck ? (
