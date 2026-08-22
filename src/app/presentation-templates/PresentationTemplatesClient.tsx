@@ -326,22 +326,7 @@ export function PresentationTemplatesFree() {
             </Link>
           </div>
         </article>
-        <article className="card presentation-command-panel presentation-command-panel-muted">
-          <div>
-            <p className="eyebrow">Use existing work</p>
-            <h2>Saved decks</h2>
-            <p>
-              Reopen saved deck requests from Workspace, download generated
-              presentations, or create a new version from an existing deck.
-            </p>
-          </div>
-          <Link className="button button-secondary" href="/workspace#decks">
-            View deck workspace
-          </Link>
-        </article>
       </div>
-
-      <SavedDecksBottomPanel isPro={isPro} />
 
       <div className="section-header presentation-list-header">
         <h2>Deck builders and templates</h2>
@@ -396,6 +381,7 @@ export function PresentationTemplatesFree() {
           </Link>
         </article>
       )}
+      <SavedDecksBottomPanel isPro={isPro} />
     </section>
   );
 }
