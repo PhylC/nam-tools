@@ -3309,13 +3309,20 @@ p {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .scenario-title-row h3 {
   margin: 0;
-  font-size: 1.12rem;
+  font-size: 1.02rem;
   line-height: 1.25;
+}
+
+.scenario-title-copy {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 92px;
 }
 
 .scenario-title-row p {
@@ -3335,6 +3342,22 @@ p {
 
 .scenario-name-field {
   max-width: 320px;
+}
+
+.scenario-title-field {
+  flex: 1 1 280px;
+  max-width: 420px;
+  margin: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scenario-title-field input {
+  min-height: 40px;
+  height: 40px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.9rem;
 }
 
 .scenario-card-actions,
@@ -3449,10 +3472,10 @@ p {
 
 .roi-free-line-form {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.65rem;
   min-width: 0;
   border-top: 1px solid var(--border);
-  padding-top: 1rem;
+  padding-top: 0.78rem;
 }
 
 .roi-free-form-heading {
@@ -3464,7 +3487,7 @@ p {
 .roi-free-form-heading h4 {
   margin: 0;
   color: var(--foreground);
-  font-size: 1.02rem;
+  font-size: 0.96rem;
   line-height: 1.25;
 }
 
@@ -3478,31 +3501,36 @@ p {
 
 .roi-free-input-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.85rem 1rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
   min-width: 0;
 }
 
 .roi-free-line-form .roi-mobile-field {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.28rem;
   min-width: 0;
   color: var(--foreground);
-  font-size: 0.88rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
 .roi-free-line-form .roi-mobile-field input {
   width: 100%;
   min-width: 0;
-  min-height: var(--control-height);
+  min-height: 40px;
+  height: 40px;
   border: 1px solid var(--border);
   border-radius: var(--control-radius);
   background: #ffffff;
   color: var(--foreground);
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   line-height: 1.35;
-  padding: var(--control-padding-y) var(--control-padding-x);
+  padding: 0.5rem 0.62rem;
+}
+
+.roi-free-line-form .roi-mobile-field input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]) {
+  height: 40px;
 }
 
 .roi-mobile-summary,
@@ -3513,17 +3541,17 @@ p {
 
 .roi-mobile-builder {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .roi-mobile-line-card {
   display: grid;
-  gap: 0.95rem;
+  gap: 0.65rem;
   min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fbfdfc;
-  padding: 1rem;
+  padding: 0.78rem;
 }
 
 .roi-mobile-line-header,
@@ -3537,7 +3565,7 @@ p {
 
 .roi-mobile-line-header h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.94rem;
 }
 
 .roi-mobile-line-actions {
@@ -3547,21 +3575,21 @@ p {
 
 .roi-mobile-field-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.55rem;
   min-width: 0;
 }
 
 .roi-linked-promo-fields {
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  grid-column: 1 / -1;
-  gap: 0.5rem;
+  grid-column: span 2;
+  gap: 0.4rem;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
   border-radius: 8px;
   background: #f6faf8;
-  padding: 0.55rem;
+  padding: 0.42rem;
 }
 
 .roi-desktop-table {
@@ -3574,10 +3602,10 @@ p {
 
 .roi-mobile-field {
   display: grid;
-  gap: 0.4rem;
+  gap: 0.28rem;
   min-width: 0;
   color: var(--foreground);
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 900;
 }
 
@@ -3586,14 +3614,19 @@ p {
 .roi-mobile-field textarea {
   width: 100%;
   min-width: 0;
-  min-height: var(--control-height);
+  min-height: 40px;
   border: 1px solid var(--border);
   border-radius: var(--control-radius);
   background: #ffffff;
   color: var(--foreground);
-  font-size: 0.96rem;
+  font-size: 0.9rem;
   line-height: 1.35;
-  padding: var(--control-padding-y) var(--control-padding-x);
+  padding: 0.5rem 0.62rem;
+}
+
+.roi-mobile-line-card .roi-mobile-field input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.roi-mobile-line-card .roi-mobile-field select {
+  height: 40px;
 }
 
 .roi-mobile-field textarea {
@@ -3614,14 +3647,15 @@ p {
 .roi-mobile-actions summary {
   cursor: pointer;
   color: var(--accent-dark);
+  font-size: 0.86rem;
   font-weight: 900;
-  padding: 0.55rem 0;
+  padding: 0.42rem 0;
 }
 
 .roi-mobile-line-results {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.55rem;
+  gap: 0.4rem;
 }
 
 .roi-mobile-line-results div {
@@ -3631,13 +3665,13 @@ p {
   border: 1px solid #dce7e4;
   border-radius: 8px;
   background: #ffffff;
-  padding: 0.62rem 0.65rem;
+  padding: 0.48rem 0.55rem;
 }
 
 .roi-mobile-line-results span,
 .roi-mobile-comparison-card dt {
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 900;
   line-height: 1.15;
   text-transform: uppercase;
@@ -4127,6 +4161,20 @@ p {
 
   .roi-action-bar-simple {
     justify-content: flex-start;
+  }
+
+  .scenario-title-row {
+    align-items: flex-start;
+    display: grid;
+    grid-template-columns: minmax(90px, auto) minmax(0, 1fr);
+  }
+
+  .scenario-title-field {
+    max-width: none;
+  }
+
+  .scenario-title-row .scenario-card-actions {
+    grid-column: 1 / -1;
   }
 
   .roi-free-input-grid {
@@ -8618,6 +8666,17 @@ p {
   .scenario-card {
     gap: 0.75rem;
     padding: 1rem;
+  }
+
+  .scenario-title-row {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .scenario-title-field {
+    grid-template-columns: 1fr;
+    gap: 0.32rem;
+    max-width: none;
   }
 
   .scenario-card-header {

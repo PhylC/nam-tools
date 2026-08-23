@@ -2052,13 +2052,11 @@ export function RoiPlanner() {
               {activeScenario ? (
                 <section className="scenario-card" key={activeScenario.id}>
                   <div className="scenario-title-row">
-                    <div>
-                      <h3>{isPro && activeScenarios.length > 1 ? activeScenario.name || "Scenario" : "Scenario"}</h3>
+                    <div className="scenario-title-copy">
+                      <h3>Scenario</h3>
                       {!isPro ? <p>Model one scenario for free. Add and compare scenarios with APT Pro.</p> : null}
                     </div>
-                  </div>
-                  <div className="scenario-card-header">
-                    <label className="field scenario-name-field">
+                    <label className="field scenario-name-field scenario-title-field">
                       <span>Name</span>
                       <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
                     </label>
@@ -2078,10 +2076,6 @@ export function RoiPlanner() {
                     <details className="roi-mobile-actions">
                       <summary>Scenario actions</summary>
                       <div>
-                        <label className="roi-mobile-field">
-                          <span>Rename scenario</span>
-                          <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
-                        </label>
                         {isPro ? (
                           <div className="summary-actions">
                             <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario</button>
