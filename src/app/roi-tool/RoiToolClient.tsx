@@ -1377,11 +1377,22 @@ function SavedRoiBottomPanel({
                       </div>
                       <small>{getRecordUpdatedDate(comparison)}</small>
                       <div className="saved-bottom-actions">
-                        <button className="button button-secondary button-small" onClick={() => onLoadComparison(comparison.id)} type="button">
-                          Load
+                        <button
+                          className="workspace-icon-button"
+                          onClick={() => onLoadComparison(comparison.id)}
+                          type="button"
+                          aria-label={`Load ${title}`}
+                          title="Load"
+                        >
+                          <span aria-hidden="true">↻</span>
                         </button>
-                        <Link className="button button-secondary button-small" href={`/roi-tool?comparison=${comparison.id}`}>
-                          Edit
+                        <Link
+                          className="workspace-icon-button"
+                          href={`/roi-tool?comparison=${comparison.id}`}
+                          aria-label={`Open ${title}`}
+                          title="Open"
+                        >
+                          <span aria-hidden="true">↗</span>
                         </Link>
                       </div>
                     </div>
