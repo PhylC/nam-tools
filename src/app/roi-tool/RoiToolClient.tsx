@@ -757,25 +757,6 @@ function RoiFieldLabel({
   );
 }
 
-function TableInput({
-  ariaLabel,
-  value,
-  onChange,
-}: {
-  ariaLabel: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <input
-      aria-label={ariaLabel}
-      className="roi-table-input"
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  );
-}
-
 function MobileField({
   field,
   value,
@@ -964,16 +945,6 @@ function RoiEditableTable({
   lineActions?: boolean;
   newLineProOnly?: boolean;
 }) {
-  function changeLine(id: string, patch: Partial<RoiLine>) {
-    onChangeLines(updateLine(lines, id, patch));
-  }
-
-  function duplicateLine(id: string) {
-    const index = lines.findIndex((line) => line.id === id);
-    if (index < 0) return;
-    onChangeLines([...lines.slice(0, index + 1), copyLine(lines[index]), ...lines.slice(index + 1)]);
-  }
-
   if (!lineActions) {
     return (
       <>
@@ -999,62 +970,6 @@ function RoiEditableTable({
 
   return (
     <>
-      <div className="roi-table-scroll roi-desktop-table">
-        <table className="roi-planner-table">
-          <thead>
-            <tr>
-              <th className="sticky-col"><RoiFieldLabel compact field="sku" /></th>
-              <th><RoiFieldLabel compact field="product" /></th>
-              <th><RoiFieldLabel compact field="currentInvoice" /></th>
-              <th><RoiFieldLabel compact field="promoInvoice" /></th>
-              <th><RoiFieldLabel compact field="soa" /></th>
-              <th><RoiFieldLabel compact field="baselineUnits" /></th>
-              <th><RoiFieldLabel compact field="promoUnits" /></th>
-              <th><RoiFieldLabel compact field="cogs" /></th>
-              <th><RoiFieldLabel compact field="fixedSupport" /></th>
-              <th>Incremental supplier invoice revenue</th>
-              <th>Support cost</th>
-              <th>Incremental profit</th>
-              <th>Supplier revenue ROI</th>
-              <th>Profit ROI</th>
-              {lineActions ? <th>Actions</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) => {
-              const calc = calculateLine(line);
-              return (
-                <tr key={line.id}>
-                  <td className="sticky-col">
-                    <TableInput ariaLabel="SKU / Item" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
-                  </td>
-                  <td><TableInput ariaLabel="Product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} /></td>
-                  <td><TableInput ariaLabel="Current retailer invoice/buy price" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} /></td>
-                  <td><TableInput ariaLabel="Promo retailer invoice/buy price" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} /></td>
-                  <td><TableInput ariaLabel="SOA/support" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} /></td>
-                  <td><TableInput ariaLabel="Baseline units" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} /></td>
-                  <td><TableInput ariaLabel="Promo units" value={line.promoUnits} onChange={(value) => changeLine(line.id, { promoUnits: value })} /></td>
-                  <td><TableInput ariaLabel="Supplier COGS" value={line.cogs} onChange={(value) => changeLine(line.id, { cogs: value })} /></td>
-                  <td><TableInput ariaLabel="Fixed supplier support" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} /></td>
-                  <td>{money(calc.incrementalRevenue)}</td>
-                  <td>{money(calc.supportCost)}</td>
-                  <td>{calc.hasCogs ? money(calc.profitImpact) : "n/a"}</td>
-                  <td>{pct(calc.revenueRoi)}</td>
-                  <td>{pct(calc.profitRoi)}</td>
-                  {lineActions ? (
-                    <td>
-                      <div className="table-action-group">
-                        <button className="table-action" onClick={() => duplicateLine(line.id)} type="button">Copy</button>
-                        <button className="table-action" onClick={() => onChangeLines(lines.length > 1 ? lines.filter((item) => item.id !== line.id) : [blankLine()])} type="button">Delete</button>
-                      </div>
-                    </td>
-                  ) : null}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
       <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} />
       <button
         className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
