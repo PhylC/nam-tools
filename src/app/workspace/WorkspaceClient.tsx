@@ -1417,44 +1417,46 @@ function ComparisonScenarioList({
         onPageSizeChange={onPageSizeChange}
       />
       {hasItems ? (
-        <div className="workspace-grouped-list">
-          <div className="workspace-grouped-header" aria-hidden="true">
-            <span>Name</span>
-            <span>Last updated</span>
-            <span>Actions</span>
+        <div className="workspace-scenarios-scroll">
+          <div className="workspace-grouped-list">
+            <div className="workspace-grouped-header" aria-hidden="true">
+              <span>Name</span>
+              <span>Last updated</span>
+              <span>Actions</span>
+            </div>
+            {comparisons.map(({ item }) => (
+              <ComparisonGroupRow
+                item={item}
+                key={`${item.type}-${item.id}`}
+                comparisons={allComparisons}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onRename={onRename}
+                onRenameScenario={onRenameScenario}
+                onDuplicateScenario={onDuplicateScenario}
+                onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+                onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+                onMoveScenarioOut={onMoveScenarioOut}
+                selectedKeys={selectedKeys}
+                onToggleSelected={onToggleSelected}
+              />
+            ))}
+            {standaloneItems.length ? (
+              <StandaloneScenarioGroup
+                items={standaloneItems}
+                comparisons={allComparisons}
+                onDelete={onDelete}
+                onRenameScenario={onRenameScenario}
+                onDuplicateScenario={onDuplicateScenario}
+                onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+                onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+                onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+                onMoveScenarioOut={onMoveScenarioOut}
+                selectedKeys={selectedKeys}
+                onToggleSelected={onToggleSelected}
+              />
+            ) : null}
           </div>
-          {comparisons.map(({ item }) => (
-            <ComparisonGroupRow
-              item={item}
-              key={`${item.type}-${item.id}`}
-              comparisons={allComparisons}
-              onDelete={onDelete}
-              onDuplicate={onDuplicate}
-              onRename={onRename}
-              onRenameScenario={onRenameScenario}
-              onDuplicateScenario={onDuplicateScenario}
-              onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
-              onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-              onMoveScenarioOut={onMoveScenarioOut}
-              selectedKeys={selectedKeys}
-              onToggleSelected={onToggleSelected}
-            />
-          ))}
-          {standaloneItems.length ? (
-            <StandaloneScenarioGroup
-              items={standaloneItems}
-              comparisons={allComparisons}
-              onDelete={onDelete}
-              onRenameScenario={onRenameScenario}
-              onDuplicateScenario={onDuplicateScenario}
-              onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
-              onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-              onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
-              onMoveScenarioOut={onMoveScenarioOut}
-              selectedKeys={selectedKeys}
-              onToggleSelected={onToggleSelected}
-            />
-          ) : null}
         </div>
       ) : (
         <EmptyState />
