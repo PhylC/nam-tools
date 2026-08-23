@@ -83,9 +83,9 @@ type RoiFieldKey =
 
 const roiFieldMeta: Record<RoiFieldKey, { label: string; required: boolean; info: string }> = {
   sku: {
-    label: "SKU / item",
+    label: "Product / SKU",
     required: false,
-    info: "Use this to name the product, SKU or line being modelled.",
+    info: "Use this to name the product, SKU, item or line being modelled.",
   },
   product: {
     label: "Product",
@@ -378,7 +378,7 @@ function getScenarioSummaryText(value: unknown) {
   const scenario = isRecord(value) ? value : {};
   const lines = Array.isArray(scenario.lines) ? scenario.lines.filter(isRecord) : [];
   const names = lines
-    .map((line) => getRecordText(line.product ?? line.sku, ""))
+    .map((line) => getRecordText(line.product, "") || getRecordText(line.sku, ""))
     .filter(Boolean)
     .slice(0, 2);
   const lineText = `${lines.length} product line${lines.length === 1 ? "" : "s"}`;
@@ -596,6 +596,10 @@ function validateUploadRows(rows: Record<string, string>[]) {
 
 function isLineCalculationComplete(line: RoiLine) {
   return has(line.baselineUnits) && has(line.promoUnits) && has(line.currentInvoice);
+}
+
+function lineIdentifier(line: RoiLine) {
+  return line.sku || line.product;
 }
 
 function CsvExportButton({ groups, onBeforeExport }: { groups: RoiGroup[]; onBeforeExport?: () => boolean }) {
@@ -824,7 +828,7 @@ function RoiFreeLineForm({
         <p>Enter the one product line you want to model.</p>
       </div>
       <div className="roi-free-input-grid">
-        <MobileField field="sku" value={line.sku} onChange={(value) => changeLine({ sku: value })} />
+        <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine({ sku: value, product: "" })} />
         <MobileField field="promoInvoice" type="number" value={line.promoInvoice} onChange={(value) => changeLine({ promoInvoice: value })} />
         <MobileField field="soa" type="number" value={line.soa} onChange={(value) => changeLine({ soa: value })} />
         <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine({ baselineUnits: value })} />
@@ -886,8 +890,7 @@ function RoiMobileLineBuilder({
             </div>
 
             <div className="roi-mobile-field-grid">
-              <MobileField field="sku" value={line.sku} onChange={(value) => changeLine(line.id, { sku: value })} />
-              <MobileField field="product" value={line.product} onChange={(value) => changeLine(line.id, { product: value })} />
+              <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine(line.id, { sku: value, product: "" })} />
               <MobileField field="currentInvoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
               <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
               <div className="roi-linked-promo-fields">
