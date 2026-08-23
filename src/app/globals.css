@@ -3182,6 +3182,41 @@ p {
   max-width: 380px;
 }
 
+.roi-comparison-name-display {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.roi-comparison-name-display > span,
+.saved-name-display > span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.roi-comparison-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 40px;
+}
+
+.roi-comparison-name-row strong,
+.saved-name-display strong {
+  color: var(--foreground);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.roi-name-edit-button {
+  width: 36px;
+  height: 36px;
+}
+
 .inline-plan-name small,
 .roi-assumption-note {
   color: var(--muted);
@@ -7630,6 +7665,12 @@ p {
 
 .saved-row > div:first-child,
 .saved-row .field {
+  min-width: 0;
+}
+
+.saved-name-display {
+  display: grid;
+  gap: 0.22rem;
   min-width: 0;
 }
 

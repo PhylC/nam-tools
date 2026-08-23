@@ -1348,6 +1348,13 @@ function SavedRoiPlansPanel({
   const isFallbackSave = /device|unavailable|could not/i.test(saveMessage);
   const saveStatusClass = isFallbackSave ? "save-status-message save-status-warning" : "save-status-message save-status-success";
 
+  function requestRename(group: SavedRoiGroup) {
+    const nextName = window.prompt("Rename comparison", group.name);
+    const trimmed = nextName?.trim();
+    if (!trimmed || trimmed === group.name) return;
+    void onRename(group.id, trimmed);
+  }
+
   return (
     <details className="saved-plans-details">
       <summary>Load or manage saved ROI comparisons</summary>
@@ -1364,16 +1371,19 @@ function SavedRoiPlansPanel({
           <div className="saved-list">
             {groups.map((group) => (
               <div className="saved-row" key={group.id}>
-                <label className="field saved-name-field">
-                <span>Saved comparison</span>
-                  <input value={group.name} onChange={(event) => onRename(group.id, event.target.value)} />
-                </label>
+                <div className="saved-name-display">
+                  <span>Saved comparison</span>
+                  <strong>{group.name}</strong>
+                </div>
                 <div>
                   <strong>{group.scenarios.length} scenario(s)</strong>
                   <span>Last edited {new Date(group.updatedAt ?? group.updated_at ?? group.savedAt).toLocaleDateString("en-GB")}</span>
                 </div>
                 <div className="summary-actions">
                   <button className="button button-secondary button-small" onClick={() => onLoad(group.id)} type="button">Load</button>
+                  <button className="workspace-icon-button" aria-label={`Rename ${group.name}`} onClick={() => requestRename(group)} title="Rename" type="button">
+                    <span aria-hidden="true">✎</span>
+                  </button>
                   <button className="button button-secondary button-small" onClick={() => onDuplicate(group.id)} type="button">Duplicate</button>
                   <button className="button button-secondary button-small" onClick={() => onDelete(group.id)} type="button">Delete</button>
                 </div>
@@ -1605,6 +1615,7 @@ export function RoiPlanner() {
   const [scenarioMessageId, setScenarioMessageId] = useState("");
   const [savedScenarioId, setSavedScenarioId] = useState("");
   const [editingScenarioNameId, setEditingScenarioNameId] = useState("");
+  const [editingComparisonNameId, setEditingComparisonNameId] = useState("");
   const [loadedComparisonSources, setLoadedComparisonSources] = useState<Record<string, LoadedComparisonSource>>({});
   const [loadedScenarioSources, setLoadedScenarioSources] = useState<Record<string, LoadedScenarioSource>>({});
   const saveStatusClass = /device|unavailable|could not/i.test(saveMessage)
@@ -2163,17 +2174,36 @@ export function RoiPlanner() {
           <div>
             {isPro ? (
               <div className="roi-comparison-toolbar">
-                <label className="field inline-plan-name">
-                  <span>Name</span>
-                  <input
-                    aria-describedby="roi-comparison-name-help"
-                    value={activeGroup?.name ?? ""}
-                    onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
-                  />
-                  <small id="roi-comparison-name-help">
-                    {isEditingSavedComparison ? "Editing saved comparison. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
-                  </small>
-                </label>
+                {isEditingSavedComparison && activeGroup && editingComparisonNameId !== activeGroup.id ? (
+                  <div className="roi-comparison-name-display inline-plan-name">
+                    <span>Name</span>
+                    <div className="roi-comparison-name-row">
+                      <strong>{activeGroup.name}</strong>
+                      <button
+                        className="workspace-icon-button roi-name-edit-button"
+                        aria-label={`Rename ${activeGroup.name}`}
+                        onClick={() => setEditingComparisonNameId(activeGroup.id)}
+                        title="Rename comparison"
+                        type="button"
+                      >
+                        <span aria-hidden="true">✎</span>
+                      </button>
+                    </div>
+                    <small>Editing saved comparison. Use the pencil to rename; Save as copy creates a separate comparison.</small>
+                  </div>
+                ) : (
+                  <label className="field inline-plan-name">
+                    <span>Name</span>
+                    <input
+                      aria-describedby="roi-comparison-name-help"
+                      value={activeGroup?.name ?? ""}
+                      onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
+                    />
+                    <small id="roi-comparison-name-help">
+                      {isEditingSavedComparison ? "Rename mode. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
+                    </small>
+                  </label>
+                )}
                 <details className="roi-local-settings">
                   <summary aria-label="Comparison settings" className="workspace-icon-button roi-toolbar-icon-button" title="Comparison settings">
                     <span aria-hidden="true">⚙</span>
