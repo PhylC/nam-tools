@@ -1714,10 +1714,7 @@ export function RoiPlanner() {
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
     const snapshot = buildRoiPlanSnapshot(activeGroup, asCopy ? undefined : existing);
     if (asCopy) {
-      const sourceTitle = activeLoadedComparisonSource?.title || existing?.name || existing?.group_name || "";
-      const copyName = sourceTitle && snapshot.name.trim() === sourceTitle.trim() ? `${snapshot.name} copy` : snapshot.name;
       snapshot.id = crypto.randomUUID();
-      snapshot.name = copyName;
       snapshot.group_name = snapshot.name;
       snapshot.createdAt = snapshot.savedAt;
       snapshot.created_at = snapshot.savedAt;
@@ -1758,7 +1755,7 @@ export function RoiPlanner() {
     if (!ensureRoiPro("save-scenario")) return;
     const title = scenarioSaveName.trim() || scenario.name || "ROI scenario";
     const loadedSource = loadedScenarioSources[scenario.id];
-    const savedTitle = asCopy && loadedSource?.title.trim() === title.trim() ? `${title} copy` : title;
+    const savedTitle = title;
     const savedIdForUpdate = !asCopy ? loadedSource?.savedId || savedScenarioId : "";
     const total = aggregate(scenario.lines);
     const currency = activeGroup?.currency ?? "GBP";
