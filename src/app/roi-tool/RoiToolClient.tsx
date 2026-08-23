@@ -48,6 +48,8 @@ type RoiScenario = {
 type RoiGroup = {
   id: string;
   name: string;
+  currency: string;
+  vatRate: string;
   scenarios: RoiScenario[];
 };
 
@@ -64,6 +66,8 @@ type SavedScenarioRecord = Record<string, unknown>;
 
 type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
 type SavedRoiSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
+
+const roiCurrencyOptions = ["GBP", "USD", "EUR"] as const;
 
 type RoiFieldKey =
   | "sku"
@@ -191,6 +195,8 @@ const blankScenario = (name = "Scenario 1"): RoiScenario => ({
 const blankGroup = (name = "Q4 Retailer Promo Plan"): RoiGroup => ({
   id: crypto.randomUUID(),
   name,
+  currency: "GBP",
+  vatRate: "20",
   scenarios: [blankScenario()],
 });
 
@@ -203,10 +209,14 @@ function has(value: string) {
   return value.trim() !== "";
 }
 
-function money(value: number) {
+function normalizeRoiCurrency(value: string | undefined): string {
+  return value && roiCurrencyOptions.includes(value as (typeof roiCurrencyOptions)[number]) ? value : "GBP";
+}
+
+function money(value: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
-    currency: "GBP",
+    currency: normalizeRoiCurrency(currency),
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -344,6 +354,45 @@ function restoreSavedScenario(value: unknown, fallbackName = "ROI scenario"): Ro
   };
 }
 
+function restoreSavedGroup(value: unknown): SavedRoiGroup {
+  const group = isRecord(value) ? value : {};
+  const rawScenarios = Array.isArray(group.scenarios) ? group.scenarios : [];
+  const scenarios = rawScenarios
+    .map((scenario, index) => restoreSavedScenario(scenario, `Scenario ${index + 1}`))
+    .filter((scenario): scenario is RoiScenario => Boolean(scenario));
+  const firstLine = scenarios[0]?.lines[0];
+  const name = getRecordText(group.name ?? group.group_name, "Saved comparison");
+  const now = new Date().toISOString();
+
+  return {
+    id: getRecordText(group.id, crypto.randomUUID()),
+    name,
+    group_name: getRecordText(group.group_name ?? group.name, name),
+    currency: normalizeRoiCurrency(getRecordText(group.currency, firstLine?.currency || "GBP")),
+    vatRate: getRecordText(group.vatRate ?? group.vat_rate, firstLine?.vatRate || "20"),
+    scenarios: scenarios.length ? scenarios : [blankScenario()],
+    savedAt: getRecordText(group.savedAt, now),
+    createdAt: getRecordText(group.createdAt ?? group.created_at, now),
+    updatedAt: getRecordText(group.updatedAt ?? group.updated_at, now),
+    created_at: getRecordText(group.created_at ?? group.createdAt, now),
+    updated_at: getRecordText(group.updated_at ?? group.updatedAt, now),
+  };
+}
+
+function withGroupAssumptions(group: RoiGroup): RoiGroup {
+  const currency = normalizeRoiCurrency(group.currency);
+  const vatRate = group.vatRate || "20";
+  return {
+    ...group,
+    currency,
+    vatRate,
+    scenarios: group.scenarios.map((scenario) => ({
+      ...scenario,
+      lines: scenario.lines.map((line) => ({ ...line, currency, vatRate })),
+    })),
+  };
+}
+
 function getRecordText(value: unknown, fallback: string) {
   return typeof value === "string" && value.trim() ? value : fallback;
 }
@@ -420,6 +469,7 @@ function limitGroupsForFree(nextGroups: RoiGroup[]) {
 function groupHasDraftContent(group: RoiGroup | undefined) {
   if (!group) return false;
   if (group.name.trim() && group.name !== "Q4 Retailer Promo Plan") return true;
+  if ((group.currency || "GBP") !== "GBP" || (group.vatRate || "20") !== "20") return true;
   if (group.scenarios.length > 1) return true;
   return group.scenarios.some(
     (scenario, scenarioIndex) =>
@@ -448,9 +498,10 @@ function groupHasDraftContent(group: RoiGroup | undefined) {
 
 function buildRoiPlanSnapshot(group: RoiGroup, existing?: Partial<SavedRoiGroup>) {
   const now = new Date().toISOString();
-  const comparisonName = group.name.trim() || "ROI comparison";
+  const normalizedGroup = withGroupAssumptions(group);
+  const comparisonName = normalizedGroup.name.trim() || "ROI comparison";
   return {
-    ...group,
+    ...normalizedGroup,
     name: comparisonName,
     group_name: comparisonName,
     savedAt: now,
@@ -637,7 +688,7 @@ function CsvExportButton({ groups, onBeforeExport }: { groups: RoiGroup[]; onBef
       ],
     ];
 
-    groups.forEach((group) => {
+    groups.map(withGroupAssumptions).forEach((group) => {
       group.scenarios.forEach((scenario) => {
         scenario.lines.forEach((line) => {
           const calc = calculateLine(line);
@@ -843,10 +894,12 @@ function RoiMobileLineBuilder({
   lines,
   onChangeLines,
   lineActions,
+  currency = "GBP",
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
   lineActions: boolean;
+  currency?: string;
 }) {
   function changeLine(id: string, patch: Partial<RoiLine>) {
     onChangeLines(updateLine(lines, id, patch));
@@ -923,14 +976,14 @@ function RoiMobileLineBuilder({
             <details className="roi-mobile-line-detail">
               <summary>Show line detail</summary>
               <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
-                <div><span>Promo invoice</span><strong>{money(calc.promoInvoice)}</strong></div>
-                <div><span>Support per unit</span><strong>{money(calc.supportPerUnit)}</strong></div>
+                <div><span>Promo invoice</span><strong>{money(calc.promoInvoice, currency)}</strong></div>
+                <div><span>Support per unit</span><strong>{money(calc.supportPerUnit, currency)}</strong></div>
                 <div><span>Incremental units</span><strong>{calc.incrementalUnits.toLocaleString("en-GB")}</strong></div>
-                <div><span>Baseline revenue</span><strong>{money(calc.baselineRevenue)}</strong></div>
-                <div><span>Promo revenue</span><strong>{money(calc.promoRevenue)}</strong></div>
-                <div><span>Incremental revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
-                <div><span>Total support</span><strong>{money(calc.supportCost)}</strong></div>
-                <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add supplier COGS"}</strong></div>
+                <div><span>Baseline revenue</span><strong>{money(calc.baselineRevenue, currency)}</strong></div>
+                <div><span>Promo revenue</span><strong>{money(calc.promoRevenue, currency)}</strong></div>
+                <div><span>Incremental revenue</span><strong>{money(calc.incrementalRevenue, currency)}</strong></div>
+                <div><span>Total support</span><strong>{money(calc.supportCost, currency)}</strong></div>
+                <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact, currency) : "Add supplier COGS"}</strong></div>
                 <div><span>Revenue ROI</span><strong>{pct(calc.revenueRoi)}</strong></div>
                 <div><span>Profit ROI</span><strong>{pct(calc.profitRoi)}</strong></div>
               </div>
@@ -948,12 +1001,14 @@ function RoiEditableTable({
   onAddLine,
   lineActions = true,
   newLineProOnly = false,
+  currency = "GBP",
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
   onAddLine: () => void;
   lineActions?: boolean;
   newLineProOnly?: boolean;
+  currency?: string;
 }) {
   if (!lineActions) {
     return (
@@ -980,7 +1035,7 @@ function RoiEditableTable({
 
   return (
     <>
-      <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} />
+      <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} currency={currency} />
       <button
         className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
         onClick={onAddLine}
@@ -1000,14 +1055,14 @@ function RoiEditableTable({
   );
 }
 
-function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
+function ScenarioSummary({ scenario, currency = "GBP" }: { scenario: RoiScenario; currency?: string }) {
   const summary = aggregate(scenario.lines);
   const items = [
-    ["Baseline supplier invoice revenue", money(summary.baselineRevenue)],
-    ["Promo supplier invoice revenue", money(summary.promoRevenue)],
-    ["Incremental supplier invoice revenue", money(summary.revenueImpact)],
-    ["Support", money(summary.supportCost)],
-    ["Incremental profit", summary.profitRows ? money(summary.profitImpact) : "n/a"],
+    ["Baseline supplier invoice revenue", money(summary.baselineRevenue, currency)],
+    ["Promo supplier invoice revenue", money(summary.promoRevenue, currency)],
+    ["Incremental supplier invoice revenue", money(summary.revenueImpact, currency)],
+    ["Support", money(summary.supportCost, currency)],
+    ["Incremental profit", summary.profitRows ? money(summary.profitImpact, currency) : "n/a"],
     ["Supplier revenue ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
     ["Profit ROI", pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)],
     ["Lines", scenario.lines.length.toLocaleString("en-GB")],
@@ -1025,11 +1080,11 @@ function ScenarioSummary({ scenario }: { scenario: RoiScenario }) {
         ))}
       </div>
       <div className="roi-mobile-summary" aria-label={`${scenario.name} mobile summary`}>
-        <div><span>Incremental supplier invoice revenue</span><strong>{money(summary.revenueImpact)}</strong></div>
-        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact) : "Add supplier COGS to see profit ROI"}</strong></div>
+        <div><span>Incremental supplier invoice revenue</span><strong>{money(summary.revenueImpact, currency)}</strong></div>
+        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact, currency) : "Add supplier COGS to see profit ROI"}</strong></div>
         <div><span>ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
-        <div><span>Baseline supplier invoice revenue</span><strong>{money(summary.baselineRevenue)}</strong></div>
-        <div><span>Promo supplier invoice revenue</span><strong>{money(summary.promoRevenue)}</strong></div>
+        <div><span>Baseline supplier invoice revenue</span><strong>{money(summary.baselineRevenue, currency)}</strong></div>
+        <div><span>Promo supplier invoice revenue</span><strong>{money(summary.promoRevenue, currency)}</strong></div>
       </div>
     </div>
   );
@@ -1069,10 +1124,12 @@ function ScenarioComparison({
   scenarios,
   onAddScenario,
   onSaveComparison,
+  currency = "GBP",
 }: {
   scenarios: RoiScenario[];
   onAddScenario: () => void;
   onSaveComparison: () => void | Promise<void>;
+  currency?: string;
 }) {
   const metrics = scenarios.map(scenarioMetrics);
   const bestRevenue = maxBy(metrics, (item) => item.summary.revenueImpact);
@@ -1098,26 +1155,26 @@ function ScenarioComparison({
   const comparisonRows: ComparisonMetric[] = [
     {
       label: "Baseline supplier invoice revenue",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.baselineRevenue),
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.baselineRevenue, currency),
     },
     {
       label: "Promo supplier invoice revenue",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.promoRevenue),
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.promoRevenue, currency),
     },
     {
       label: "Incremental supplier invoice revenue",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.revenueImpact),
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.revenueImpact, currency),
       bestScenarioId: bestRevenue?.scenario.id,
     },
     {
       label: "Support cost",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.supportCost),
+      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.supportCost, currency),
       bestScenarioId: lowestSupport?.scenario.id,
       bestLabel: "Lowest",
     },
     {
       label: "Incremental profit",
-      value: (item: ReturnType<typeof scenarioMetrics>) => (item.summary.profitRows ? money(item.summary.profitImpact) : "Add supplier COGS"),
+      value: (item: ReturnType<typeof scenarioMetrics>) => (item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"),
       bestScenarioId: bestProfit?.scenario.id,
     },
     {
@@ -1220,9 +1277,9 @@ function ScenarioComparison({
                       {badges.length ? <span>{badges.join(" · ")}</span> : null}
                     </div>
                     <dl>
-                      <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact)}</dd></div>
-                      <div><dt>Support cost</dt><dd>{money(item.summary.supportCost)}</dd></div>
-                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact) : "Add supplier COGS"}</dd></div>
+                      <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact, currency)}</dd></div>
+                      <div><dt>Support cost</dt><dd>{money(item.summary.supportCost, currency)}</dd></div>
+                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"}</dd></div>
                       <div><dt>Supplier revenue ROI</dt><dd>{pct(item.revenueRoi)}</dd></div>
                       <div><dt>Profit ROI</dt><dd>{pct(item.profitRoi)}</dd></div>
                       <div><dt>Lines</dt><dd>{item.scenario.lines.length.toLocaleString("en-GB")}</dd></div>
@@ -1540,12 +1597,12 @@ export function RoiPlanner() {
       let isMounted = true;
       loadRoiPlan(comparisonId).then((result) => {
         if (!isMounted) return;
-        const saved = result.data as SavedRoiGroup | null;
-        if (!saved) {
+        if (!result.data) {
           setSaveMessage(result.message ?? "");
           setProMessage("Could not find that saved comparison.");
           return;
         }
+        const saved = restoreSavedGroup(result.data);
         autoSaveSignature.current = JSON.stringify(saved);
         const activeSavedScenarioId = scenarioId && saved.scenarios.some((scenario) => scenario.id === scenarioId) ? scenarioId : saved.scenarios[0]?.id ?? "";
         setPlannerState({
@@ -1599,7 +1656,7 @@ export function RoiPlanner() {
 
   async function refreshSavedRoiWork() {
     const [groupsResult, scenariosResult] = await Promise.all([listRoiPlans(), listSavedScenarios()]);
-    setSavedGroups(groupsResult.data as SavedRoiGroup[]);
+    setSavedGroups(groupsResult.data.map(restoreSavedGroup));
     setSavedScenarios(scenariosResult.data);
     setSaveMessage(groupsResult.message ?? scenariosResult.message ?? "");
   }
@@ -1647,18 +1704,25 @@ export function RoiPlanner() {
     if (!ensureRoiPro("save-scenario")) return;
     const title = scenarioSaveName.trim() || scenario.name || "ROI scenario";
     const total = aggregate(scenario.lines);
+    const currency = activeGroup?.currency ?? "GBP";
+    const vatRate = activeGroup?.vatRate ?? "20";
+    const scenarioWithAssumptions = {
+      ...scenario,
+      name: title,
+      lines: scenario.lines.map((line) => ({ ...line, currency, vatRate })),
+    };
     const result = await saveScenario({
       title,
       toolId: "roi-tool",
       toolName: "ROI planner",
-      scenarioData: { ...scenario, name: title },
-      inputs: { lines: scenario.lines },
+      scenarioData: scenarioWithAssumptions,
+      inputs: { lines: scenarioWithAssumptions.lines, currency, vatRate },
       outputs: {
-        baselineSupplierInvoiceRevenue: money(total.baselineRevenue),
-        promoSupplierInvoiceRevenue: money(total.promoRevenue),
-        incrementalSupplierInvoiceRevenue: money(total.revenueImpact),
-        totalSupplierSupport: money(total.supportCost),
-        incrementalProfit: total.profitRows ? money(total.profitImpact) : "n/a",
+        baselineSupplierInvoiceRevenue: money(total.baselineRevenue, currency),
+        promoSupplierInvoiceRevenue: money(total.promoRevenue, currency),
+        incrementalSupplierInvoiceRevenue: money(total.revenueImpact, currency),
+        totalSupplierSupport: money(total.supportCost, currency),
+        incrementalProfit: total.profitRows ? money(total.profitImpact, currency) : "n/a",
         supplierRevenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
         profitRoi: total.profitRows && total.supportCost > 0 ? pct(total.profitImpact / total.supportCost) : "n/a",
         lines: scenario.lines.length,
@@ -1684,8 +1748,8 @@ export function RoiPlanner() {
     if (!ensureRoiPro("save-plan")) return;
     const result = await loadRoiPlan(groupId);
     setSaveMessage(result.message ?? "");
-    const saved = result.data as SavedRoiGroup | null;
-    if (!saved) return;
+    if (!result.data) return;
+    const saved = restoreSavedGroup(result.data);
     autoSaveSignature.current = JSON.stringify(saved);
     setPlannerState((current) => {
       const nextGroups = [saved, ...current.groups.filter((group) => group.id !== saved.id)];
@@ -1908,6 +1972,11 @@ export function RoiPlanner() {
     );
   }
 
+  function updateActiveGroupAssumptions(patch: Partial<Pick<RoiGroup, "currency" | "vatRate" | "name">>) {
+    if (!activeGroup) return;
+    setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, ...patch } : group)));
+  }
+
   function uploadCsv(file: File | undefined) {
     if (!ensureRoiPro("upload-spreadsheet")) return;
     if (!file || !activeGroup) return;
@@ -1930,11 +1999,19 @@ export function RoiPlanner() {
         }
         return items;
       }, []);
+      const firstAssumptionLine = scenarios.flatMap((scenario) => scenario.lines).find((line) => line.currency || line.vatRate);
 
       setPlannerState((current) => ({
         ...current,
         groups: current.groups.map((group) =>
-          group.id === activeGroup.id ? { ...group, scenarios } : group,
+          group.id === activeGroup.id
+            ? {
+                ...group,
+                currency: firstAssumptionLine?.currency || group.currency,
+                vatRate: firstAssumptionLine?.vatRate || group.vatRate,
+                scenarios,
+              }
+            : group,
         ),
         activeScenarioId: scenarios[0]?.id ?? "",
       }));
@@ -1953,17 +2030,34 @@ export function RoiPlanner() {
         <div className="roi-plan-header">
           <div>
             {isPro ? (
-              <label className="field inline-plan-name">
-                <span>Comparison name</span>
-                <input
-                  aria-describedby="roi-comparison-name-help"
-                  value={activeGroup?.name ?? ""}
-                  onChange={(event) =>
-                    setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, name: event.target.value } : group)))
-                  }
-                />
-                <small id="roi-comparison-name-help">This is the name used when you save the comparison.</small>
-              </label>
+              <div className="roi-comparison-settings">
+                <label className="field inline-plan-name">
+                  <span>Comparison name</span>
+                  <input
+                    aria-describedby="roi-comparison-name-help"
+                    value={activeGroup?.name ?? ""}
+                    onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
+                  />
+                  <small id="roi-comparison-name-help">Used when you save this comparison.</small>
+                </label>
+                <label className="field roi-assumption-field">
+                  <span>Currency</span>
+                  <select value={activeGroup?.currency ?? "GBP"} onChange={(event) => updateActiveGroupAssumptions({ currency: event.target.value })}>
+                    {roiCurrencyOptions.map((currency) => (
+                      <option key={currency} value={currency}>{currency}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field roi-assumption-field">
+                  <span>VAT rate</span>
+                  <input
+                    inputMode="decimal"
+                    type="number"
+                    value={activeGroup?.vatRate ?? "20"}
+                    onChange={(event) => updateActiveGroupAssumptions({ vatRate: event.target.value })}
+                  />
+                </label>
+              </div>
             ) : null}
             <p className="roi-planner-helper">
               {isPro
@@ -2036,7 +2130,7 @@ export function RoiPlanner() {
                     type="button"
                   >
                     <span>{scenario.name || `Scenario ${index + 1}`}</span>
-                    <small>{scenario.lines.length} line{scenario.lines.length === 1 ? "" : "s"} · {money(summary.revenueImpact)} inc revenue</small>
+                    <small>{scenario.lines.length} line{scenario.lines.length === 1 ? "" : "s"} · {money(summary.revenueImpact, activeGroup?.currency)} inc revenue</small>
                   </button>
                 );
               })}
@@ -2062,12 +2156,8 @@ export function RoiPlanner() {
               {activeScenario ? (
                 <section className="scenario-card" key={activeScenario.id}>
                   <div className="scenario-title-row">
-                    <div className="scenario-title-copy">
-                      <h3>Scenario</h3>
-                      {!isPro ? <p>Model one scenario for free. Add and compare scenarios with APT Pro.</p> : null}
-                    </div>
                     <label className="field scenario-name-field scenario-title-field">
-                      <span>Name</span>
+                      <span>Scenario name</span>
                       <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
                     </label>
                     <div className="scenario-card-actions">
@@ -2126,8 +2216,9 @@ export function RoiPlanner() {
                     onChangeLines={(lines) => setScenarioLines(activeScenario.id, lines)}
                     lineActions={isPro}
                     newLineProOnly={!isPro}
+                    currency={activeGroup?.currency}
                   />
-                  <ScenarioSummary scenario={activeScenario} />
+                  <ScenarioSummary scenario={activeScenario} currency={activeGroup?.currency} />
                 </section>
               ) : null}
             </div>
@@ -2136,7 +2227,7 @@ export function RoiPlanner() {
 
         <CalculatorCaveat />
 
-        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} /> : <FreeProPrompt />}
+        {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} currency={activeGroup?.currency} /> : <FreeProPrompt />}
       </article>
       {isPro ? <SavedRoiBottomPanel comparisons={savedGroups} scenarios={savedScenarios} /> : null}
     </section>
