@@ -63,6 +63,15 @@ type SavedRoiGroup = RoiGroup & {
 };
 
 type SavedScenarioRecord = Record<string, unknown>;
+type LoadedScenarioSource = {
+  savedId: string;
+  title: string;
+};
+
+type LoadedComparisonSource = {
+  savedId: string;
+  title: string;
+};
 
 type AutoSaveStatus = "idle" | "saving" | "saved" | "error";
 type SavedRoiSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
@@ -1589,6 +1598,8 @@ export function RoiPlanner() {
   const [scenarioSaveMessage, setScenarioSaveMessage] = useState("");
   const [scenarioMessageId, setScenarioMessageId] = useState("");
   const [savedScenarioId, setSavedScenarioId] = useState("");
+  const [loadedComparisonSources, setLoadedComparisonSources] = useState<Record<string, LoadedComparisonSource>>({});
+  const [loadedScenarioSources, setLoadedScenarioSources] = useState<Record<string, LoadedScenarioSource>>({});
   const saveStatusClass = /device|unavailable|could not/i.test(saveMessage)
     ? "pro-inline-message roi-save-status roi-save-status-warning"
     : "pro-inline-message roi-save-status";
@@ -1634,7 +1645,8 @@ export function RoiPlanner() {
           activeGroupId: saved.id,
           activeScenarioId: activeSavedScenarioId,
         });
-        setSaveMessage(result.message ?? "Comparison loaded.");
+        setLoadedComparisonSources({ [saved.id]: { savedId: saved.id, title: saved.name } });
+        setSaveMessage(result.message ?? `Editing saved comparison "${saved.name}".`);
       });
 
       return () => {
@@ -1662,7 +1674,10 @@ export function RoiPlanner() {
         activeGroupId: nextGroup.id,
         activeScenarioId: scenario.id,
       });
-      setScenarioSaveMessage("Loaded saved scenario.");
+      const savedTitle = String(saved.title ?? saved.name ?? scenario.name ?? "ROI scenario");
+      setLoadedScenarioSources({ [scenario.id]: { savedId, title: savedTitle } });
+      setSavedScenarioId(savedId);
+      setScenarioSaveMessage(`Editing saved scenario "${savedTitle}".`);
       setScenarioMessageId(scenario.id);
     });
 
@@ -1699,8 +1714,10 @@ export function RoiPlanner() {
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
     const snapshot = buildRoiPlanSnapshot(activeGroup, asCopy ? undefined : existing);
     if (asCopy) {
+      const sourceTitle = activeLoadedComparisonSource?.title || existing?.name || existing?.group_name || "";
+      const copyName = sourceTitle && snapshot.name.trim() === sourceTitle.trim() ? `${snapshot.name} copy` : snapshot.name;
       snapshot.id = crypto.randomUUID();
-      snapshot.name = `${snapshot.name} copy`;
+      snapshot.name = copyName;
       snapshot.group_name = snapshot.name;
       snapshot.createdAt = snapshot.savedAt;
       snapshot.created_at = snapshot.savedAt;
@@ -1720,6 +1737,7 @@ export function RoiPlanner() {
       activeGroupId: saved.id,
       activeScenarioId: saved.scenarios[0]?.id ?? current.activeScenarioId,
     }));
+    setLoadedComparisonSources((current) => ({ ...current, [saved.id]: { savedId: saved.id, title: saved.name } }));
     autoSaveSignature.current = JSON.stringify(saved);
     pendingAutoSave.current = null;
     setAutoSaveStatus("saved");
@@ -1733,22 +1751,27 @@ export function RoiPlanner() {
     setScenarioSaveName(scenario.name || "ROI scenario");
     setScenarioSaveMessage("");
     setScenarioMessageId("");
-    setSavedScenarioId("");
+    setSavedScenarioId(loadedScenarioSources[scenario.id]?.savedId ?? "");
   }
 
-  async function saveCurrentScenario(scenario: RoiScenario) {
+  async function saveCurrentScenario(scenario: RoiScenario, { asCopy = false }: { asCopy?: boolean } = {}) {
     if (!ensureRoiPro("save-scenario")) return;
     const title = scenarioSaveName.trim() || scenario.name || "ROI scenario";
+    const loadedSource = loadedScenarioSources[scenario.id];
+    const savedTitle = asCopy && loadedSource?.title.trim() === title.trim() ? `${title} copy` : title;
+    const savedIdForUpdate = !asCopy ? loadedSource?.savedId || savedScenarioId : "";
     const total = aggregate(scenario.lines);
     const currency = activeGroup?.currency ?? "GBP";
     const vatRate = activeGroup?.vatRate ?? "20";
     const scenarioWithAssumptions = {
       ...scenario,
-      name: title,
+      name: savedTitle,
       lines: scenario.lines.map((line) => ({ ...line, currency, vatRate })),
     };
     const result = await saveScenario({
-      title,
+      ...(savedIdForUpdate ? { id: savedIdForUpdate } : {}),
+      title: savedTitle,
+      name: savedTitle,
       toolId: "roi-tool",
       toolName: "ROI planner",
       scenarioData: scenarioWithAssumptions,
@@ -1773,8 +1796,24 @@ export function RoiPlanner() {
       setSavingScenarioId("");
       return;
     }
-    setSavedScenarioId(String(result.data.id ?? ""));
-    setScenarioSaveMessage("Scenario saved to your account.");
+    const nextSavedId = String(result.data.id ?? "");
+    setSavedScenarioId(nextSavedId);
+    setLoadedScenarioSources((current) => ({
+      ...current,
+      [scenario.id]: { savedId: nextSavedId, title: savedTitle },
+    }));
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) =>
+        group.id === activeGroup?.id
+          ? {
+              ...group,
+              scenarios: group.scenarios.map((item) => (item.id === scenario.id ? { ...item, name: savedTitle } : item)),
+            }
+          : group,
+      ),
+    }));
+    setScenarioSaveMessage(asCopy ? `Saved copy "${savedTitle}" to your account.` : loadedSource ? `Updated saved scenario "${savedTitle}".` : `Saved scenario "${savedTitle}" to your account.`);
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
     await refreshSavedRoiWork();
@@ -1787,6 +1826,7 @@ export function RoiPlanner() {
     if (!result.data) return;
     const saved = restoreSavedGroup(result.data);
     autoSaveSignature.current = JSON.stringify(saved);
+    setLoadedComparisonSources((current) => ({ ...current, [saved.id]: { savedId: saved.id, title: saved.name } }));
     setPlannerState((current) => {
       const nextGroups = [saved, ...current.groups.filter((group) => group.id !== saved.id)];
       return {
@@ -1839,8 +1879,11 @@ export function RoiPlanner() {
   const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
   const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
   const activeSavedGroup = activeGroup ? savedGroups.find((group) => group.id === activeGroup.id) : undefined;
+  const activeLoadedComparisonSource = activeGroup ? loadedComparisonSources[activeGroup.id] : undefined;
+  const isEditingSavedComparison = Boolean(activeSavedGroup || activeLoadedComparisonSource);
   const activeScenarios = activeGroup?.scenarios ?? [];
   const activeScenario = activeScenarios.find((scenario) => scenario.id === activeScenarioId) ?? activeScenarios[0];
+  const activeSavedScenarioSource = activeScenario ? loadedScenarioSources[activeScenario.id] : undefined;
   const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
 
   useEffect(() => {
@@ -2076,7 +2119,7 @@ export function RoiPlanner() {
                     onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
                   />
                   <small id="roi-comparison-name-help">
-                    {activeSavedGroup ? "Editing saved comparison. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
+                    {isEditingSavedComparison ? "Editing saved comparison. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
                   </small>
                 </label>
                 <details className="roi-local-settings">
@@ -2107,7 +2150,7 @@ export function RoiPlanner() {
             ) : null}
             {isPro ? (
               <p className="roi-planner-helper">
-                <span>{activeSavedGroup ? "Editing saved comparison" : "New comparison"}</span>
+                <span>{isEditingSavedComparison ? "Editing saved comparison" : "New comparison"}</span>
                 <span>{activeGroup?.currency ?? "GBP"} · VAT {activeGroup?.vatRate || "0"}%</span>
               </p>
             ) : (
@@ -2135,9 +2178,9 @@ export function RoiPlanner() {
                 </label>
                 <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
                 <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={() => saveCurrentGroup()} type="button">
-                  {activeSavedGroup ? "Update" : "Save"}
+                  {isEditingSavedComparison ? "Update" : "Save"}
                 </button>
-                {activeSavedGroup ? (
+                {isEditingSavedComparison ? (
                   <button className="button button-secondary button-small roi-locked-action roi-save-copy-button" onClick={() => saveCurrentGroup({ asCopy: true })} type="button">
                     Save as copy
                   </button>
@@ -2220,6 +2263,7 @@ export function RoiPlanner() {
                     <label className="field scenario-name-field scenario-title-field">
                       <span>Scenario name</span>
                       <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
+                      <small>{activeSavedScenarioSource ? "Editing saved scenario. Update saves changes here; Save as copy creates a new scenario." : "Name this scenario before saving it."}</small>
                     </label>
                     <div className="scenario-card-actions">
                       {isPro ? (
@@ -2253,12 +2297,23 @@ export function RoiPlanner() {
                   </div>
                   {savingScenarioId === activeScenario.id ? (
                     <div className="save-work-panel roi-save-panel">
+                      <div className="roi-save-panel-heading">
+                        <strong>{activeSavedScenarioSource ? "Editing saved scenario" : "Save scenario"}</strong>
+                        <span>{activeSavedScenarioSource ? `Loaded from "${activeSavedScenarioSource.title}"` : "This will create a saved standalone scenario."}</span>
+                      </div>
                       <label className="field scenario-name-field">
                         <span>Scenario name</span>
                         <input value={scenarioSaveName} onChange={(event) => setScenarioSaveName(event.target.value)} />
                       </label>
                       <div className="summary-actions">
-                        <button className="button button-small" onClick={() => saveCurrentScenario(activeScenario)} type="button">Save scenario</button>
+                        <button className="button button-small" onClick={() => saveCurrentScenario(activeScenario)} type="button">
+                          {activeSavedScenarioSource ? "Update scenario" : "Save scenario"}
+                        </button>
+                        {activeSavedScenarioSource ? (
+                          <button className="button button-secondary button-small" onClick={() => saveCurrentScenario(activeScenario, { asCopy: true })} type="button">
+                            Save as copy
+                          </button>
+                        ) : null}
                         <button className="button button-secondary button-small" onClick={() => setSavingScenarioId("")} type="button">Cancel</button>
                       </div>
                     </div>

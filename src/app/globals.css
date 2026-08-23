@@ -3361,6 +3361,24 @@ p {
   min-width: 108px;
 }
 
+.roi-save-panel-heading {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.roi-save-panel-heading strong {
+  color: var(--foreground);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.roi-save-panel-heading span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
 .roi-pro-badge {
   display: inline-flex;
   align-items: center;
