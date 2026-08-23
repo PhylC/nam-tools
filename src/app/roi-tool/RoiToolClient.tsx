@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
@@ -9,7 +9,9 @@ import { CalculatorCaveat } from "../components/CalculatorCaveat";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import {
   deleteRoiPlan,
+  deleteSavedScenario,
   duplicateRoiPlan,
+  duplicateSavedScenario,
   listRoiPlans,
   listSavedScenarios,
   loadSavedScenario,
@@ -1401,16 +1403,264 @@ function SavedRoiPlansPanel({
   );
 }
 
+function RoiSavedMenuShell({ children }: { children: ReactNode }) {
+  return (
+    <details className="workspace-row-menu">
+      <summary aria-label="More actions" title="More actions">
+        <span aria-hidden="true">⋯</span>
+      </summary>
+      <div className="workspace-row-menu-panel">{children}</div>
+    </details>
+  );
+}
+
+function RoiSavedComparisonMenu({
+  title,
+  onOpen,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  title: string;
+  onOpen: () => void | Promise<void>;
+  onRename: () => void | Promise<void>;
+  onDuplicate: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  return (
+    <RoiSavedMenuShell>
+      <button className="workspace-menu-action" onClick={onOpen} type="button">
+        Edit
+      </button>
+      <button className="workspace-menu-action" onClick={onRename} type="button">
+        Rename
+      </button>
+      <button className="workspace-menu-action" onClick={onDuplicate} type="button">
+        Duplicate
+      </button>
+      <button className="workspace-menu-action workspace-menu-danger" onClick={() => window.confirm(`Delete "${title}"?`) && onDelete()} type="button">
+        Delete
+      </button>
+    </RoiSavedMenuShell>
+  );
+}
+
+function RoiSavedComparisonDetails({ comparison }: { comparison: SavedRoiGroup }) {
+  const lineCount = comparison.scenarios.reduce((total, scenario) => total + scenario.lines.length, 0);
+  return (
+    <div className="workspace-subrow-detail-panel">
+      <div className="workspace-scenario-summary-grid">
+        <div>
+          <span>Scenarios</span>
+          <strong>{comparison.scenarios.length}</strong>
+        </div>
+        <div>
+          <span>Product lines</span>
+          <strong>{lineCount}</strong>
+        </div>
+        <div>
+          <span>Settings</span>
+          <strong>
+            {comparison.currency} · VAT {comparison.vatRate || "0"}%
+          </strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RoiSavedComparisonRow({
+  comparison,
+  title,
+  children,
+  onOpen,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  comparison: SavedRoiGroup;
+  title: string;
+  children: ReactNode;
+  onOpen: () => void | Promise<void>;
+  onRename: () => void | Promise<void>;
+  onDuplicate: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  return (
+    <article className="workspace-group-block">
+      <div className="workspace-group-row">
+        <div className="workspace-group-title">
+          <h3>{title}</h3>
+          <span>
+            {comparison.scenarios.length} scenario{comparison.scenarios.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <small className="workspace-table-date">{getRecordUpdatedDate(comparison)}</small>
+        <div className="workspace-list-actions">
+          <button
+            aria-expanded={detailsOpen}
+            aria-label={`${detailsOpen ? "Hide" : "View"} details for ${title}`}
+            className="workspace-icon-button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            title={`${detailsOpen ? "Hide" : "View"} details`}
+            type="button"
+          >
+            <span aria-hidden="true">i</span>
+          </button>
+          <button className="workspace-icon-button" aria-label={`Open ${title}`} onClick={onOpen} title="Open" type="button">
+            <span aria-hidden="true">↗</span>
+          </button>
+          <RoiSavedComparisonMenu title={title} onDelete={onDelete} onDuplicate={onDuplicate} onOpen={onOpen} onRename={onRename} />
+        </div>
+      </div>
+      {detailsOpen ? <RoiSavedComparisonDetails comparison={comparison} /> : null}
+      <div className="workspace-subrows">{children}</div>
+    </article>
+  );
+}
+
+function RoiSavedScenarioMenu({
+  title,
+  onOpen,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  title: string;
+  onOpen: () => void | Promise<void>;
+  onRename: () => void | Promise<void>;
+  onDuplicate: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  return (
+    <RoiSavedMenuShell>
+      <button className="workspace-menu-action" onClick={onOpen} type="button">
+        Edit
+      </button>
+      <button className="workspace-menu-action" onClick={onRename} type="button">
+        Rename
+      </button>
+      <button className="workspace-menu-action" onClick={onDuplicate} type="button">
+        Duplicate
+      </button>
+      <button className="workspace-menu-action workspace-menu-danger" onClick={() => window.confirm(`Delete "${title}"?`) && onDelete()} type="button">
+        Delete
+      </button>
+    </RoiSavedMenuShell>
+  );
+}
+
+function RoiSavedScenarioDetails({ scenario }: { scenario: RoiScenario | Record<string, unknown> }) {
+  const lines = Array.isArray(scenario.lines) ? scenario.lines.filter(isRecord) : [];
+  const baselineUnits = lines.reduce((total, line) => total + n(getRecordText(line.baselineUnits, "0")), 0);
+  const promoUnits = lines.reduce((total, line) => total + n(getRecordText(line.promoUnits, "0")), 0);
+  const products = lines
+    .map((line) => getRecordText(line.product, "") || getRecordText(line.sku, ""))
+    .filter(Boolean)
+    .slice(0, 5);
+
+  return (
+    <div className="workspace-subrow-detail-panel">
+      <div className="workspace-scenario-summary-grid">
+        <div>
+          <span>Product lines</span>
+          <strong>{lines.length}</strong>
+        </div>
+        <div>
+          <span>Baseline units</span>
+          <strong>{baselineUnits.toLocaleString("en-GB")}</strong>
+        </div>
+        <div>
+          <span>Promo units</span>
+          <strong>{promoUnits.toLocaleString("en-GB")}</strong>
+        </div>
+      </div>
+      {products.length ? <p>{products.join(", ")}</p> : <p>No product details saved.</p>}
+    </div>
+  );
+}
+
+function RoiSavedScenarioRow({
+  title,
+  summary,
+  updatedDate,
+  scenario,
+  onOpen,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  title: string;
+  summary: string;
+  updatedDate: string;
+  scenario: RoiScenario | Record<string, unknown>;
+  onOpen: () => void | Promise<void>;
+  onRename: () => void | Promise<void>;
+  onDuplicate: () => void | Promise<void>;
+  onDelete: () => void | Promise<void>;
+}) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  return (
+    <div className="workspace-subrow-wrap">
+      <div className="workspace-subrow">
+        <div className="workspace-subrow-title">
+          <strong>{title}</strong>
+          <span>{summary}</span>
+        </div>
+        <small className="workspace-table-date">{updatedDate}</small>
+        <div className="workspace-subrow-actions">
+          <button
+            aria-expanded={detailsOpen}
+            aria-label={`${detailsOpen ? "Hide" : "View"} details for ${title}`}
+            className="workspace-icon-button"
+            onClick={() => setDetailsOpen((current) => !current)}
+            title={`${detailsOpen ? "Hide" : "View"} details`}
+            type="button"
+          >
+            <span aria-hidden="true">i</span>
+          </button>
+          <button className="workspace-icon-button" aria-label={`Open ${title}`} onClick={onOpen} title="Open" type="button">
+            <span aria-hidden="true">↗</span>
+          </button>
+          <RoiSavedScenarioMenu title={title} onDelete={onDelete} onDuplicate={onDuplicate} onOpen={onOpen} onRename={onRename} />
+        </div>
+      </div>
+      {detailsOpen ? <RoiSavedScenarioDetails scenario={scenario} /> : null}
+    </div>
+  );
+}
+
 function SavedRoiBottomPanel({
   comparisons,
   scenarios,
   onLoadComparison,
   onLoadScenario,
+  onRenameComparison,
+  onDuplicateComparison,
+  onDeleteComparison,
+  onRenameComparisonScenario,
+  onDuplicateComparisonScenario,
+  onDeleteComparisonScenario,
+  onRenameStandaloneScenario,
+  onDuplicateStandaloneScenario,
+  onDeleteStandaloneScenario,
 }: {
   comparisons: SavedRoiGroup[];
   scenarios: SavedScenarioRecord[];
   onLoadComparison: (id: string, scenarioId?: string) => void | Promise<void>;
   onLoadScenario: (id: string) => void | Promise<void>;
+  onRenameComparison: (id: string) => void | Promise<void>;
+  onDuplicateComparison: (id: string) => void | Promise<void>;
+  onDeleteComparison: (id: string) => void | Promise<void>;
+  onRenameComparisonScenario: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onDuplicateComparisonScenario: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onDeleteComparisonScenario: (comparisonId: string, scenarioId: string) => void | Promise<void>;
+  onRenameStandaloneScenario: (id: string) => void | Promise<void>;
+  onDuplicateStandaloneScenario: (id: string) => void | Promise<void>;
+  onDeleteStandaloneScenario: (id: string) => void | Promise<void>;
 }) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SavedRoiSort>("updated-desc");
@@ -1479,51 +1729,37 @@ function SavedRoiBottomPanel({
               {visibleComparisons.map((comparison) => {
                 const title = getComparisonTitle(comparison);
                 return (
-                  <article className="workspace-group-block" key={`comparison-${comparison.id}`}>
-                    <div className="workspace-group-row">
-                      <div className="workspace-group-title">
-                        <h3>{title}</h3>
-                        <span>{comparison.scenarios.length} scenario{comparison.scenarios.length === 1 ? "" : "s"}</span>
-                      </div>
-                      <small className="workspace-table-date">{getRecordUpdatedDate(comparison)}</small>
-                      <div className="workspace-list-actions">
-                        <button
-                          className="workspace-icon-button"
-                          aria-label={`Open ${title}`}
-                          onClick={() => onLoadComparison(comparison.id)}
-                          title="Open"
-                          type="button"
-                        >
-                          <span aria-hidden="true">↗</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="workspace-subrows">
+                  <RoiSavedComparisonRow
+                    comparison={comparison}
+                    key={`comparison-${comparison.id}`}
+                    title={title}
+                    onDelete={() => onDeleteComparison(comparison.id)}
+                    onDuplicate={() => onDuplicateComparison(comparison.id)}
+                    onOpen={() => onLoadComparison(comparison.id)}
+                    onRename={() => onRenameComparison(comparison.id)}
+                  >
                       {comparison.scenarios.length ? (
                         comparison.scenarios.map((scenario, index) => {
                           const scenarioId = scenario.id || `${comparison.id}-scenario-${index}`;
+                          const scenarioTitle = scenario.name || `Scenario ${index + 1}`;
                           return (
-                            <div className="workspace-subrow-wrap" key={scenarioId}>
-                              <div className="workspace-subrow">
-                                <div className="workspace-subrow-title">
-                                <strong>{scenario.name || `Scenario ${index + 1}`}</strong>
-                                <span>{getScenarioSummaryText(scenario)}</span>
-                                </div>
-                                <small className="workspace-table-date">{getRecordUpdatedDate(comparison)}</small>
-                                <div className="workspace-subrow-actions">
-                                <button className="workspace-icon-button" aria-label={`Open ${scenario.name || `Scenario ${index + 1}`}`} onClick={() => onLoadComparison(comparison.id, scenarioId)} title="Open" type="button">
-                                  <span aria-hidden="true">↗</span>
-                                </button>
-                                </div>
-                              </div>
-                            </div>
+                            <RoiSavedScenarioRow
+                              key={scenarioId}
+                              title={scenarioTitle}
+                              summary={getScenarioSummaryText(scenario)}
+                              updatedDate={getRecordUpdatedDate(comparison)}
+                              scenario={scenario}
+                              onDelete={() => onDeleteComparisonScenario(comparison.id, scenarioId)}
+                              onDuplicate={() => onDuplicateComparisonScenario(comparison.id, scenarioId)}
+                              onOpen={() => onLoadComparison(comparison.id, scenarioId)}
+                              onRename={() => onRenameComparisonScenario(comparison.id, scenarioId)}
+                            />
                           );
                         })
                       ) : (
                         <div className="workspace-subrow workspace-subrow-empty">No scenarios in this comparison yet.</div>
                       )}
-                    </div>
-                  </article>
+                  </RoiSavedComparisonRow>
                 );
               })}
               <article className="workspace-group-block">
@@ -1540,20 +1776,17 @@ function SavedRoiBottomPanel({
                       const scenarioRecord = getSavedScenarioRecord(scenario);
                       const title = getSavedScenarioTitle(scenario);
                       return (
-                        <div className="workspace-subrow-wrap" key={`scenario-${id}`}>
-                          <div className="workspace-subrow">
-                            <div className="workspace-subrow-title">
-                              <strong>{title}</strong>
-                              <span>{getScenarioSummaryText(scenarioRecord)}</span>
-                            </div>
-                            <small className="workspace-table-date">{getRecordUpdatedDate(scenario)}</small>
-                            <div className="workspace-subrow-actions">
-                              <button className="workspace-icon-button" aria-label={`Open ${title}`} onClick={() => onLoadScenario(id)} title="Open" type="button">
-                                <span aria-hidden="true">↗</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
+                        <RoiSavedScenarioRow
+                          key={`scenario-${id}`}
+                          title={title}
+                          summary={getScenarioSummaryText(scenarioRecord)}
+                          updatedDate={getRecordUpdatedDate(scenario)}
+                          scenario={scenarioRecord}
+                          onDelete={() => onDeleteStandaloneScenario(id)}
+                          onDuplicate={() => onDuplicateStandaloneScenario(id)}
+                          onOpen={() => onLoadScenario(id)}
+                          onRename={() => onRenameStandaloneScenario(id)}
+                        />
                       );
                     })
                   ) : (
@@ -1935,6 +2168,119 @@ export function RoiPlanner() {
   async function deleteSavedGroup(groupId: string) {
     if (!ensureRoiPro("save-plan")) return;
     const result = await deleteRoiPlan(groupId);
+    setSaveMessage(result.message ?? "");
+    await refreshSavedRoiWork();
+  }
+
+  function renameSavedComparisonFromMenu(groupId: string) {
+    const saved = savedGroups.find((group) => group.id === groupId);
+    if (!saved) return;
+    const nextName = window.prompt("Rename comparison", getComparisonTitle(saved));
+    const trimmed = nextName?.trim();
+    if (!trimmed || trimmed === getComparisonTitle(saved)) return;
+    void renameSavedGroup(groupId, trimmed);
+  }
+
+  function findScenarioIndexInComparison(group: SavedRoiGroup, scenarioId: string) {
+    return group.scenarios.findIndex((scenario, index) => (scenario.id || `${group.id}-scenario-${index}`) === scenarioId);
+  }
+
+  async function saveUpdatedSavedComparison(group: SavedRoiGroup, scenarios: RoiScenario[]) {
+    const snapshot = buildRoiPlanSnapshot({ ...group, scenarios }, group);
+    const result = await saveRoiPlan(snapshot);
+    if (!result.data) {
+      setSaveMessage(result.message ?? "Could not update saved comparison.");
+      return false;
+    }
+    await refreshSavedRoiWork();
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((item) => (item.id === group.id ? { ...item, scenarios } : item)),
+      activeScenarioId:
+        current.activeGroupId === group.id && !scenarios.some((scenario) => scenario.id === current.activeScenarioId)
+          ? scenarios[0]?.id ?? current.activeScenarioId
+          : current.activeScenarioId,
+    }));
+    return true;
+  }
+
+  async function renameSavedComparisonScenario(comparisonId: string, scenarioId: string) {
+    if (!ensureRoiPro("save-plan")) return;
+    const group = savedGroups.find((item) => item.id === comparisonId);
+    if (!group) return;
+    const scenarioIndex = findScenarioIndexInComparison(group, scenarioId);
+    const scenario = group.scenarios[scenarioIndex];
+    if (!scenario) return;
+    const nextName = window.prompt("Rename scenario", scenario.name);
+    const trimmed = nextName?.trim();
+    if (!trimmed || trimmed === scenario.name) return;
+    await saveUpdatedSavedComparison(
+      group,
+      group.scenarios.map((item, index) => (index === scenarioIndex ? { ...item, name: trimmed } : item)),
+    );
+  }
+
+  async function duplicateSavedComparisonScenario(comparisonId: string, scenarioId: string) {
+    if (!ensureRoiPro("save-plan")) return;
+    const group = savedGroups.find((item) => item.id === comparisonId);
+    if (!group) return;
+    const scenarioIndex = findScenarioIndexInComparison(group, scenarioId);
+    const scenario = group.scenarios[scenarioIndex];
+    if (!scenario) return;
+    const scenarios = [...group.scenarios.slice(0, scenarioIndex + 1), copyScenario(scenario), ...group.scenarios.slice(scenarioIndex + 1)];
+    await saveUpdatedSavedComparison(group, scenarios);
+  }
+
+  async function deleteSavedComparisonScenario(comparisonId: string, scenarioId: string) {
+    if (!ensureRoiPro("save-plan")) return;
+    const group = savedGroups.find((item) => item.id === comparisonId);
+    if (!group) return;
+    if (group.scenarios.length <= 1) {
+      setSaveMessage("A comparison needs at least one scenario.");
+      return;
+    }
+    await saveUpdatedSavedComparison(
+      group,
+      group.scenarios.filter((scenario, index) => (scenario.id || `${group.id}-scenario-${index}`) !== scenarioId),
+    );
+  }
+
+  async function renameStandaloneSavedScenario(id: string) {
+    if (!ensureRoiPro("save-scenario")) return;
+    const saved = savedScenarios.find((scenario) => String(scenario.id ?? "") === id);
+    if (!saved) return;
+    const currentTitle = getSavedScenarioTitle(saved);
+    const nextName = window.prompt("Rename scenario", currentTitle);
+    const trimmed = nextName?.trim();
+    if (!trimmed || trimmed === currentTitle) return;
+    const scenarioData = getSavedScenarioRecord(saved);
+    const now = new Date().toISOString();
+    const result = await saveScenario({
+      ...saved,
+      title: trimmed,
+      name: trimmed,
+      scenarioData: { ...scenarioData, name: trimmed },
+      savedAt: now,
+      updatedAt: now,
+      updated_at: now,
+    });
+    if (!result.data) {
+      setSaveMessage(result.message ?? "Could not rename scenario.");
+      return;
+    }
+    await refreshSavedRoiWork();
+  }
+
+  async function duplicateStandaloneSavedScenario(id: string) {
+    if (!ensureRoiPro("save-scenario")) return;
+    const result = await duplicateSavedScenario(id);
+    setSaveMessage(result.message ?? "");
+    await refreshSavedRoiWork();
+  }
+
+  async function deleteStandaloneSavedScenario(id: string) {
+    if (!ensureRoiPro("save-scenario")) return;
+    const result = await deleteSavedScenario(id);
     setSaveMessage(result.message ?? "");
     await refreshSavedRoiWork();
   }
@@ -2455,8 +2801,17 @@ export function RoiPlanner() {
         <SavedRoiBottomPanel
           comparisons={savedGroups}
           scenarios={savedScenarios}
+          onDeleteComparison={deleteSavedGroup}
+          onDeleteComparisonScenario={deleteSavedComparisonScenario}
+          onDeleteStandaloneScenario={deleteStandaloneSavedScenario}
+          onDuplicateComparison={duplicateSavedGroup}
+          onDuplicateComparisonScenario={duplicateSavedComparisonScenario}
+          onDuplicateStandaloneScenario={duplicateStandaloneSavedScenario}
           onLoadComparison={(id, scenarioId) => loadSavedGroup(id, scenarioId, { promptForUnsaved: true })}
           onLoadScenario={(id) => loadStandaloneScenario(id, { promptForUnsaved: true })}
+          onRenameComparison={renameSavedComparisonFromMenu}
+          onRenameComparisonScenario={renameSavedComparisonScenario}
+          onRenameStandaloneScenario={renameStandaloneSavedScenario}
         />
       ) : null}
     </section>
