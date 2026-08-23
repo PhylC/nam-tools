@@ -1599,10 +1599,12 @@ export function RoiPlanner() {
   const [autoSaveMessage, setAutoSaveMessage] = useState("");
   const [proMessage, setProMessage] = useState("");
   const [savingScenarioId, setSavingScenarioId] = useState("");
+  const [scenarioSaveMode, setScenarioSaveMode] = useState<"update" | "copy">("update");
   const [scenarioSaveName, setScenarioSaveName] = useState("");
   const [scenarioSaveMessage, setScenarioSaveMessage] = useState("");
   const [scenarioMessageId, setScenarioMessageId] = useState("");
   const [savedScenarioId, setSavedScenarioId] = useState("");
+  const [editingScenarioNameId, setEditingScenarioNameId] = useState("");
   const [loadedComparisonSources, setLoadedComparisonSources] = useState<Record<string, LoadedComparisonSource>>({});
   const [loadedScenarioSources, setLoadedScenarioSources] = useState<Record<string, LoadedScenarioSource>>({});
   const saveStatusClass = /device|unavailable|could not/i.test(saveMessage)
@@ -1748,13 +1750,15 @@ export function RoiPlanner() {
     return true;
   }
 
-  function openSaveScenario(scenario: RoiScenario) {
+  function openSaveScenario(scenario: RoiScenario, { asCopy = false }: { asCopy?: boolean } = {}) {
     if (!ensureRoiPro("save-scenario")) return;
     setSavingScenarioId(scenario.id);
+    setScenarioSaveMode(asCopy ? "copy" : "update");
     setScenarioSaveName(scenario.name || "ROI scenario");
     setScenarioSaveMessage("");
     setScenarioMessageId("");
-    setSavedScenarioId(loadedScenarioSources[scenario.id]?.savedId ?? "");
+    setSavedScenarioId(asCopy ? "" : loadedScenarioSources[scenario.id]?.savedId ?? "");
+    if (asCopy) setEditingScenarioNameId(scenario.id);
   }
 
   async function saveCurrentScenario(scenario: RoiScenario, { asCopy = false }: { asCopy?: boolean } = {}) {
@@ -1819,6 +1823,7 @@ export function RoiPlanner() {
     setScenarioSaveMessage(asCopy ? `Saved copy "${savedTitle}" to your account.` : loadedSource ? `Updated saved scenario "${savedTitle}".` : `Saved scenario "${savedTitle}" to your account.`);
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
+    setEditingScenarioNameId("");
     await refreshSavedRoiWork();
   }
 
@@ -2307,15 +2312,28 @@ export function RoiPlanner() {
               {activeScenario ? (
                 <section className="scenario-card" key={activeScenario.id}>
                   <div className="scenario-title-row">
-                    <label className="field scenario-name-field scenario-title-field">
-                      <span>Scenario name</span>
-                      <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
-                      <small>{activeSavedScenarioSource ? "Editing saved scenario. Update saves changes here; Save as copy creates a new scenario." : "Name this scenario before saving it."}</small>
-                    </label>
+                    {activeSavedScenarioSource && editingScenarioNameId !== activeScenario.id ? (
+                      <div className="scenario-locked-title scenario-title-field">
+                        <span>Scenario name</span>
+                        <strong>{activeScenario.name}</strong>
+                        <small>Editing saved scenario. Rename unlocks the title; Save as creates a separate saved scenario.</small>
+                        <div className="summary-actions">
+                          <button className="button button-secondary button-small" onClick={() => setEditingScenarioNameId(activeScenario.id)} type="button">Rename</button>
+                          <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="field scenario-name-field scenario-title-field">
+                        <span>Scenario name</span>
+                        <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
+                        <small>{activeSavedScenarioSource ? "Rename mode. Save scenario will update the saved scenario name." : "Name this scenario before saving it."}</small>
+                      </label>
+                    )}
                     <div className="scenario-card-actions">
                       {isPro ? (
                         <>
-                          <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario</button>
+                          <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
+                          {activeSavedScenarioSource ? <button className="table-action" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
                           <button className="table-action" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
                           <button className="table-action" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
                         </>
@@ -2330,7 +2348,8 @@ export function RoiPlanner() {
                       <div>
                         {isPro ? (
                           <div className="summary-actions">
-                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario</button>
+                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
+                            {activeSavedScenarioSource ? <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
                             <button className="button button-secondary button-small" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
                             <button className="button button-secondary button-small" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
                           </div>
@@ -2345,20 +2364,30 @@ export function RoiPlanner() {
                   {savingScenarioId === activeScenario.id ? (
                     <div className="save-work-panel roi-save-panel">
                       <div className="roi-save-panel-heading">
-                        <strong>{activeSavedScenarioSource ? "Editing saved scenario" : "Save scenario"}</strong>
-                        <span>{activeSavedScenarioSource ? `Loaded from "${activeSavedScenarioSource.title}"` : "This will create a saved standalone scenario."}</span>
+                        <strong>{scenarioSaveMode === "copy" ? "Save scenario as" : activeSavedScenarioSource ? "Update saved scenario" : "Save scenario"}</strong>
+                        <span>
+                          {scenarioSaveMode === "copy"
+                            ? "Creates a separate saved scenario. You can reuse the same name or enter a new one."
+                            : activeSavedScenarioSource
+                              ? `Updates "${activeSavedScenarioSource.title}". Rename must be enabled before changing the saved name.`
+                              : "This will create a saved standalone scenario."}
+                        </span>
                       </div>
                       <label className="field scenario-name-field">
                         <span>Scenario name</span>
-                        <input value={scenarioSaveName} onChange={(event) => setScenarioSaveName(event.target.value)} />
+                        <input
+                          disabled={Boolean(activeSavedScenarioSource) && scenarioSaveMode === "update" && editingScenarioNameId !== activeScenario.id}
+                          value={scenarioSaveName}
+                          onChange={(event) => setScenarioSaveName(event.target.value)}
+                        />
                       </label>
                       <div className="summary-actions">
-                        <button className="button button-small" onClick={() => saveCurrentScenario(activeScenario)} type="button">
-                          {activeSavedScenarioSource ? "Update scenario" : "Save scenario"}
+                        <button className="button button-small" onClick={() => saveCurrentScenario(activeScenario, { asCopy: scenarioSaveMode === "copy" })} type="button">
+                          {scenarioSaveMode === "copy" ? "Save as" : activeSavedScenarioSource ? "Update scenario" : "Save scenario"}
                         </button>
-                        {activeSavedScenarioSource ? (
-                          <button className="button button-secondary button-small" onClick={() => saveCurrentScenario(activeScenario, { asCopy: true })} type="button">
-                            Save as copy
+                        {activeSavedScenarioSource && scenarioSaveMode === "update" ? (
+                          <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">
+                            Save as
                           </button>
                         ) : null}
                         <button className="button button-secondary button-small" onClick={() => setSavingScenarioId("")} type="button">Cancel</button>
