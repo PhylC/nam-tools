@@ -28,12 +28,17 @@ import { AccountMenu } from "../components/AccountMenu";
 type SavedRecord = Record<string, unknown>;
 type SavedItemType = "Analysis" | "Comparison" | "Scenario" | "Deck";
 type WorkspaceSort = "updated-desc" | "updated-asc" | "name-asc" | "name-desc";
+type WorkspacePageSize = 10 | 20 | 50 | 100 | "all";
 
 type SavedWorkItem = {
   id: string;
   type: SavedItemType;
   record: SavedRecord;
 };
+
+type ComparisonScenarioPageItem =
+  | { kind: "comparison"; item: SavedWorkItem }
+  | { kind: "standalone"; item: SavedWorkItem };
 
 function deckSelectionKey(id: string) {
   return `deck:${id}`;
@@ -220,6 +225,27 @@ function filterAndSortItems(items: SavedWorkItem[], search: string, sort: Worksp
       const direction = sort === "updated-desc" ? -1 : 1;
       return direction * (getTimestamp(left.record) - getTimestamp(right.record));
     });
+}
+
+function getPageSizeValue(pageSize: WorkspacePageSize, total: number) {
+  return pageSize === "all" ? Math.max(total, 1) : pageSize;
+}
+
+function clampPage(page: number, total: number, pageSize: WorkspacePageSize) {
+  const size = getPageSizeValue(pageSize, total);
+  const totalPages = Math.max(1, Math.ceil(total / size));
+  return Math.min(Math.max(page, 1), totalPages);
+}
+
+function paginateItems<T>(items: T[], page: number, pageSize: WorkspacePageSize) {
+  const safePage = clampPage(page, items.length, pageSize);
+  if (pageSize === "all") return { items, page: 1, totalPages: 1 };
+  const start = (safePage - 1) * pageSize;
+  return {
+    items: items.slice(start, start + pageSize),
+    page: safePage,
+    totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+  };
 }
 
 function getRecordEntries(value: unknown) {
@@ -675,6 +701,65 @@ function WorkspaceBulkActions({
           </button>
         </>
       ) : null}
+    </div>
+  );
+}
+
+function WorkspacePaginationControls({
+  label,
+  total,
+  visible,
+  page,
+  totalPages,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+}: {
+  label: string;
+  total: number;
+  visible: number;
+  page: number;
+  totalPages: number;
+  pageSize: WorkspacePageSize;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: WorkspacePageSize) => void;
+}) {
+  if (total <= 10 && pageSize === 10) return null;
+  const start = total ? (page - 1) * getPageSizeValue(pageSize, total) + 1 : 0;
+  const end = Math.min(total, start + visible - 1);
+
+  return (
+    <div className="workspace-pagination" aria-label={`${label} pagination`}>
+      <span>
+        Showing {start}-{end} of {total}
+      </span>
+      <label>
+        <span>View</span>
+        <select
+          value={String(pageSize)}
+          onChange={(event) => {
+            const nextPageSize = event.target.value;
+            onPageSizeChange(nextPageSize === "all" ? "all" : (Number(nextPageSize) as WorkspacePageSize));
+          }}
+        >
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+      <div className="workspace-pagination-actions">
+        <button className="button button-secondary button-small" disabled={page <= 1 || pageSize === "all"} onClick={() => onPageChange(page - 1)} type="button">
+          Previous
+        </button>
+        <span>
+          Page {page} of {totalPages}
+        </span>
+        <button className="button button-secondary button-small" disabled={page >= totalPages || pageSize === "all"} onClick={() => onPageChange(page + 1)} type="button">
+          Next
+        </button>
+      </div>
     </div>
   );
 }
@@ -1142,6 +1227,12 @@ function WorkspaceSectionList({
   description,
   action,
   items,
+  totalItems,
+  page,
+  totalPages,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
   onRename,
   onDuplicate,
   onDelete,
@@ -1156,6 +1247,12 @@ function WorkspaceSectionList({
   description: string;
   action?: ReactNode;
   items: SavedWorkItem[];
+  totalItems?: number;
+  page?: number;
+  totalPages?: number;
+  pageSize?: WorkspacePageSize;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: WorkspacePageSize) => void;
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
   onDelete: (id: string, type: SavedItemType) => void | Promise<void>;
@@ -1182,6 +1279,18 @@ function WorkspaceSectionList({
           onClear={() => items.forEach((item) => selectedKeys.has(deckSelectionKey(item.id)) && onToggleSelected(deckSelectionKey(item.id)))}
           onDelete={onBulkDelete}
           onSelectVisible={onSelectVisible}
+        />
+      ) : null}
+      {totalItems !== undefined && page !== undefined && totalPages !== undefined && pageSize !== undefined && onPageChange && onPageSizeChange ? (
+        <WorkspacePaginationControls
+          label={title}
+          page={page}
+          pageSize={pageSize}
+          total={totalItems}
+          totalPages={totalPages}
+          visible={items.length}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
         />
       ) : null}
       {items.length ? (
@@ -1218,9 +1327,14 @@ function ComparisonScenarioList({
   title,
   description,
   action,
-  comparisons,
+  pageItems,
+  totalItems,
+  page,
+  totalPages,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
   allComparisons,
-  standaloneScenarios,
   onRename,
   onRenameScenario,
   onDuplicate,
@@ -1239,9 +1353,14 @@ function ComparisonScenarioList({
   title: string;
   description: string;
   action?: ReactNode;
-  comparisons: SavedWorkItem[];
+  pageItems: ComparisonScenarioPageItem[];
+  totalItems: number;
+  page: number;
+  totalPages: number;
+  pageSize: WorkspacePageSize;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: WorkspacePageSize) => void;
   allComparisons: SavedRecord[];
-  standaloneScenarios: SavedWorkItem[];
   onRename: (id: string, type: SavedItemType) => void | Promise<void>;
   onRenameScenario: (scenarioId: string, sourceComparisonId?: string) => void | Promise<void>;
   onDuplicate: (id: string, type: SavedItemType) => void | Promise<void>;
@@ -1256,14 +1375,16 @@ function ComparisonScenarioList({
   onSelectVisibleScenarios: () => void;
   onToggleSelected: (key: string) => void;
 }) {
-  const hasItems = comparisons.length || standaloneScenarios.length;
+  const comparisons = pageItems.filter((item): item is { kind: "comparison"; item: SavedWorkItem } => item.kind === "comparison");
+  const standaloneItems = pageItems.filter((item): item is { kind: "standalone"; item: SavedWorkItem } => item.kind === "standalone").map((item) => item.item);
+  const hasItems = pageItems.length > 0;
   const visibleScenarioKeys = [
-    ...comparisons.flatMap((item) =>
+    ...comparisons.flatMap(({ item }) =>
       getComparisonScenarios(item.record).map((scenario, index) =>
         comparisonScenarioSelectionKey(item.id, getComparisonScenarioId(item.id, scenario, index)),
       ),
     ),
-    ...standaloneScenarios.map((item) => standaloneScenarioSelectionKey(item.id)),
+    ...standaloneItems.map((item) => standaloneScenarioSelectionKey(item.id)),
   ];
   const selectedScenarioCount = visibleScenarioKeys.filter((key) => selectedKeys.has(key)).length;
 
@@ -1285,6 +1406,16 @@ function ComparisonScenarioList({
           onSelectVisible={onSelectVisibleScenarios}
         />
       ) : null}
+      <WorkspacePaginationControls
+        label={title}
+        page={page}
+        pageSize={pageSize}
+        total={totalItems}
+        totalPages={totalPages}
+        visible={pageItems.length}
+        onPageChange={onPageChange}
+        onPageSizeChange={onPageSizeChange}
+      />
       {hasItems ? (
         <div className="workspace-grouped-list">
           <div className="workspace-grouped-header" aria-hidden="true">
@@ -1292,7 +1423,7 @@ function ComparisonScenarioList({
             <span>Last updated</span>
             <span>Actions</span>
           </div>
-          {comparisons.map((item) => (
+          {comparisons.map(({ item }) => (
             <ComparisonGroupRow
               item={item}
               key={`${item.type}-${item.id}`}
@@ -1309,19 +1440,21 @@ function ComparisonScenarioList({
               onToggleSelected={onToggleSelected}
             />
           ))}
-          <StandaloneScenarioGroup
-            items={standaloneScenarios}
-            comparisons={allComparisons}
-            onDelete={onDelete}
-            onRenameScenario={onRenameScenario}
-            onDuplicateScenario={onDuplicateScenario}
-            onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
-            onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
-            onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
-            onMoveScenarioOut={onMoveScenarioOut}
-            selectedKeys={selectedKeys}
-            onToggleSelected={onToggleSelected}
-          />
+          {standaloneItems.length ? (
+            <StandaloneScenarioGroup
+              items={standaloneItems}
+              comparisons={allComparisons}
+              onDelete={onDelete}
+              onRenameScenario={onRenameScenario}
+              onDuplicateScenario={onDuplicateScenario}
+              onDeleteScenarioFromComparison={onDeleteScenarioFromComparison}
+              onMoveScenarioBetweenComparisons={onMoveScenarioBetweenComparisons}
+              onMoveScenarioIntoComparison={onMoveScenarioIntoComparison}
+              onMoveScenarioOut={onMoveScenarioOut}
+              selectedKeys={selectedKeys}
+              onToggleSelected={onToggleSelected}
+            />
+          ) : null}
         </div>
       ) : (
         <EmptyState />
@@ -1339,6 +1472,10 @@ export function WorkspaceClient() {
   const [loadMessage, setLoadMessage] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<WorkspaceSort>("updated-desc");
+  const [comparisonPage, setComparisonPage] = useState(1);
+  const [comparisonPageSize, setComparisonPageSize] = useState<WorkspacePageSize>(10);
+  const [deckPage, setDeckPage] = useState(1);
+  const [deckPageSize, setDeckPageSize] = useState<WorkspacePageSize>(10);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set());
   const isPro = plan === "pro" || plan === "team";
   const commercialItems = useMemo(
@@ -1366,6 +1503,16 @@ export function WorkspaceClient() {
     [savedAnalyses, search, sort],
   );
   const visibleDeckItems = useMemo(() => filterAndSortItems(deckItems, search, sort), [deckItems, search, sort]);
+  const comparisonScenarioPageItems = useMemo<ComparisonScenarioPageItem[]>(() => {
+    const items: ComparisonScenarioPageItem[] = visibleComparisonItems.map((item) => ({ kind: "comparison", item }));
+    visibleStandaloneScenarioItems.forEach((item) => items.push({ kind: "standalone", item }));
+    return items;
+  }, [visibleComparisonItems, visibleStandaloneScenarioItems]);
+  const pagedComparisonScenarios = useMemo(
+    () => paginateItems(comparisonScenarioPageItems, comparisonPage, comparisonPageSize),
+    [comparisonPage, comparisonPageSize, comparisonScenarioPageItems],
+  );
+  const pagedDecks = useMemo(() => paginateItems(visibleDeckItems, deckPage, deckPageSize), [deckPage, deckPageSize, visibleDeckItems]);
   const savedItemCount = commercialItems.length + deckItems.length;
 
   useEffect(() => {
@@ -1419,7 +1566,7 @@ export function WorkspaceClient() {
   function selectVisibleDecks() {
     setSelectedKeys((current) => {
       const next = new Set(current);
-      visibleDeckItems.forEach((item) => next.add(deckSelectionKey(item.id)));
+      pagedDecks.items.forEach((item) => next.add(deckSelectionKey(item.id)));
       return next;
     });
   }
@@ -1427,10 +1574,13 @@ export function WorkspaceClient() {
   function selectVisibleScenarios() {
     setSelectedKeys((current) => {
       const next = new Set(current);
-      visibleStandaloneScenarioItems.forEach((item) => next.add(standaloneScenarioSelectionKey(item.id)));
-      visibleComparisonItems.forEach((item) => {
-        getComparisonScenarios(item.record).forEach((scenario, index) => {
-          next.add(comparisonScenarioSelectionKey(item.id, getComparisonScenarioId(item.id, scenario, index)));
+      pagedComparisonScenarios.items.forEach((pageItem) => {
+        if (pageItem.kind === "standalone") {
+          next.add(standaloneScenarioSelectionKey(pageItem.item.id));
+          return;
+        }
+        getComparisonScenarios(pageItem.item.record).forEach((scenario, index) => {
+          next.add(comparisonScenarioSelectionKey(pageItem.item.id, getComparisonScenarioId(pageItem.item.id, scenario, index)));
         });
       });
       return next;
@@ -1805,7 +1955,20 @@ export function WorkspaceClient() {
         <div className="settings-layout">
           <WorkspaceSavedHeader savedItemCount={savedItemCount} loadMessage={loadMessage} />
 
-          <WorkspaceControls search={search} sort={sort} onSearch={setSearch} onSort={setSort} />
+          <WorkspaceControls
+            search={search}
+            sort={sort}
+            onSearch={(value) => {
+              setSearch(value);
+              setComparisonPage(1);
+              setDeckPage(1);
+            }}
+            onSort={(value) => {
+              setSort(value);
+              setComparisonPage(1);
+              setDeckPage(1);
+            }}
+          />
 
           <ComparisonScenarioList
             id="comparison-scenarios"
@@ -1819,9 +1982,17 @@ export function WorkspaceClient() {
                 </Link>
               </div>
             }
-            comparisons={visibleComparisonItems}
+            pageItems={pagedComparisonScenarios.items}
+            totalItems={comparisonScenarioPageItems.length}
+            page={pagedComparisonScenarios.page}
+            totalPages={pagedComparisonScenarios.totalPages}
+            pageSize={comparisonPageSize}
+            onPageChange={setComparisonPage}
+            onPageSizeChange={(pageSize) => {
+              setComparisonPageSize(pageSize);
+              setComparisonPage(1);
+            }}
             allComparisons={savedComparisons}
-            standaloneScenarios={visibleStandaloneScenarioItems}
             onDelete={deleteSavedItem}
             onDeleteScenarioFromComparison={deleteScenarioFromComparison}
             onBulkDeleteScenarios={bulkDeleteScenarios}
@@ -1861,13 +2032,22 @@ export function WorkspaceClient() {
                 New deck
               </Link>
             }
-            items={visibleDeckItems}
+            items={pagedDecks.items}
+            totalItems={visibleDeckItems.length}
+            page={pagedDecks.page}
+            totalPages={pagedDecks.totalPages}
+            pageSize={deckPageSize}
             selectedKeys={selectedKeys}
             onBulkDelete={bulkDeleteDecks}
             onDelete={deleteSavedItem}
             onDownloadDeck={downloadSavedDeck}
             onDuplicate={duplicateSavedItem}
             onRename={renameSavedItem}
+            onPageChange={setDeckPage}
+            onPageSizeChange={(pageSize) => {
+              setDeckPageSize(pageSize);
+              setDeckPage(1);
+            }}
             onSelectVisible={selectVisibleDecks}
             onToggleSelected={toggleSelected}
           />

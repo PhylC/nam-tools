@@ -6203,6 +6203,46 @@ p {
   font-weight: 900;
 }
 
+.workspace-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.55rem;
+  border-top: 1px solid var(--border);
+  background: #f8fcfb;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 850;
+  padding: 0.55rem 0.35rem;
+}
+
+.workspace-pagination label,
+.workspace-pagination-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.workspace-pagination label span,
+.workspace-pagination-actions span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.workspace-pagination select {
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.5rem;
+}
+
 .workspace-danger-button {
   background: #b42318;
   border-color: #b42318;
@@ -9011,6 +9051,19 @@ p {
   .shell {
     width: calc(100vw - 24px);
     max-width: calc(100vw - 24px);
+  }
+
+  .workspace-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace-pagination-actions {
+    justify-content: space-between;
+  }
+
+  .workspace-pagination-actions .button {
+    flex: 1;
   }
 
   .hero-copy,
