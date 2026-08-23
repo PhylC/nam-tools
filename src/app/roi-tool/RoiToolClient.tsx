@@ -1297,11 +1297,9 @@ function SavedRoiPlansPanel({
 function SavedRoiBottomPanel({
   comparisons,
   scenarios,
-  onLoadComparison,
 }: {
   comparisons: SavedRoiGroup[];
   scenarios: SavedScenarioRecord[];
-  onLoadComparison: (id: string) => void | Promise<void>;
 }) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SavedRoiSort>("updated-desc");
@@ -1380,15 +1378,6 @@ function SavedRoiBottomPanel({
                       </div>
                       <small>{getRecordUpdatedDate(comparison)}</small>
                       <div className="saved-bottom-actions">
-                        <button
-                          className="workspace-icon-button"
-                          onClick={() => onLoadComparison(comparison.id)}
-                          type="button"
-                          aria-label={`Load ${title}`}
-                          title="Load"
-                        >
-                          <span aria-hidden="true">↻</span>
-                        </button>
                         <Link
                           className="workspace-icon-button"
                           href={`/roi-tool?comparison=${comparison.id}`}
@@ -2142,7 +2131,7 @@ export function RoiPlanner() {
 
         {isPro ? <ScenarioComparison scenarios={activeScenarios} onAddScenario={addScenario} onSaveComparison={saveCurrentGroup} /> : <FreeProPrompt />}
       </article>
-      {isPro ? <SavedRoiBottomPanel comparisons={savedGroups} scenarios={savedScenarios} onLoadComparison={loadSavedGroup} /> : null}
+      {isPro ? <SavedRoiBottomPanel comparisons={savedGroups} scenarios={savedScenarios} /> : null}
     </section>
   );
 }
