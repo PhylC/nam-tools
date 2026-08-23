@@ -3246,12 +3246,20 @@ p {
 }
 
 .roi-planner-helper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
   max-width: 720px;
   color: var(--muted);
   font-size: 0.92rem;
   font-weight: 750;
   line-height: 1.45;
   margin: 0;
+}
+
+.roi-planner-helper span:first-child {
+  color: var(--foreground);
+  font-weight: 900;
 }
 
 .roi-control-grid {
@@ -3325,6 +3333,18 @@ p {
   pointer-events: none;
 }
 
+.roi-toolbar-action-button {
+  align-items: center;
+  min-height: 40px;
+  padding-inline: 0.68rem;
+  white-space: nowrap;
+}
+
+.roi-toolbar-action-button > span:first-child {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
 .roi-locked-action {
   min-height: 40px;
   min-width: 0;
@@ -3334,7 +3354,11 @@ p {
 }
 
 .roi-save-comparison-button {
-  min-width: 70px;
+  min-width: 78px;
+}
+
+.roi-save-copy-button {
+  min-width: 108px;
 }
 
 .roi-pro-badge {

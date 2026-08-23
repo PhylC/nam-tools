@@ -769,8 +769,9 @@ function CsvExportButton({
   }
 
   return compact ? (
-    <button aria-label="Export results" className="workspace-icon-button roi-toolbar-icon-button" onClick={exportCsv} title="Export results" type="button">
-      <span aria-hidden="true">CSV</span>
+    <button className="button button-secondary button-small roi-locked-action roi-toolbar-action-button" onClick={exportCsv} title="Export results" type="button">
+      <span aria-hidden="true">⇩</span>
+      <span>Export</span>
     </button>
   ) : (
     <button className="button button-secondary button-small roi-locked-action" onClick={exportCsv} type="button">
@@ -1692,26 +1693,38 @@ export function RoiPlanner() {
     }));
   }
 
-  async function saveCurrentGroup() {
+  async function saveCurrentGroup({ asCopy = false }: { asCopy?: boolean } = {}) {
     if (!ensureRoiPro("save-plan")) return;
     if (!activeGroup) return;
     const existing = savedGroups.find((group) => group.id === activeGroup.id);
-    const snapshot = buildRoiPlanSnapshot(activeGroup, existing);
+    const snapshot = buildRoiPlanSnapshot(activeGroup, asCopy ? undefined : existing);
+    if (asCopy) {
+      snapshot.id = crypto.randomUUID();
+      snapshot.name = `${snapshot.name} copy`;
+      snapshot.group_name = snapshot.name;
+      snapshot.createdAt = snapshot.savedAt;
+      snapshot.created_at = snapshot.savedAt;
+    }
     const result = await saveRoiPlan(snapshot);
     if (!result.data) {
       setSaveMessage(result.message ?? "Could not save comparison.");
       return;
     }
+    const saved = restoreSavedGroup(result.data);
     await refreshSavedRoiWork();
     setPlannerState((current) => ({
       ...current,
-      groups: current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: snapshot.name } : group)),
+      groups: asCopy
+        ? [saved, ...current.groups]
+        : current.groups.map((group) => (group.id === activeGroup.id ? { ...group, name: snapshot.name } : group)),
+      activeGroupId: saved.id,
+      activeScenarioId: saved.scenarios[0]?.id ?? current.activeScenarioId,
     }));
-    autoSaveSignature.current = JSON.stringify(activeGroup);
+    autoSaveSignature.current = JSON.stringify(saved);
     pendingAutoSave.current = null;
     setAutoSaveStatus("saved");
     setAutoSaveMessage(`Saved ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
-    setSaveMessage(`Saved comparison "${snapshot.name}" to your account.`);
+    setSaveMessage(asCopy ? `Saved copy "${saved.name}" to your account.` : `Updated comparison "${saved.name}".`);
   }
 
   function openSaveScenario(scenario: RoiScenario) {
@@ -1825,6 +1838,7 @@ export function RoiPlanner() {
 
   const activeGroupRaw = groups.find((group) => group.id === activeGroupId) ?? groups[0];
   const activeGroup = isPro ? activeGroupRaw : limitGroupsForFree(activeGroupRaw ? [activeGroupRaw] : groups)[0];
+  const activeSavedGroup = activeGroup ? savedGroups.find((group) => group.id === activeGroup.id) : undefined;
   const activeScenarios = activeGroup?.scenarios ?? [];
   const activeScenario = activeScenarios.find((scenario) => scenario.id === activeScenarioId) ?? activeScenarios[0];
   const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
@@ -2061,7 +2075,9 @@ export function RoiPlanner() {
                     value={activeGroup?.name ?? ""}
                     onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
                   />
-                  <small id="roi-comparison-name-help">Used when you save this comparison.</small>
+                  <small id="roi-comparison-name-help">
+                    {activeSavedGroup ? "Editing saved comparison. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
+                  </small>
                 </label>
                 <details className="roi-local-settings">
                   <summary aria-label="Comparison settings" className="workspace-icon-button roi-toolbar-icon-button" title="Comparison settings">
@@ -2089,30 +2105,43 @@ export function RoiPlanner() {
                 </details>
               </div>
             ) : null}
-            <p className="roi-planner-helper">
-              {isPro
-                ? "Use this template if you prefer to build your plan in Excel first. You can also add lines directly below."
-                : "Free lets you model one product line and one scenario. APT Pro adds multiple lines, saved scenarios, spreadsheet upload and exports."}
-            </p>
+            {isPro ? (
+              <p className="roi-planner-helper">
+                <span>{activeSavedGroup ? "Editing saved comparison" : "New comparison"}</span>
+                <span>{activeGroup?.currency ?? "GBP"} · VAT {activeGroup?.vatRate || "0"}%</span>
+              </p>
+            ) : (
+              <p className="roi-planner-helper">
+                Free lets you model one product line and one scenario. APT Pro adds multiple lines, saved scenarios, spreadsheet upload and exports.
+              </p>
+            )}
           </div>
           <div className="roi-action-bar roi-action-bar-simple">
             {isPro ? (
               <>
                 <button
-                  aria-label="Download template"
-                  className="workspace-icon-button roi-toolbar-icon-button"
+                  className="button button-secondary button-small roi-locked-action roi-toolbar-action-button"
                   onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}
                   title="Download template"
                   type="button"
                 >
-                  <span aria-hidden="true">DL</span>
+                  <span aria-hidden="true">↓</span>
+                  <span>Template</span>
                 </button>
-                <label aria-label="Upload spreadsheet" className="workspace-icon-button roi-toolbar-icon-button" title="Upload spreadsheet">
-                  <span aria-hidden="true">UP</span>
+                <label className="button button-secondary button-small roi-locked-action roi-toolbar-action-button" title="Upload spreadsheet">
+                  <span aria-hidden="true">↑</span>
+                  <span>Upload</span>
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
                 <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
-                <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={saveCurrentGroup} type="button">Save</button>
+                <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={() => saveCurrentGroup()} type="button">
+                  {activeSavedGroup ? "Update" : "Save"}
+                </button>
+                {activeSavedGroup ? (
+                  <button className="button button-secondary button-small roi-locked-action roi-save-copy-button" onClick={() => saveCurrentGroup({ asCopy: true })} type="button">
+                    Save as copy
+                  </button>
+                ) : null}
               </>
             ) : (
               <>
