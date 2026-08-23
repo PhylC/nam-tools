@@ -1460,25 +1460,23 @@ function SavedRoiBottomPanel({
             </label>
           </div>
           <div className="saved-bottom-table-scroll">
-            <div className="saved-bottom-table-head" aria-hidden="true">
-              <span>Saved item</span>
-              <span>Last updated</span>
-              <span>Actions</span>
-            </div>
-            <div className="saved-bottom-grouped-list">
+            <div className="workspace-grouped-list roi-saved-workspace-list">
+              <div className="workspace-grouped-header" aria-hidden="true">
+                <span>Name</span>
+                <span>Last updated</span>
+                <span>Actions</span>
+              </div>
               {visibleComparisons.map((comparison) => {
                 const title = getComparisonTitle(comparison);
                 return (
-                  <article className="saved-bottom-group" key={`comparison-${comparison.id}`}>
-                    <div className="saved-bottom-group-row">
-                      <div>
-                        <strong>{title}</strong>
-                        <span>
-                          {comparison.scenarios.length} scenario{comparison.scenarios.length === 1 ? "" : "s"}
-                        </span>
+                  <article className="workspace-group-block" key={`comparison-${comparison.id}`}>
+                    <div className="workspace-group-row">
+                      <div className="workspace-group-title">
+                        <h3>{title}</h3>
+                        <span>{comparison.scenarios.length} scenario{comparison.scenarios.length === 1 ? "" : "s"}</span>
                       </div>
-                      <small>{getRecordUpdatedDate(comparison)}</small>
-                      <div className="saved-bottom-actions">
+                      <small className="workspace-table-date">{getRecordUpdatedDate(comparison)}</small>
+                      <div className="workspace-list-actions">
                         <button
                           className="workspace-icon-button"
                           aria-label={`Open ${title}`}
@@ -1490,64 +1488,66 @@ function SavedRoiBottomPanel({
                         </button>
                       </div>
                     </div>
-                    <div className="saved-bottom-subrows">
+                    <div className="workspace-subrows">
                       {comparison.scenarios.length ? (
                         comparison.scenarios.map((scenario, index) => {
                           const scenarioId = scenario.id || `${comparison.id}-scenario-${index}`;
                           return (
-                            <div className="saved-bottom-subrow" key={scenarioId}>
-                              <div>
+                            <div className="workspace-subrow-wrap" key={scenarioId}>
+                              <div className="workspace-subrow">
+                                <div className="workspace-subrow-title">
                                 <strong>{scenario.name || `Scenario ${index + 1}`}</strong>
                                 <span>{getScenarioSummaryText(scenario)}</span>
-                              </div>
-                              <small>{getRecordUpdatedDate(comparison)}</small>
-                              <div className="saved-bottom-actions">
+                                </div>
+                                <small className="workspace-table-date">{getRecordUpdatedDate(comparison)}</small>
+                                <div className="workspace-subrow-actions">
                                 <button className="workspace-icon-button" aria-label={`Open ${scenario.name || `Scenario ${index + 1}`}`} onClick={() => onLoadComparison(comparison.id, scenarioId)} title="Open" type="button">
                                   <span aria-hidden="true">↗</span>
                                 </button>
+                                </div>
                               </div>
                             </div>
                           );
                         })
                       ) : (
-                        <div className="saved-bottom-subrow saved-bottom-subrow-empty">No scenarios in this comparison yet.</div>
+                        <div className="workspace-subrow workspace-subrow-empty">No scenarios in this comparison yet.</div>
                       )}
                     </div>
                   </article>
                 );
               })}
-              <article className="saved-bottom-group">
-                <div className="saved-bottom-group-row saved-bottom-standalone-row">
-                  <div>
-                    <strong>Standalone scenarios</strong>
-                    <span>
-                      {visibleScenarios.length} scenario{visibleScenarios.length === 1 ? "" : "s"}
-                    </span>
+              <article className="workspace-group-block">
+                <div className="workspace-group-row workspace-standalone-group-row">
+                  <div className="workspace-group-title">
+                    <h3>Standalone scenarios</h3>
+                    <span>{visibleScenarios.length} scenario{visibleScenarios.length === 1 ? "" : "s"} not assigned to a comparison</span>
                   </div>
                 </div>
-                <div className="saved-bottom-subrows">
+                <div className="workspace-subrows">
                   {visibleScenarios.length ? (
                     visibleScenarios.map((scenario) => {
                       const id = String(scenario.id ?? "");
                       const scenarioRecord = getSavedScenarioRecord(scenario);
                       const title = getSavedScenarioTitle(scenario);
                       return (
-                        <div className="saved-bottom-subrow" key={`scenario-${id}`}>
-                          <div>
-                            <strong>{title}</strong>
-                            <span>{getScenarioSummaryText(scenarioRecord)}</span>
-                          </div>
-                          <small>{getRecordUpdatedDate(scenario)}</small>
-                          <div className="saved-bottom-actions">
-                            <button className="workspace-icon-button" aria-label={`Open ${title}`} onClick={() => onLoadScenario(id)} title="Open" type="button">
-                              <span aria-hidden="true">↗</span>
-                            </button>
+                        <div className="workspace-subrow-wrap" key={`scenario-${id}`}>
+                          <div className="workspace-subrow">
+                            <div className="workspace-subrow-title">
+                              <strong>{title}</strong>
+                              <span>{getScenarioSummaryText(scenarioRecord)}</span>
+                            </div>
+                            <small className="workspace-table-date">{getRecordUpdatedDate(scenario)}</small>
+                            <div className="workspace-subrow-actions">
+                              <button className="workspace-icon-button" aria-label={`Open ${title}`} onClick={() => onLoadScenario(id)} title="Open" type="button">
+                                <span aria-hidden="true">↗</span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
                     })
                   ) : (
-                    <div className="saved-bottom-subrow saved-bottom-subrow-empty">No standalone scenarios match this search.</div>
+                    <div className="workspace-subrow workspace-subrow-empty">No standalone scenarios match this search.</div>
                   )}
                 </div>
               </article>

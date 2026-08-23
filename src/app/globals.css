@@ -7385,6 +7385,17 @@ p {
   border-top: 1px solid #9fb5b1;
 }
 
+.saved-bottom-table-scroll .workspace-grouped-list {
+  border-top: 0;
+}
+
+.saved-bottom-table-scroll .workspace-grouped-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f9fdfc;
+}
+
 .presentation-saved-decks-scroll {
   max-height: 360px;
   overflow: auto;
