@@ -2293,6 +2293,8 @@ export function RoiPlanner() {
   const activeScenarios = activeGroup?.scenarios ?? [];
   const activeScenario = activeScenarios.find((scenario) => scenario.id === activeScenarioId) ?? activeScenarios[0];
   const activeSavedScenarioSource = activeScenario ? loadedScenarioSources[activeScenario.id] : undefined;
+  const isActiveScenarioFromSavedComparison = Boolean(activeScenario && isEditingSavedComparison);
+  const isEditingSavedScenario = Boolean(activeSavedScenarioSource || isActiveScenarioFromSavedComparison);
   const hasCompletedCalculation = activeScenarios.some((scenario) => scenario.lines.some(isLineCalculationComplete));
 
   useEffect(() => {
@@ -2688,21 +2690,33 @@ export function RoiPlanner() {
               {activeScenario ? (
                 <section className="scenario-card" key={activeScenario.id}>
                   <div className="scenario-title-row">
-                    {activeSavedScenarioSource && editingScenarioNameId !== activeScenario.id ? (
+                    {isEditingSavedScenario && editingScenarioNameId !== activeScenario.id ? (
                       <div className="scenario-locked-title scenario-title-field">
                         <span>Scenario name</span>
                         <strong>{activeScenario.name}</strong>
-                        <small>Editing saved scenario. Rename unlocks the title; Save as creates a separate saved scenario.</small>
+                        <small>
+                          {activeSavedScenarioSource
+                            ? "Editing saved scenario. Rename unlocks the title; Save as creates a separate saved scenario."
+                            : "This scenario is part of a saved comparison. Rename unlocks the title; Update saves it in the comparison."}
+                        </small>
                         <div className="summary-actions">
                           <button className="button button-secondary button-small" onClick={() => setEditingScenarioNameId(activeScenario.id)} type="button">Rename</button>
-                          <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button>
+                          {activeSavedScenarioSource ? (
+                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button>
+                          ) : null}
                         </div>
                       </div>
                     ) : (
                       <label className="field scenario-name-field scenario-title-field">
                         <span>Scenario name</span>
                         <input value={activeScenario.name} onChange={(event) => updateScenarioName(activeScenario.id, event.target.value)} />
-                        <small>{activeSavedScenarioSource ? "Rename mode. Save scenario will update the saved scenario name." : "Name this scenario before saving it."}</small>
+                        <small>
+                          {activeSavedScenarioSource
+                            ? "Rename mode. Save scenario will update the saved scenario name."
+                            : isActiveScenarioFromSavedComparison
+                              ? "Rename mode. Update comparison will save this scenario name."
+                              : "Name this scenario before saving it."}
+                        </small>
                       </label>
                     )}
                     <div className="scenario-card-actions">
