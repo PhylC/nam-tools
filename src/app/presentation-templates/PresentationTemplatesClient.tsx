@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { trackUpgradeClicked } from "../../lib/analytics";
-import { listDeckBriefs } from "../../lib/saveStore";
+import { deleteDeckBrief, listDeckBriefs, saveDeckBrief } from "../../lib/saveStore";
+import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 
 type FreeTemplate = {
@@ -188,6 +189,130 @@ function getDeckSearchText(deck: SavedRecord) {
     .toLowerCase();
 }
 
+function isRecord(value: unknown): value is SavedRecord {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function safeDeckFilename(value: string) {
+  const cleaned = value.replace(/[^a-zA-Z0-9._-]/g, "-").replace(/-+/g, "-").slice(0, 120);
+  return cleaned || "saved-presentation.pptx";
+}
+
+function getGeneratedDeckFile(deck: SavedRecord) {
+  const generatedDeck = isRecord(deck.generatedDeck) ? deck.generatedDeck : {};
+  const storagePath = getText(generatedDeck.storagePath, "");
+  if (!storagePath) return null;
+  return {
+    storagePath,
+    filename: safeDeckFilename(getText(generatedDeck.filename, `${getDeckTitle(deck)}.pptx`)),
+  };
+}
+
+function downloadBrowserFile(file: File) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = file.name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function WorkspaceIconLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link aria-label={label} className="workspace-icon-button" href={href} title={label}>
+      <span aria-hidden="true">↗</span>
+    </Link>
+  );
+}
+
+function WorkspaceMenuShell({ children }: { children: React.ReactNode }) {
+  return (
+    <details className="workspace-row-menu">
+      <summary aria-label="More actions" title="More actions">
+        <span aria-hidden="true">⋯</span>
+      </summary>
+      <div className="workspace-row-menu-panel">{children}</div>
+    </details>
+  );
+}
+
+function DeckRowMenu({
+  id,
+  downloadDisabled,
+  onDownload,
+  onRename,
+  onDelete,
+}: {
+  id: string;
+  downloadDisabled: boolean;
+  onDownload: (id: string) => void | Promise<void>;
+  onRename: (id: string) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+}) {
+  return (
+    <WorkspaceMenuShell>
+      <Link className="workspace-menu-action" href={`/custom-deck?deck=${id}`}>
+        Create new from this
+      </Link>
+      <button className="workspace-menu-action" disabled={downloadDisabled} onClick={() => onDownload(id)} type="button">
+        Download presentation
+      </button>
+      <button className="workspace-menu-action" onClick={() => onRename(id)} type="button">
+        Rename
+      </button>
+      <button className="workspace-menu-action workspace-menu-danger" onClick={() => onDelete(id)} type="button">
+        Delete
+      </button>
+    </WorkspaceMenuShell>
+  );
+}
+
+function SavedDeckWorkspaceRow({
+  deck,
+  onDownload,
+  onRename,
+  onDelete,
+}: {
+  deck: SavedRecord;
+  onDownload: (id: string) => void | Promise<void>;
+  onRename: (id: string) => void | Promise<void>;
+  onDelete: (id: string) => void | Promise<void>;
+}) {
+  const id = String(deck.id ?? "");
+  const title = getDeckTitle(deck);
+  const href = getText(deck.sourcePath, "/presentation-templates");
+  const generatedDeckFile = getGeneratedDeckFile(deck);
+
+  return (
+    <article className="workspace-list-row">
+      <div className="workspace-list-main">
+        <span className="workspace-table-type">Deck brief</span>
+        <div className="workspace-list-copy">
+          <h3>{title}</h3>
+          <p>{getDeckDescription(deck)}</p>
+        </div>
+        <small className="workspace-table-date">{getUpdatedDate(deck)}</small>
+        <div className="workspace-list-actions">
+          <WorkspaceIconLink href={href} label={`Open ${title}`} />
+          <DeckRowMenu
+            id={id}
+            downloadDisabled={!generatedDeckFile}
+            onDelete={onDelete}
+            onDownload={onDownload}
+            onRename={onRename}
+          />
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
   const [decks, setDecks] = useState<SavedRecord[]>([]);
   const [search, setSearch] = useState("");
@@ -220,6 +345,51 @@ function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
     };
   }, [isPro]);
 
+  async function refreshDecks() {
+    const result = await listDeckBriefs();
+    setDecks(result.data);
+    setMessage(result.message ?? "");
+  }
+
+  async function downloadSavedDeck(id: string) {
+    const deck = decks.find((item) => item.id === id);
+    if (!deck) return;
+    const generatedDeckFile = getGeneratedDeckFile(deck);
+    if (!generatedDeckFile) {
+      setMessage("This saved deck does not have a stored presentation file. Open it and create a new copy to download.");
+      return;
+    }
+
+    setMessage("Preparing saved presentation download...");
+    const result = await downloadGeneratedDeck(generatedDeckFile.storagePath, generatedDeckFile.filename);
+    if (!result.file) {
+      setMessage(result.error ?? "Could not download the saved presentation.");
+      return;
+    }
+    downloadBrowserFile(result.file);
+    setMessage(`Downloaded ${generatedDeckFile.filename}.`);
+  }
+
+  async function renameSavedDeck(id: string) {
+    const source = decks.find((item) => item.id === id);
+    if (!source) return;
+    const currentName = getDeckTitle(source);
+    const nextName = window.prompt("Rename deck", currentName)?.trim();
+    if (!nextName || nextName === currentName) return;
+    const now = nowIso();
+    const result = await saveDeckBrief({ ...source, id, name: nextName, deck_name: nextName, savedAt: now, updatedAt: now, updated_at: now });
+    setMessage(result.data ? "Deck renamed." : result.message ?? "Could not rename deck.");
+    await refreshDecks();
+  }
+
+  async function deleteSavedDeck(id: string) {
+    const confirmed = window.confirm("Delete this saved deck?");
+    if (!confirmed) return;
+    const result = await deleteDeckBrief(id);
+    setMessage(result.data ? "Deck deleted." : result.message ?? "Could not delete deck.");
+    await refreshDecks();
+  }
+
   if (!isPro) return null;
 
   return (
@@ -251,41 +421,26 @@ function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
               </select>
             </label>
           </div>
-          <div className="saved-bottom-table-scroll">
-            <div className="saved-bottom-table-head" aria-hidden="true">
-              <span>Saved deck</span>
+          <div className="workspace-table-list">
+            <div className="workspace-table-header" aria-hidden="true">
+              <span>Type</span>
+              <span>Name</span>
               <span>Last updated</span>
               <span>Actions</span>
             </div>
-            <div className="saved-bottom-grouped-list">
-              {visibleDecks.length ? (
-                visibleDecks.map((deck) => {
-                  const id = String(deck.id ?? "");
-                  const name = getDeckTitle(deck);
-                  return (
-                    <article className="saved-bottom-group" key={id}>
-                      <div className="saved-bottom-group-row">
-                        <div>
-                          <strong>{name}</strong>
-                          <span>{getDeckDescription(deck)}</span>
-                        </div>
-                        <small>{getUpdatedDate(deck)}</small>
-                        <div className="saved-bottom-actions">
-                          <Link className="button button-secondary button-small" href={`/custom-deck?deck=${id}`}>
-                            Create new from this
-                          </Link>
-                          <Link className="workspace-icon-button" href="/workspace#decks" aria-label={`View details for ${name}`} title="Details">
-                            <span aria-hidden="true">i</span>
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })
-              ) : (
-                <div className="saved-bottom-subrow saved-bottom-subrow-empty">No saved decks match this search.</div>
-              )}
-            </div>
+            {visibleDecks.length ? (
+              visibleDecks.map((deck) => (
+                <SavedDeckWorkspaceRow
+                  deck={deck}
+                  key={String(deck.id ?? getDeckTitle(deck))}
+                  onDelete={deleteSavedDeck}
+                  onDownload={downloadSavedDeck}
+                  onRename={renameSavedDeck}
+                />
+              ))
+            ) : (
+              <div className="saved-bottom-subrow saved-bottom-subrow-empty">No saved decks match this search.</div>
+            )}
           </div>
         </>
       ) : (
