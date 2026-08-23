@@ -653,7 +653,15 @@ function lineIdentifier(line: RoiLine) {
   return line.sku || line.product;
 }
 
-function CsvExportButton({ groups, onBeforeExport }: { groups: RoiGroup[]; onBeforeExport?: () => boolean }) {
+function CsvExportButton({
+  groups,
+  onBeforeExport,
+  compact = false,
+}: {
+  groups: RoiGroup[];
+  onBeforeExport?: () => boolean;
+  compact?: boolean;
+}) {
   function exportCsv() {
     if (onBeforeExport && !onBeforeExport()) return;
     const rows: Array<Array<string | number | null>> = [
@@ -760,7 +768,11 @@ function CsvExportButton({ groups, onBeforeExport }: { groups: RoiGroup[]; onBef
     downloadCsv("apt-roi-results.csv", rows);
   }
 
-  return (
+  return compact ? (
+    <button aria-label="Export results" className="workspace-icon-button roi-toolbar-icon-button" onClick={exportCsv} title="Export results" type="button">
+      <span aria-hidden="true">CSV</span>
+    </button>
+  ) : (
     <button className="button button-secondary button-small roi-locked-action" onClick={exportCsv} type="button">
       Export results
     </button>
@@ -1621,7 +1633,7 @@ export function RoiPlanner() {
           activeGroupId: saved.id,
           activeScenarioId: activeSavedScenarioId,
         });
-        setSaveMessage(result.message ?? `Loaded comparison "${saved.name}".`);
+        setSaveMessage(result.message ?? "Comparison loaded.");
       });
 
       return () => {
@@ -2041,9 +2053,9 @@ export function RoiPlanner() {
         <div className="roi-plan-header">
           <div>
             {isPro ? (
-              <div className="roi-comparison-settings">
+              <div className="roi-comparison-toolbar">
                 <label className="field inline-plan-name">
-                  <span>Comparison name</span>
+                  <span>Name</span>
                   <input
                     aria-describedby="roi-comparison-name-help"
                     value={activeGroup?.name ?? ""}
@@ -2051,23 +2063,30 @@ export function RoiPlanner() {
                   />
                   <small id="roi-comparison-name-help">Used when you save this comparison.</small>
                 </label>
-                <label className="field roi-assumption-field">
-                  <span>Currency</span>
-                  <select value={activeGroup?.currency ?? "GBP"} onChange={(event) => updateActiveGroupAssumptions({ currency: event.target.value })}>
-                    {roiCurrencyOptions.map((currency) => (
-                      <option key={currency} value={currency}>{currency}</option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field roi-assumption-field">
-                  <span>VAT rate</span>
-                  <input
-                    inputMode="decimal"
-                    type="number"
-                    value={activeGroup?.vatRate ?? "20"}
-                    onChange={(event) => updateActiveGroupAssumptions({ vatRate: event.target.value })}
-                  />
-                </label>
+                <details className="roi-local-settings">
+                  <summary aria-label="Comparison settings" className="workspace-icon-button roi-toolbar-icon-button" title="Comparison settings">
+                    <span aria-hidden="true">⚙</span>
+                  </summary>
+                  <div className="roi-local-settings-menu">
+                    <label className="field roi-assumption-field">
+                      <span>Currency</span>
+                      <select value={activeGroup?.currency ?? "GBP"} onChange={(event) => updateActiveGroupAssumptions({ currency: event.target.value })}>
+                        {roiCurrencyOptions.map((currency) => (
+                          <option key={currency} value={currency}>{currency}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="field roi-assumption-field">
+                      <span>VAT rate</span>
+                      <input
+                        inputMode="decimal"
+                        type="number"
+                        value={activeGroup?.vatRate ?? "20"}
+                        onChange={(event) => updateActiveGroupAssumptions({ vatRate: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                </details>
               </div>
             ) : null}
             <p className="roi-planner-helper">
@@ -2080,18 +2099,20 @@ export function RoiPlanner() {
             {isPro ? (
               <>
                 <button
-                  className="button button-secondary button-small roi-locked-action"
+                  aria-label="Download template"
+                  className="workspace-icon-button roi-toolbar-icon-button"
                   onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}
+                  title="Download template"
                   type="button"
                 >
-                  Download template
+                  <span aria-hidden="true">DL</span>
                 </button>
-                <label className="button button-secondary button-small roi-locked-action">
-                  Upload spreadsheet
+                <label aria-label="Upload spreadsheet" className="workspace-icon-button roi-toolbar-icon-button" title="Upload spreadsheet">
+                  <span aria-hidden="true">UP</span>
                   <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
                 </label>
-                <CsvExportButton groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
-                <button className="button button-secondary button-small roi-locked-action" onClick={saveCurrentGroup} type="button">Save named comparison</button>
+                <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
+                <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={saveCurrentGroup} type="button">Save</button>
               </>
             ) : (
               <>
