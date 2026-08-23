@@ -3601,16 +3601,16 @@ p {
 .roi-primary-field-grid {
   grid-template-columns:
     minmax(125px, 1.05fr)
-    minmax(130px, 1.1fr)
+    minmax(126px, 1.05fr)
     minmax(110px, 0.95fr)
-    minmax(280px, 2.35fr)
+    minmax(300px, 2.55fr)
     minmax(110px, 0.95fr);
   align-items: end;
 }
 
 .roi-linked-promo-fields {
   display: grid;
-  grid-template-columns: minmax(124px, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(112px, 0.82fr) minmax(150px, 1.18fr);
   gap: 0.4rem;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));

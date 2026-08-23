@@ -789,20 +789,26 @@ function ProOnlyAction({
 function RoiFieldLabel({
   field,
   compact = false,
+  label,
+  required,
 }: {
   field: RoiFieldKey;
   compact?: boolean;
+  label?: string;
+  required?: boolean;
 }) {
   const meta = roiFieldMeta[field];
-  const status = meta.required ? "Required" : "Optional";
+  const isRequired = required ?? meta.required;
+  const status = isRequired ? "Required" : "Optional";
+  const labelText = label ?? meta.label;
 
   return (
     <span className={compact ? "roi-field-label roi-field-label-compact" : "roi-field-label"}>
-      <span className="roi-field-label-text">{meta.label}</span>
-      <span className={meta.required ? "field-status field-required calc-required-badge" : "field-status calc-optional-badge"}>
+      <span className="roi-field-label-text">{labelText}</span>
+      <span className={isRequired ? "field-status field-required calc-required-badge" : "field-status calc-optional-badge"}>
         {status}
       </span>
-      <span aria-label={`${meta.label}: ${meta.info}`} className="info-dot calc-info-button" tabIndex={0} title={meta.info}>
+      <span aria-label={`${labelText}: ${meta.info}`} className="info-dot calc-info-button" tabIndex={0} title={meta.info}>
         i
         <span className="info-tooltip" role="tooltip">
           {meta.info}
@@ -817,19 +823,24 @@ function MobileField({
   value,
   onChange,
   type = "text",
+  label,
+  required,
 }: {
   field: RoiFieldKey;
   value: string;
   onChange: (value: string) => void;
   type?: "text" | "number";
+  label?: string;
+  required?: boolean;
 }) {
   const meta = roiFieldMeta[field];
+  const labelText = label ?? meta.label;
 
   return (
     <label className="roi-mobile-field">
-      <RoiFieldLabel field={field} />
+      <RoiFieldLabel field={field} label={label} required={required} />
       <input
-        aria-label={meta.label}
+        aria-label={labelText}
         inputMode={type === "number" ? "decimal" : undefined}
         type={type}
         value={value}
@@ -923,9 +934,9 @@ function RoiMobileLineBuilder({
         const calc = calculateLine(line);
         const supportField =
           line.supportMode === "soa" ? (
-            <MobileField field="soa" type="number" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} />
+            <MobileField field="soa" label="SOA/support" required type="number" value={line.soa} onChange={(value) => changeLine(line.id, { soa: value, supportMode: "soa" })} />
           ) : (
-            <MobileField field="promoInvoice" type="number" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} />
+            <MobileField field="promoInvoice" label="Promo price" required type="number" value={line.promoInvoice} onChange={(value) => changeLine(line.id, { promoInvoice: value, supportMode: "promoInvoice" })} />
           );
 
         return (
@@ -944,7 +955,7 @@ function RoiMobileLineBuilder({
 
             <div className="roi-mobile-field-grid roi-primary-field-grid">
               <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine(line.id, { sku: value, product: "" })} />
-              <MobileField field="currentInvoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
+              <MobileField field="currentInvoice" label="Current invoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
               <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
               <div className="roi-linked-promo-fields">
                 <label className="roi-mobile-field">
