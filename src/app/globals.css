@@ -754,14 +754,39 @@ textarea:focus {
 
 .account-section-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.36fr);
   gap: 1rem;
   align-items: start;
 }
 
 .account-section-layout > .account-actions-panel {
-  position: sticky;
-  top: 88px;
+  position: static;
+  order: -1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.account-section-layout > .account-actions-panel > div:first-child {
+  display: none;
+}
+
+.account-section-layout .account-menu-list {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.account-section-layout .account-menu-item {
+  min-height: 52px;
+  padding: 0.58rem 0.72rem;
+}
+
+.account-section-layout .account-menu-sign-out {
+  min-width: 148px;
+  min-height: 52px;
+  margin-top: 0;
 }
 
 .account-overview-panel {
