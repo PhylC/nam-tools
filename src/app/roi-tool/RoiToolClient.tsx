@@ -913,8 +913,6 @@ function RoiMobileLineBuilder({
                 <MobileField field="fixedSupport" type="number" value={line.fixedSupport} onChange={(value) => changeLine(line.id, { fixedSupport: value })} />
                 <MobileField field="currentSrp" type="number" value={line.currentSrp} onChange={(value) => changeLine(line.id, { currentSrp: value })} />
                 <MobileField field="promoSrp" type="number" value={line.promoSrp} onChange={(value) => changeLine(line.id, { promoSrp: value })} />
-                <MobileField field="vatRate" type="number" value={line.vatRate} onChange={(value) => changeLine(line.id, { vatRate: value })} />
-                <MobileField field="currency" value={line.currency} onChange={(value) => changeLine(line.id, { currency: value })} />
                 <label className="roi-mobile-field roi-mobile-field-full">
                   <RoiFieldLabel field="notes" />
                   <textarea value={line.notes} onChange={(event) => changeLine(line.id, { notes: event.target.value })} />
