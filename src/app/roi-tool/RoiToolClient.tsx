@@ -1206,7 +1206,7 @@ function ScenarioComparison({
       bestLabel: "Lowest",
     },
     {
-      label: "Incremental profit",
+      label: "Gross Margin/Profit",
       value: (item: ReturnType<typeof scenarioMetrics>) => (item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"),
       bestScenarioId: bestProfit?.scenario.id,
     },
@@ -1242,7 +1242,7 @@ function ScenarioComparison({
         {scenarios.length > 1 ? (
           <div className="comparison-chip-row">
             <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Best incremental profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best Gross Margin/Profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
@@ -1298,7 +1298,7 @@ function ScenarioComparison({
               {metrics.map((item) => {
                 const badges = [
                   bestRevenue?.scenario.id === item.scenario.id ? "Best revenue" : "",
-                  bestProfit?.scenario.id === item.scenario.id ? "Best incremental profit" : "",
+                  bestProfit?.scenario.id === item.scenario.id ? "Best Gross Margin/Profit" : "",
                   bestRoi?.scenario.id === item.scenario.id ? "Best ROI" : "",
                   recommended?.scenario.id === item.scenario.id ? "Recommended" : "",
                 ].filter(Boolean);
@@ -1312,7 +1312,7 @@ function ScenarioComparison({
                     <dl>
                       <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact, currency)}</dd></div>
                       <div><dt>Support cost</dt><dd>{money(item.summary.supportCost, currency)}</dd></div>
-                      <div><dt>Incremental profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"}</dd></div>
+                      <div><dt>Gross Margin/Profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"}</dd></div>
                       <div><dt>Supplier revenue ROI</dt><dd>{pct(item.revenueRoi)}</dd></div>
                       <div><dt>Profit ROI</dt><dd>{pct(item.profitRoi)}</dd></div>
                       <div><dt>Lines</dt><dd>{item.scenario.lines.length.toLocaleString("en-GB")}</dd></div>
