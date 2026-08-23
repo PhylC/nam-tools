@@ -7385,6 +7385,20 @@ p {
   border-top: 1px solid #9fb5b1;
 }
 
+.presentation-saved-decks-scroll {
+  max-height: 360px;
+  overflow: auto;
+  border-top: 1px solid #9fb5b1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.presentation-saved-decks-scroll .workspace-table-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f9fdfc;
+}
+
 .saved-bottom-table-head,
 .saved-bottom-group-row,
 .saved-bottom-subrow {
@@ -9348,6 +9362,10 @@ p {
   }
 
   .saved-bottom-table-scroll {
+    max-height: 420px;
+  }
+
+  .presentation-saved-decks-scroll {
     max-height: 420px;
   }
 

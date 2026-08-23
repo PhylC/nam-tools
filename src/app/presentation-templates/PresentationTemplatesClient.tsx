@@ -421,26 +421,28 @@ function SavedDecksBottomPanel({ isPro }: { isPro: boolean }) {
               </select>
             </label>
           </div>
-          <div className="workspace-table-list">
-            <div className="workspace-table-header" aria-hidden="true">
-              <span>Type</span>
-              <span>Name</span>
-              <span>Last updated</span>
-              <span>Actions</span>
+          <div className="presentation-saved-decks-scroll">
+            <div className="workspace-table-list">
+              <div className="workspace-table-header" aria-hidden="true">
+                <span>Type</span>
+                <span>Name</span>
+                <span>Last updated</span>
+                <span>Actions</span>
+              </div>
+              {visibleDecks.length ? (
+                visibleDecks.map((deck) => (
+                  <SavedDeckWorkspaceRow
+                    deck={deck}
+                    key={String(deck.id ?? getDeckTitle(deck))}
+                    onDelete={deleteSavedDeck}
+                    onDownload={downloadSavedDeck}
+                    onRename={renameSavedDeck}
+                  />
+                ))
+              ) : (
+                <div className="saved-bottom-subrow saved-bottom-subrow-empty">No saved decks match this search.</div>
+              )}
             </div>
-            {visibleDecks.length ? (
-              visibleDecks.map((deck) => (
-                <SavedDeckWorkspaceRow
-                  deck={deck}
-                  key={String(deck.id ?? getDeckTitle(deck))}
-                  onDelete={deleteSavedDeck}
-                  onDownload={downloadSavedDeck}
-                  onRename={renameSavedDeck}
-                />
-              ))
-            ) : (
-              <div className="saved-bottom-subrow saved-bottom-subrow-empty">No saved decks match this search.</div>
-            )}
           </div>
         </>
       ) : (
