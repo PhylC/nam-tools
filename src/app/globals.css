@@ -3580,10 +3580,19 @@ p {
   min-width: 0;
 }
 
+.roi-primary-field-grid {
+  grid-template-columns:
+    minmax(125px, 1.05fr)
+    minmax(130px, 1.1fr)
+    minmax(110px, 0.95fr)
+    minmax(280px, 2.35fr)
+    minmax(110px, 0.95fr);
+  align-items: end;
+}
+
 .roi-linked-promo-fields {
   display: grid;
-  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-  grid-column: span 2;
+  grid-template-columns: minmax(124px, 0.9fr) minmax(0, 1.1fr);
   gap: 0.4rem;
   min-width: 0;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
@@ -3598,6 +3607,10 @@ p {
 
 .roi-linked-promo-fields .roi-mobile-field {
   gap: 0.32rem;
+}
+
+.roi-linked-promo-fields .roi-mobile-field > span {
+  min-height: 1.15rem;
 }
 
 .roi-mobile-field {
@@ -4224,8 +4237,13 @@ p {
     min-width: 0;
   }
 
+  .roi-primary-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .roi-linked-promo-fields {
     grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    grid-column: 1 / -1;
     gap: 0.5rem;
   }
 
@@ -8577,8 +8595,13 @@ p {
     min-width: 0;
   }
 
+  .roi-primary-field-grid {
+    grid-template-columns: 1fr;
+  }
+
   .roi-linked-promo-fields {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-column: 1 / -1;
     gap: 0.45rem;
     padding: 0.5rem;
   }

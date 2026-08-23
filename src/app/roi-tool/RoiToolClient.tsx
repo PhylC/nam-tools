@@ -889,7 +889,7 @@ function RoiMobileLineBuilder({
               </div>
             </div>
 
-            <div className="roi-mobile-field-grid">
+            <div className="roi-mobile-field-grid roi-primary-field-grid">
               <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine(line.id, { sku: value, product: "" })} />
               <MobileField field="currentInvoice" type="number" value={line.currentInvoice} onChange={(value) => changeLine(line.id, { currentInvoice: value })} />
               <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine(line.id, { baselineUnits: value })} />
@@ -897,8 +897,8 @@ function RoiMobileLineBuilder({
                 <label className="roi-mobile-field">
                   <span>Promo input</span>
                   <select value={line.supportMode} onChange={(event) => changeLine(line.id, { supportMode: event.target.value as SupportMode })}>
-                    <option value="promoInvoice">Invoice/buy price</option>
-                    <option value="soa">SOA/support</option>
+                    <option value="promoInvoice">Promo price</option>
+                    <option value="soa">SOA</option>
                   </select>
                 </label>
                 {supportField}
