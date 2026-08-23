@@ -920,12 +920,21 @@ function RoiMobileLineBuilder({
               </div>
             </details>
 
-            <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
-              <div><span>Inc supplier invoice revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
-              <div><span>Support</span><strong>{money(calc.supportCost)}</strong></div>
-              <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add supplier COGS"}</strong></div>
-              <div><span>ROI</span><strong>{pct(calc.profitRoi ?? calc.revenueRoi)}</strong></div>
-            </div>
+            <details className="roi-mobile-line-detail">
+              <summary>Show line detail</summary>
+              <div className="roi-mobile-line-results" aria-label={`Line ${index + 1} results`}>
+                <div><span>Promo invoice</span><strong>{money(calc.promoInvoice)}</strong></div>
+                <div><span>Support per unit</span><strong>{money(calc.supportPerUnit)}</strong></div>
+                <div><span>Incremental units</span><strong>{calc.incrementalUnits.toLocaleString("en-GB")}</strong></div>
+                <div><span>Baseline revenue</span><strong>{money(calc.baselineRevenue)}</strong></div>
+                <div><span>Promo revenue</span><strong>{money(calc.promoRevenue)}</strong></div>
+                <div><span>Incremental revenue</span><strong>{money(calc.incrementalRevenue)}</strong></div>
+                <div><span>Total support</span><strong>{money(calc.supportCost)}</strong></div>
+                <div><span>Incremental profit</span><strong>{calc.hasCogs ? money(calc.profitImpact) : "Add supplier COGS"}</strong></div>
+                <div><span>Revenue ROI</span><strong>{pct(calc.revenueRoi)}</strong></div>
+                <div><span>Profit ROI</span><strong>{pct(calc.profitRoi)}</strong></div>
+              </div>
+            </details>
           </article>
         );
       })}

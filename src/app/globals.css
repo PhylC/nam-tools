@@ -3651,12 +3651,14 @@ p {
   grid-column: 1 / -1;
 }
 
-.roi-mobile-advanced {
+.roi-mobile-advanced,
+.roi-mobile-line-detail {
   border-top: 1px solid var(--border);
   padding-top: 0.2rem;
 }
 
 .roi-mobile-advanced summary,
+.roi-mobile-line-detail summary,
 .roi-mobile-actions summary {
   cursor: pointer;
   color: var(--accent-dark);
@@ -3667,8 +3669,9 @@ p {
 
 .roi-mobile-line-results {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.4rem;
+  padding-top: 0.35rem;
 }
 
 .roi-mobile-line-results div {
