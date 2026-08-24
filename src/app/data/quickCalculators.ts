@@ -28,11 +28,11 @@ export const quickCalculators: QuickCalculator[] = [
     title: "Retail Selling Price Calculator",
     h1: "Retail Selling Price Calculator",
     description:
-      "Use this to check how invoice price, retail price and VAT/tax affect retailer margin before you commit to a deal.",
+      "Calculate the retail selling price from invoice price and target retailer margin, with VAT, sales tax or IVA shown clearly.",
     group: "Retail price and margin",
-    choice: "Estimate retail price from invoice and target margin",
+    choice: "Calculate retail selling price from invoice price and target margin",
     whenToUse: [
-      "You know the retailer invoice/buy price and want to estimate the retail/sale price implied by a target margin.",
+      "You know the retailer invoice/buy price and want the retail selling price implied by a target margin.",
       "You need a quick sense-check before discussing a price ladder, promotion or range proposal.",
     ],
     formula: [

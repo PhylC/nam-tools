@@ -47,7 +47,7 @@ const taskCards: TaskCard[] = [
   },
   {
     title: "Back-solve a price",
-    text: "Work backwards from retail price, target margin or invoice price.",
+    text: "Calculate retail selling price from invoice price and target margin, or back-solve the invoice price.",
     cta: "Open price tools",
     href: "#pricing-tools",
   },
@@ -61,10 +61,10 @@ const toolGroups: ToolGroup[] = [
     tools: [
       {
         title: "Retail Selling Price Calculator",
-        description: "Estimate retail price from invoice price and target retailer margin.",
+        description: "Calculate retail selling price from invoice price and target retailer margin, with VAT, sales tax or IVA shown clearly.",
         href: "/calculators/retail-selling-price-calculator",
-        cta: "Calculate retail price",
-        preview: "Invoice + margin -> retail price",
+        cta: "Calculate retail selling price",
+        preview: "Invoice price + target margin -> retail selling price",
         keywords: ["retail price", "rsp", "selling price", "price", "margin", "invoice"],
       },
       {

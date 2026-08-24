@@ -18,9 +18,9 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
       "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
   },
   "retail-selling-price-calculator": {
-    title: "Retail Selling Price from Invoice + Margin Calculator",
+    title: "Retail Selling Price Calculator from Invoice Price + Target Margin",
     description:
-      "Check how invoice price, retail price and VAT or tax affect margin before you commit to a deal.",
+      "Calculate retail selling price from invoice price and target retailer margin, including VAT, sales tax or IVA checks.",
   },
   "actual-retailer-margin-calculator": {
     title: "Actual Retailer Margin Calculator",
@@ -107,6 +107,16 @@ export default async function CalculatorPage({
 
       <section className="shell tool-layout">
         <div className="tool-main">
+          {calculator.slug === "retail-selling-price-calculator" ? (
+            <article className="card related-card">
+              <h2>Calculate retail selling price from invoice price</h2>
+              <p>
+                Use this retail selling price calculator when you know the retailer invoice price or buy price and need
+                the selling price that protects a target margin. It shows the excluding-tax and including-tax price so
+                VAT, sales tax or IVA assumptions are visible before you use the number in a customer conversation.
+              </p>
+            </article>
+          ) : null}
           <QuickCommercialCalculators only={calculator.id} />
         </div>
         <div className="tool-side">

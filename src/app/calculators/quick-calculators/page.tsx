@@ -12,7 +12,7 @@ export const metadata = seoMetadata({
 });
 
 const choices = [
-  "Estimate retail price from invoice and target margin",
+  "Calculate retail selling price from invoice price and target margin",
   "What SOA do I need to hit a margin?",
   "What margin is the retailer actually making?",
   "Calculate invoice price from retail price and target margin",
@@ -32,7 +32,7 @@ export default function QuickCalculatorsIndexPage() {
       />
       <Hero eyebrow="Calculators" title="Choose the commercial calculation you need.">
         <p>
-          Fast retail price, margin, invoice, SOA, support percentage and sales
+          Fast retail selling price, target margin, invoice, SOA, support percentage and sales
           tax / VAT / IVA calculators for common account manager and KAM checks.
         </p>
       </Hero>
