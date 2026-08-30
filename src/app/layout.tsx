@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   creator: SITE_NAME,
   publisher: SITE_NAME,
   other: {
-    "msvalidate.01": "B225F1EE3C9E672FBA4084187B9749AB",
+    "msvalidate.01": "7FEC7FC5C79BA53B96B487318D777AE3",
   },
   manifest: "/manifest.webmanifest",
   icons: {
