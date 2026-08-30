@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
+import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
@@ -675,6 +675,7 @@ function CsvExportButton({
 }) {
   function exportCsv() {
     if (onBeforeExport && !onBeforeExport()) return;
+    trackEvent("roi_export_clicked", { group_count: groups.length });
     const rows: Array<Array<string | number | null>> = [
       [
         "group_name",
@@ -1991,6 +1992,7 @@ export function RoiPlanner() {
     setAutoSaveStatus("saved");
     setAutoSaveMessage(`Saved ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
     setSaveMessage(asCopy ? `Saved copy "${saved.name}" to your account.` : `Updated comparison "${saved.name}".`);
+    trackEvent("roi_comparison_saved", { save_mode: asCopy ? "copy" : existing ? "update" : "new" });
     return true;
   }
 
@@ -2068,6 +2070,7 @@ export function RoiPlanner() {
     setScenarioMessageId(scenario.id);
     setSavingScenarioId("");
     setEditingScenarioNameId("");
+    trackEvent("roi_scenario_saved", { save_mode: asCopy ? "copy" : loadedSource ? "update" : "new" });
     await refreshSavedRoiWork();
   }
 

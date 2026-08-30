@@ -177,6 +177,7 @@ export function AccountClient() {
     if (!isSignedIn) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") === "success") {
+      trackEvent("checkout_completed");
       getSupabaseBrowserClient()?.auth.refreshSession();
     }
     const timer = window.setTimeout(() => {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { trackUpgradeClicked } from "../../lib/analytics";
+import { trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { useLocalizedPricing } from "../../lib/useLocalizedPricing";
@@ -39,6 +39,7 @@ export function PricingUpgradeActions({ location, variant = "link" }: PricingUpg
     setMessage("");
     setIsStartingCheckout(interval);
     trackUpgradeClicked(`${location}_${interval}`);
+    trackEvent("checkout_started", { location, billing_interval: interval });
 
     try {
       const { data } = supabase ? await supabase.auth.getSession() : { data: { session: null } };

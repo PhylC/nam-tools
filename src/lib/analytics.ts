@@ -10,7 +10,12 @@ type AnalyticsEventName =
   | "signup_completed"
   | "login_completed"
   | "logout_completed"
-  | "upgrade_clicked";
+  | "upgrade_clicked"
+  | "checkout_started"
+  | "checkout_completed"
+  | "roi_export_clicked"
+  | "roi_comparison_saved"
+  | "roi_scenario_saved";
 
 type AnalyticsEventProperties = Record<string, string | number | boolean | null | undefined>;
 export type AnalyticsConsent = "accepted" | "rejected" | null;
