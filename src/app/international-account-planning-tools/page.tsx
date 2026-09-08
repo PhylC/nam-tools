@@ -30,10 +30,25 @@ const marketUseCases = [
   },
 ];
 
-const keywordGroups = [
-  ["Account planning", "account planning tools", "FMCG account planning software", "CPG commercial planning tools"],
-  ["Commercial calculators", "commercial planning calculator", "retailer margin calculator", "VAT sales tax pricing calculator"],
-  ["Promotion planning", "promotional ROI calculator", "trade spend calculator", "promotion investment planning"],
+const planningToolLinks = [
+  {
+    title: "Promotion ROI",
+    copy: "Compare support, uplift, invoice revenue and payback before a retailer or distributor promo is agreed.",
+    href: "/roi-tool",
+    cta: "Open ROI planner",
+  },
+  {
+    title: "Retail margin and pricing",
+    copy: "Check invoice price, retail selling price, margin and tax assumptions when markets use different price structures.",
+    href: "/calculators",
+    cta: "See calculators",
+  },
+  {
+    title: "Support and trade spend",
+    copy: "Work out the support, allowance or funding needed to hit a promoted price while keeping the commercial ask clear.",
+    href: "/tools/trade-spend-calculator",
+    cta: "Check trade spend",
+  },
 ];
 
 const pageFaqs = [
@@ -90,25 +105,24 @@ export default function InternationalAccountPlanningToolsPage() {
         </div>
       </section>
 
-      <section className="shell section split-band">
+      <section className="shell section split-band international-tool-section">
         <article className="legal-copy">
-          <SectionHeader eyebrow="Keyword focus" title="International SEO targets APT now supports.">
+          <SectionHeader eyebrow="Buyer value" title="Turn market differences into clearer customer decisions.">
             <p>
-              The page is written around practical search demand from account managers, sales leaders and commercial
-              teams looking for account planning software, promotion calculators and trade spend tools.
+              International account teams need fast answers that still respect local trading terms. APT keeps the
+              commercial question visible first, then lets each market adjust currency, tax and support assumptions.
             </p>
           </SectionHeader>
         </article>
         <article className="legal-copy">
-          <div className="keyword-target-grid">
-            {keywordGroups.map(([group, ...terms]) => (
-              <div className="card keyword-target-card" key={group}>
-                <h3>{group}</h3>
-                <ul className="compact-list">
-                  {terms.map((term) => (
-                    <li key={term}>{term}</li>
-                  ))}
-                </ul>
+          <div className="international-tool-grid">
+            {planningToolLinks.map((item) => (
+              <div className="card international-tool-card" key={item.title}>
+                <h3>{item.title}</h3>
+                <p>{item.copy}</p>
+                <Link className="text-link" href={item.href}>
+                  {item.cta}
+                </Link>
               </div>
             ))}
           </div>

@@ -423,34 +423,32 @@ textarea:focus {
 
 .cookie-consent {
   position: fixed;
+  top: 86px;
   right: max(16px, calc((100vw - 1120px) / 2));
-  bottom: 16px;
   z-index: 40;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
-  width: min(760px, calc(100vw - 32px));
+  gap: 0.75rem;
+  width: min(430px, calc(100vw - 32px));
   border: 1px solid rgba(22, 32, 42, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 18px 42px rgba(22, 32, 42, 0.14);
   color: var(--foreground);
-  padding: 1rem;
+  padding: 0.85rem;
 }
 
 .cookie-consent strong {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.98rem;
+  margin-bottom: 0.18rem;
+  font-size: 0.92rem;
 }
 
 .cookie-consent p,
 .cookie-consent small {
   color: var(--muted);
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 750;
-  line-height: 1.45;
+  line-height: 1.35;
 }
 
 .cookie-consent-actions {
@@ -462,8 +460,8 @@ textarea:focus {
 }
 
 .cookie-consent-actions .button {
-  min-height: 40px;
-  padding: 0.62rem 0.85rem;
+  min-height: 36px;
+  padding: 0.52rem 0.7rem;
   white-space: nowrap;
 }
 
@@ -493,10 +491,12 @@ textarea:focus {
   }
 
   .cookie-consent {
+    top: 76px;
     left: 16px;
     right: 16px;
-    grid-template-columns: 1fr;
     width: auto;
+    max-height: 44vh;
+    overflow: auto;
   }
 
   .cookie-consent-actions {
@@ -1162,17 +1162,23 @@ p {
   grid-template-columns: repeat(2, 1fr);
 }
 
-.keyword-target-grid {
+.international-tool-grid {
   display: grid;
   gap: 0.8rem;
 }
 
-.keyword-target-card {
+.international-tool-card {
   box-shadow: none;
 }
 
-.keyword-target-card h3 {
+.international-tool-card h3 {
   margin-top: 0;
+}
+
+.international-tool-card p {
+  color: var(--muted);
+  font-weight: 740;
+  line-height: 1.45;
 }
 
 .card {
@@ -3677,6 +3683,54 @@ p {
   min-width: 0;
   border-top: 1px solid var(--border);
   padding-top: 0.78rem;
+  scroll-margin-top: 110px;
+}
+
+.roi-first-calculation-guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.roi-first-calculation-guide div {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 0.55rem;
+  row-gap: 0.12rem;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #dce7e4;
+  border-radius: 8px;
+  background: #f7fbfa;
+  padding: 0.65rem 0.75rem;
+}
+
+.roi-first-calculation-guide span {
+  grid-row: span 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 950;
+}
+
+.roi-first-calculation-guide strong {
+  color: var(--foreground);
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.roi-first-calculation-guide small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 780;
+  line-height: 1.25;
 }
 
 .roi-free-form-heading {
@@ -3705,6 +3759,57 @@ p {
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 0.55rem;
   min-width: 0;
+}
+
+.roi-free-advanced {
+  border-top: 1px solid var(--border);
+  padding-top: 0.25rem;
+}
+
+.roi-free-advanced summary {
+  cursor: pointer;
+  color: var(--accent-dark);
+  font-weight: 900;
+  padding: 0.45rem 0;
+}
+
+.roi-free-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.roi-free-result-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.roi-free-result-strip div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  border: 1px solid #dce7e4;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.7rem 0.75rem;
+}
+
+.roi-free-result-strip span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 950;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.roi-free-result-strip strong {
+  color: var(--foreground);
+  font-size: 1.08rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .roi-free-line-form .roi-mobile-field {
@@ -4403,7 +4508,16 @@ p {
     grid-column: 1 / -1;
   }
 
+  .roi-first-calculation-guide,
+  .roi-free-result-strip {
+    grid-template-columns: 1fr;
+  }
+
   .roi-free-input-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .roi-free-advanced-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

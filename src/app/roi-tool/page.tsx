@@ -44,6 +44,16 @@ export default function RoiToolPage() {
       <Hero
         eyebrow="Promotion ROI tool"
         title="Promotion ROI planner"
+        actions={
+          <>
+            <a className="button" href="#roi-planner-start">
+              Start calculation
+            </a>
+            <a className="hero-text-link" href="#promotion-roi-faqs">
+              Check what it calculates
+            </a>
+          </>
+        }
       >
         <p>
           Model trade spend and support for one SKU or a full multi-line promotion,
@@ -52,7 +62,9 @@ export default function RoiToolPage() {
         </p>
       </Hero>
       <RoiToolProduct />
-      <FaqSection title="Promotion ROI FAQs." faqs={roiToolFaqs} />
+      <div id="promotion-roi-faqs">
+        <FaqSection title="Promotion ROI FAQs." faqs={roiToolFaqs} />
+      </div>
     </div>
   );
 }

@@ -875,52 +875,95 @@ function MobileField({
   );
 }
 
-function derivedCurrentInvoice(promoInvoice: string, soa: string) {
-  if (!has(promoInvoice)) return "";
-  return String(n(promoInvoice) + (has(soa) ? n(soa) : 0));
-}
-
 function RoiFreeLineForm({
   lines,
   onChangeLines,
+  currency = "GBP",
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
+  currency?: string;
 }) {
   const line = lines[0];
 
   if (!line) return null;
 
   function changeLine(patch: Partial<RoiLine>) {
-    const nextPromoInvoice = patch.promoInvoice ?? line.promoInvoice;
-    const nextSoa = patch.soa ?? line.soa;
-    const shouldDeriveInvoice = "promoInvoice" in patch || "soa" in patch;
-    const nextPatch: Partial<RoiLine> = {
-      ...patch,
-      ...(shouldDeriveInvoice
-        ? {
-            currentInvoice: derivedCurrentInvoice(nextPromoInvoice, nextSoa),
-            supportMode: has(nextSoa) ? "soa" : "promoInvoice",
-          }
-        : null),
-    };
-
-    onChangeLines(updateLine(lines, line.id, nextPatch));
+    onChangeLines(updateLine(lines, line.id, patch));
   }
 
+  const supportField =
+    line.supportMode === "soa" ? (
+      <MobileField field="soa" label="SOA/support" required type="number" value={line.soa} onChange={(value) => changeLine({ soa: value, supportMode: "soa" })} />
+    ) : (
+      <MobileField field="promoInvoice" label="Promo price" required type="number" value={line.promoInvoice} onChange={(value) => changeLine({ promoInvoice: value, supportMode: "promoInvoice" })} />
+    );
+
+  const calc = calculateLine(line);
+
   return (
-    <div className="roi-free-line-form">
-      <div className="roi-free-form-heading">
-        <h4>Calculator inputs</h4>
-        <p>Enter the one product line you want to model.</p>
+    <div className="roi-free-line-form" id="roi-planner-start">
+      <div className="roi-first-calculation-guide" aria-label="First calculation steps">
+        <div>
+          <span>1</span>
+          <strong>Current trade</strong>
+          <small>Invoice price and normal units.</small>
+        </div>
+        <div>
+          <span>2</span>
+          <strong>Promo ask</strong>
+          <small>Promo price or support per unit.</small>
+        </div>
+        <div>
+          <span>3</span>
+          <strong>Uplift</strong>
+          <small>Expected promo units and optional COGS.</small>
+        </div>
       </div>
-      <div className="roi-free-input-grid">
+
+      <div className="roi-free-form-heading">
+        <h4>First calculation</h4>
+        <p>Enter one product line. Use either a promotional invoice price or SOA/support per unit.</p>
+      </div>
+
+      <div className="roi-free-input-grid roi-primary-field-grid">
         <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine({ sku: value, product: "" })} />
-        <MobileField field="promoInvoice" type="number" value={line.promoInvoice} onChange={(value) => changeLine({ promoInvoice: value })} />
-        <MobileField field="soa" type="number" value={line.soa} onChange={(value) => changeLine({ soa: value })} />
+        <MobileField field="currentInvoice" label="Current invoice" required type="number" value={line.currentInvoice} onChange={(value) => changeLine({ currentInvoice: value })} />
         <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine({ baselineUnits: value })} />
+        <div className="roi-linked-promo-fields">
+          <label className="roi-mobile-field">
+            <span>Promo input</span>
+            <select value={line.supportMode} onChange={(event) => changeLine({ supportMode: event.target.value as SupportMode })}>
+              <option value="promoInvoice">Promo price</option>
+              <option value="soa">SOA</option>
+            </select>
+          </label>
+          {supportField}
+        </div>
         <MobileField field="promoUnits" type="number" value={line.promoUnits} onChange={(value) => changeLine({ promoUnits: value })} />
-        <MobileField field="cogs" type="number" value={line.cogs} onChange={(value) => changeLine({ cogs: value })} />
+      </div>
+
+      <details className="roi-free-advanced">
+        <summary>Show optional profit inputs</summary>
+        <div className="roi-free-advanced-grid">
+          <MobileField field="cogs" type="number" value={line.cogs} onChange={(value) => changeLine({ cogs: value })} />
+          <MobileField field="fixedSupport" type="number" value={line.fixedSupport} onChange={(value) => changeLine({ fixedSupport: value })} />
+        </div>
+      </details>
+
+      <div className="roi-free-result-strip" aria-label="Live first calculation result">
+        <div>
+          <span>Incremental revenue</span>
+          <strong>{money(calc.incrementalRevenue, currency)}</strong>
+        </div>
+        <div>
+          <span>Total support</span>
+          <strong>{money(calc.supportCost, currency)}</strong>
+        </div>
+        <div>
+          <span>Revenue ROI</span>
+          <strong>{pct(calc.revenueRoi)}</strong>
+        </div>
       </div>
     </div>
   );
@@ -1049,7 +1092,7 @@ function RoiEditableTable({
   if (!lineActions) {
     return (
       <>
-        <RoiFreeLineForm lines={lines} onChangeLines={onChangeLines} />
+        <RoiFreeLineForm lines={lines} onChangeLines={onChangeLines} currency={currency} />
         <button
           className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
           onClick={onAddLine}
