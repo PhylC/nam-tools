@@ -115,6 +115,17 @@ export default async function CalculatorPage({
                 the selling price that protects a target margin. It shows the excluding-tax and including-tax price so
                 VAT, sales tax or IVA assumptions are visible before you use the number in a customer conversation.
               </p>
+              <h3>Commercial example</h3>
+              <p>
+                If a retailer buys at £1.75 and needs a 30% margin, the ex-tax selling price is £2.50. With 20% VAT,
+                the shopper-facing price is £3.00. That gives the account team a cleaner number to test before a range
+                review, price ladder or promotion plan.
+              </p>
+              <p>
+                If the buyer wants a lower shelf price, use the{" "}
+                <Link href="/calculators/required-soa-calculator">required SOA calculator</Link> to work out the support
+                needed, then sense-check the full deal in the <Link href="/roi-tool">Promotion ROI Planner</Link>.
+              </p>
             </article>
           ) : null}
           <QuickCommercialCalculators only={calculator.id} />
