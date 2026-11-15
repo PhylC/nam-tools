@@ -2,14 +2,39 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "../../components/JsonLd";
+import { FaqSection } from "../../components/FaqSection";
 import { Hero } from "../../components/Shell";
 import { QuickCommercialCalculators } from "../../components/ToolWidgets";
-import { breadcrumbJsonLd, seoMetadata } from "../../seo";
+import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../../seo";
 import {
   getQuickCalculatorById,
   getQuickCalculatorBySlug,
   quickCalculators,
 } from "../../data/quickCalculators";
+import { CalculatorNextSteps } from "./CalculatorNextSteps";
+
+const retailSellingPriceFaqs = [
+  {
+    question: "How do I calculate retail selling price from invoice price?",
+    answer:
+      "Divide the retailer invoice or buy price by one minus the target retailer margin. For a £1.75 invoice price and 30% target margin, the excluding-tax retail selling price is £2.50.",
+  },
+  {
+    question: "Should retailer margin be calculated before or after VAT?",
+    answer:
+      "Retailer margin is normally checked against the selling price excluding VAT, sales tax or IVA. The calculator shows both the excluding-tax commercial value and the shopper-facing including-tax price.",
+  },
+  {
+    question: "What is the difference between margin and markup?",
+    answer:
+      "Margin measures profit as a percentage of the selling price, while markup measures profit as a percentage of cost. This calculator uses target retailer margin, not markup.",
+  },
+  {
+    question: "What if the calculated shelf price is too high?",
+    answer:
+      "Use the required SOA calculator to estimate the supplier support needed for a lower shelf price, then test volume and profitability in the Promotion ROI Planner.",
+  },
+];
 
 const metadataBySlug: Record<string, { title: string; description: string }> = {
   "required-soa-calculator": {
@@ -18,9 +43,9 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
       "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
   },
   "retail-selling-price-calculator": {
-    title: "Retail Selling Price Calculator from Invoice Price + Target Margin",
+    title: "Retail Price Calculator: Invoice Price to Selling Price",
     description:
-      "Calculate retail selling price from invoice price and target retailer margin, including VAT, sales tax or IVA checks.",
+      "Calculate retail selling price from invoice or buy price and target retailer margin. See the excluding-tax and VAT, sales tax or IVA inclusive result instantly.",
   },
   "actual-retailer-margin-calculator": {
     title: "Actual Retailer Margin Calculator",
@@ -91,44 +116,91 @@ export default async function CalculatorPage({
   const related = calculator.related
     .map((id) => getQuickCalculatorById(id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const isRetailSellingPrice = calculator.slug === "retail-selling-price-calculator";
+  const breadcrumbs = breadcrumbJsonLd([
+    { name: "Home", path: "/" },
+    { name: "Calculators", path: "/calculators" },
+    { name: calculator.title, path: `/calculators/${calculator.slug}` },
+  ]);
 
   return (
-    <div className="page-stack">
+    <div className={`page-stack${isRetailSellingPrice ? " retail-selling-price-page" : ""}`}>
       <JsonLd
-        data={breadcrumbJsonLd([
-          { name: "Home", path: "/" },
-          { name: "Calculators", path: "/calculators" },
-          { name: calculator.title, path: `/calculators/${calculator.slug}` },
-        ])}
+        data={isRetailSellingPrice ? [breadcrumbs, faqJsonLd(retailSellingPriceFaqs)] : breadcrumbs}
       />
-      <Hero title={calculator.h1}>
+      <Hero
+        title={calculator.h1}
+        actions={
+          isRetailSellingPrice ? (
+            <Link className="button" href="#calculator">
+              Calculate selling price
+            </Link>
+          ) : undefined
+        }
+      >
         <p>{calculator.description}</p>
       </Hero>
 
+      {isRetailSellingPrice ? (
+        <section className="shell calculator-proof-strip" aria-label="Calculator benefits">
+          <div>
+            <strong>3 inputs</strong>
+            <span>Invoice price, target margin and tax rate</span>
+          </div>
+          <div>
+            <strong>Instant result</strong>
+            <span>Ex-tax and shopper-facing selling prices</span>
+          </div>
+          <div>
+            <strong>No login</strong>
+            <span>Free commercial sense-check</span>
+          </div>
+        </section>
+      ) : null}
+
       <section className="shell tool-layout">
         <div className="tool-main">
-          {calculator.slug === "retail-selling-price-calculator" ? (
-            <article className="card related-card">
-              <h2>Calculate retail selling price from invoice price</h2>
-              <p>
-                Use this retail selling price calculator when you know the retailer invoice price or buy price and need
-                the selling price that protects a target margin. It shows the excluding-tax and including-tax price so
-                VAT, sales tax or IVA assumptions are visible before you use the number in a customer conversation.
-              </p>
-              <h3>Commercial example</h3>
-              <p>
-                If a retailer buys at £1.75 and needs a 30% margin, the ex-tax selling price is £2.50. With 20% VAT,
-                the shopper-facing price is £3.00. That gives the account team a cleaner number to test before a range
-                review, price ladder or promotion plan.
-              </p>
-              <p>
-                If the buyer wants a lower shelf price, use the{" "}
-                <Link href="/calculators/required-soa-calculator">required SOA calculator</Link> to work out the support
-                needed, then sense-check the full deal in the <Link href="/roi-tool">Promotion ROI Planner</Link>.
-              </p>
-            </article>
+          <div id="calculator">
+            <QuickCommercialCalculators only={calculator.id} />
+          </div>
+          {isRetailSellingPrice ? (
+            <>
+              <article className="card related-card calculator-guide-card">
+                <h2>Calculate retail selling price from invoice price</h2>
+                <p>
+                  Start with the retailer invoice price or buy price—not your own cost—then enter the retailer&apos;s
+                  target margin. The calculator divides the invoice price by one minus the margin to find the required
+                  selling price excluding tax. It then applies the VAT, sales tax or IVA rate for the shopper-facing
+                  price.
+                </p>
+                <div className="calculator-example-grid" aria-label="Worked retail price example">
+                  <div>
+                    <span>Invoice price</span>
+                    <strong>£1.75</strong>
+                  </div>
+                  <div>
+                    <span>Target margin</span>
+                    <strong>30%</strong>
+                  </div>
+                  <div>
+                    <span>Price ex VAT</span>
+                    <strong>£2.50</strong>
+                  </div>
+                  <div>
+                    <span>Price inc 20% VAT</span>
+                    <strong>£3.00</strong>
+                  </div>
+                </div>
+                <p>
+                  Use the result as a planning estimate before a range review, price ladder or promotion discussion.
+                  If the buyer wants a lower shelf price, use the{" "}
+                  <Link href="/calculators/required-soa-calculator">required SOA calculator</Link> to work out the
+                  support needed, then sense-check the full deal in the <Link href="/roi-tool">Promotion ROI Planner</Link>.
+                </p>
+              </article>
+              <CalculatorNextSteps />
+            </>
           ) : null}
-          <QuickCommercialCalculators only={calculator.id} />
         </div>
         <div className="tool-side">
           <article className="card related-card">
@@ -160,6 +232,13 @@ export default async function CalculatorPage({
           </article>
         </div>
       </section>
+      {isRetailSellingPrice ? (
+        <FaqSection
+          eyebrow="Retail pricing questions"
+          title="Retail selling price calculator FAQs."
+          faqs={retailSellingPriceFaqs}
+        />
+      ) : null}
     </div>
   );
 }

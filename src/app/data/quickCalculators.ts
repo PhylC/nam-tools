@@ -26,9 +26,9 @@ export const quickCalculators: QuickCalculator[] = [
     id: "retail-selling-price-calculator",
     slug: "retail-selling-price-calculator",
     title: "Retail Selling Price Calculator",
-    h1: "Retail Selling Price Calculator",
+    h1: "Retail Price Calculator from Invoice Price and Margin",
     description:
-      "Calculate the retail selling price from invoice price and target retailer margin, with VAT, sales tax or IVA shown clearly.",
+      "Enter the retailer invoice or buy price and target margin to calculate the required retail selling price, excluding and including VAT, sales tax or IVA.",
     group: "Retail price and margin",
     choice: "Calculate retail selling price from invoice price and target margin",
     whenToUse: [

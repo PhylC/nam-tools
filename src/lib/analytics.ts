@@ -6,6 +6,7 @@ const ANALYTICS_CONSENT_KEY = "apt-analytics-consent";
 type AnalyticsEventName =
   | "calculator_opened"
   | "calculator_completed"
+  | "calculator_next_step_clicked"
   | "signup_started"
   | "signup_completed"
   | "login_completed"
