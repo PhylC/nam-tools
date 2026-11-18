@@ -29,8 +29,11 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
   { path: "/refund-policy", priority: 0.25, changeFrequency: "yearly" },
 ];
 
+const routeLastModified: Record<string, string> = {
+  "/calculators": "2026-11-18T00:00:00.000Z",
+};
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date(SITE_LAST_MODIFIED);
   const calculatorRoutes = quickCalculators.map((calculator) => ({
     path: `/calculators/${calculator.slug}`,
     priority: 0.9,
@@ -39,7 +42,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   return [...routes, ...calculatorRoutes].map((route) => ({
     url: `${SITE_URL}${route.path}`,
-    lastModified,
+    lastModified: new Date(routeLastModified[route.path] ?? SITE_LAST_MODIFIED),
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
