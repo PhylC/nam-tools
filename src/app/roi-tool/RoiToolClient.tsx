@@ -965,6 +965,19 @@ function RoiFreeLineForm({
           <strong>{pct(calc.revenueRoi)}</strong>
         </div>
       </div>
+      {isLineCalculationComplete(line) ? (
+        <div className="roi-result-next-step">
+          <h4>What to do next</h4>
+          <p>
+            {!calc.hasCogs
+              ? "Open Show optional profit inputs and add your cost per unit (COGS) and any fixed fees. Check incremental profit before committing to the promotion."
+              : calc.profitImpact <= 0
+                ? "This promotion does not improve profit over normal trading. Try a smaller discount or lower fixed support, then see how much extra volume you would need."
+                : "Test a lower promo volume to see whether the profit uplift holds. Take your volume forecast, funding and profit impact into the buyer discussion."}
+          </p>
+          <Link className="text-link" href="/tools/buyer-meeting-prep">Prepare for the buyer meeting</Link>
+        </div>
+      ) : null}
     </div>
   );
 }
