@@ -117,6 +117,7 @@ export default async function CalculatorPage({
     .map((id) => getQuickCalculatorById(id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const isRetailSellingPrice = calculator.slug === "retail-selling-price-calculator";
+  const isRequiredSoa = calculator.slug === "required-soa-calculator";
   const breadcrumbs = breadcrumbJsonLd([
     { name: "Home", path: "/" },
     { name: "Calculators", path: "/calculators" },
@@ -163,6 +164,35 @@ export default async function CalculatorPage({
           <div id="calculator">
             <QuickCommercialCalculators only={calculator.id} />
           </div>
+          {isRequiredSoa ? (
+            <article className="card related-card calculator-guide-card" id="soa-promo-price-example">
+              <h2>Should you reduce SOA or raise the promo price?</h2>
+              <p>
+                Suppose the standard selling price is £100 excluding VAT and the retailer normally earns a 30%
+                margin. That makes the normal invoice price £70 per unit. All prices below exclude VAT.
+              </p>
+              <ul className="compact-list">
+                <li>
+                  <strong>Keep the £85 promo price and 30% margin.</strong> The retailer can pay £59.50 per unit
+                  (£85 × 70%). The supplier needs to fund £10.50 per unit (£70 − £59.50).
+                </li>
+                <li>
+                  <strong>Cut support to £7 and keep the £85 price.</strong> The retailer&apos;s net cost rises to £63.
+                  The retailer keeps £22 per unit, a margin of 25.9% (£22 ÷ £85).
+                </li>
+                <li>
+                  <strong>Cap support at £7 and keep the 30% margin.</strong> The promo price needs to rise to £90
+                  (£63 ÷ 70%).
+                </li>
+              </ul>
+              <p>
+                If the £85 price is important for shoppers, check whether the retailer can accept 25.9% margin or the
+                supplier can fund £10.50 per unit. Use the <Link href="/roi-tool">Promotion ROI Planner</Link> to
+                compare expected volume and supplier profit for £85 with £10.50 support and £90 with £7 support.
+              </p>
+              <Link href="#calculator">Try the numbers in the SOA calculator</Link>
+            </article>
+          ) : null}
           {isRetailSellingPrice ? (
             <>
               <article className="card related-card calculator-guide-card">
