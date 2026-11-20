@@ -10,6 +10,7 @@ import {
   getQuickCalculatorById,
   getQuickCalculatorBySlug,
   quickCalculators,
+  requiredSoaWorkedExampleId,
 } from "../../data/quickCalculators";
 import { CalculatorNextSteps } from "./CalculatorNextSteps";
 
@@ -190,7 +191,7 @@ export default async function CalculatorPage({
                 supplier can fund £10.50 per unit. Use the <Link href="/roi-tool">Promotion ROI Planner</Link> to
                 compare expected volume and supplier profit for £85 with £10.50 support and £90 with £7 support.
               </p>
-              <Link href="#calculator">Try the numbers in the SOA calculator</Link>
+              <a href={`#${requiredSoaWorkedExampleId}`}>Try the numbers in the SOA calculator</a>
             </article>
           ) : null}
           {isRetailSellingPrice ? (

@@ -1,12 +1,12 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
 import { buildUpgradeHref, useProAction } from "./ProActionGuard";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
-import type { QuickCalculatorId } from "../data/quickCalculators";
+import { requiredSoaWorkedExampleId, type QuickCalculatorId } from "../data/quickCalculators";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "./CalculatorCaveat";
 import {
@@ -2682,28 +2682,55 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     markupRetail,
   ]);
 
+  const loadSoaExample = useCallback((standardRetail: string, proposedRetail: string, units: string) => {
+    setCurrencyCode("GBP");
+    setQuickRetailTaxBasis("excludes");
+    setQuickTaxRate("20");
+    setTaxLabel("VAT");
+    setSoaStandardRetail(standardRetail);
+    setSoaStandardMargin("30");
+    setSoaProposedRetail(proposedRetail);
+    setSoaRequiredMargin("30");
+    setSoaUnits(units);
+  }, []);
+
+  useEffect(() => {
+    if (only !== "required-soa-calculator") return;
+
+    const exampleHash = `#${requiredSoaWorkedExampleId}`;
+    const exampleLink = document.querySelector(`a[href="${exampleHash}"]`);
+    function loadFromHash() {
+      if (window.location.hash === exampleHash) loadSoaExample("100", "85", "");
+    }
+    function reloadExample(event: Event) {
+      if (event instanceof MouseEvent && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
+      loadFromHash();
+    }
+
+    const frame = window.requestAnimationFrame(loadFromHash);
+    window.addEventListener("hashchange", loadFromHash);
+    exampleLink?.addEventListener("click", reloadExample);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", loadFromHash);
+      exampleLink?.removeEventListener("click", reloadExample);
+    };
+  }, [only, loadSoaExample]);
+
   function markExampleLoaded(id: QuickCalculatorId) {
     setExampleMessage({ id, text: "Example loaded. Adjust the numbers to match your deal." });
     window.setTimeout(() => setExampleMessage({ text: "" }), 2600);
   }
 
   function loadExample(id: QuickCalculatorId) {
-    if (id !== "promo-invoice-calculator") {
+    if (id !== "promo-invoice-calculator" && id !== "required-soa-calculator") {
       setCurrencyCode("GBP");
       setQuickRetailTaxBasis("includes");
       setQuickTaxRate("20");
       setTaxLabel("VAT");
     }
     if (id === "required-soa-calculator") {
-      setCurrencyCode("GBP");
-      setQuickRetailTaxBasis("excludes");
-      setQuickTaxRate("20");
-      setTaxLabel("VAT");
-      setSoaStandardRetail("199");
-      setSoaStandardMargin("30");
-      setSoaProposedRetail("169");
-      setSoaRequiredMargin("30");
-      setSoaUnits("1000");
+      loadSoaExample("199", "169", "1000");
     }
     if (id === "retail-selling-price-calculator") {
       setRspInvoice("10.00");
@@ -2776,7 +2803,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   };
 
   return (
-    <div className="quick-calculator-list">
+    <div className="quick-calculator-list" id={only === "required-soa-calculator" ? requiredSoaWorkedExampleId : undefined}>
       <ContextualCalculatorSettings
         compact
         requirements={calculatorRequirements}

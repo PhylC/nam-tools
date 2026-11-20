@@ -1,3 +1,5 @@
+export const requiredSoaWorkedExampleId = "soa-worked-example-calculator";
+
 export type QuickCalculatorId =
   | "required-soa-calculator"
   | "retail-selling-price-calculator"
