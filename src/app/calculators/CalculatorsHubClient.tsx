@@ -28,28 +28,28 @@ type ToolGroup = {
 
 const taskCards: TaskCard[] = [
   {
-    title: "Build a promotion",
-    text: "Model volume, support, revenue, profit and ROI.",
-    cta: "Open ROI planner",
+    title: "Retail selling price",
+    text: "Work out the selling price from your invoice price and the retailer’s target margin.",
+    cta: "Calculate retail price",
+    href: "/calculators/retail-selling-price-calculator",
+  },
+  {
+    title: "Sales and promotion ROI",
+    text: "Compare baseline and promotional sales, volume, profit and return on investment.",
+    cta: "Model promotion sales",
     href: "/roi-tool",
+  },
+  {
+    title: "Promotion support (SOA)",
+    text: "Work out the supplier support per unit needed to reach a proposed promo price at your target margin.",
+    cta: "Calculate promotion support",
+    href: "/calculators/required-soa-calculator",
   },
   {
     title: "Check retailer margin",
     text: "Understand retailer margin from invoice, support and retail price.",
     cta: "Check margin",
     href: "/calculators/actual-retailer-margin-calculator",
-  },
-  {
-    title: "Work out support / SOA",
-    text: "Calculate the supplier support needed for a proposed retailer selling price and required margin.",
-    cta: "Calculate support",
-    href: "/calculators/required-soa-calculator",
-  },
-  {
-    title: "Back-solve a price",
-    text: "Calculate retail selling price from invoice price and target margin, or back-solve the invoice price.",
-    cta: "Open price tools",
-    href: "#pricing-tools",
   },
 ];
 
@@ -65,11 +65,11 @@ const toolGroups: ToolGroup[] = [
         href: "/calculators/retail-selling-price-calculator",
         cta: "Calculate retail selling price",
         preview: "Invoice price + target margin -> retail selling price",
-        keywords: ["retail price", "rsp", "selling price", "price", "margin", "invoice"],
+        keywords: ["retail price", "retail calculators", "how to work out retail price", "using target margin to calculate sale price", "rsp", "selling price", "price", "margin", "invoice"],
       },
       {
         title: "Invoice Price Calculator",
-        description: "Back-solve the invoice price implied by a retail price and margin target.",
+        description: "Back-solve the invoice (buying) price implied by a retail price and margin target.",
         href: "/calculators/invoice-price-calculator",
         cta: "Back-solve invoice price",
         preview: "Retail price - margin -> invoice",
@@ -91,20 +91,20 @@ const toolGroups: ToolGroup[] = [
     intro: "Use these for promo support, SOA, return, investment and deal mechanics.",
     tools: [
       {
-        title: "ROI Tool / Full ROI Planner",
-        description: "Build the fuller promotion view with volume, support, revenue, profit and ROI.",
+        title: "Sales and Promotion ROI Planner",
+        description: "Calculate sales and compare volume, supplier support, profit and ROI before and during a promotion.",
         href: "/roi-tool",
-        cta: "Build ROI view",
+        cta: "Model promotion sales",
         preview: "Spend £10k -> Return £14k -> ROI 1.4x",
-        keywords: ["roi", "promotion", "promo", "support", "scenario", "volume", "profit"],
+        keywords: ["sales calculators", "sales calculator", "calculate sales", "roi", "promotion", "promo", "support", "scenario", "volume", "profit"],
       },
       {
-        title: "Required SOA / Support Calculator",
-        description: "Calculate required supplier support from standard and proposed retailer selling prices.",
+        title: "Promotion Support (Required SOA) Calculator",
+        description: "Calculate supplier support per unit for a proposed promo price and target retailer margin.",
         href: "/calculators/required-soa-calculator",
         cta: "Calculate required support",
         preview: "£199 -> £169 needs £21 SOA/unit",
-        keywords: ["support", "soa", "required support", "retailer margin", "selling price", "funding"],
+        keywords: ["promotion support", "soa calculator", "sell-out allowance", "required support", "retailer margin", "selling price", "promo price", "funding"],
       },
       {
         title: "SOA / Support % Calculator",

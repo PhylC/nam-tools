@@ -8,14 +8,16 @@ import { CalculatorsHubClient } from "./CalculatorsHubClient";
 export const metadata = seoMetadata({
   title: "Sales & Retail Calculators",
   description:
-    "Use free sales and retail calculators for promotion ROI, retailer margin, trade support, invoice price, sales tax, VAT, IVA and commercial planning.",
+    "Calculate retail selling price, model promotion sales and ROI, and work out the supplier support (SOA) needed for a promo price and target margin.",
   path: "/calculators",
   keywords: [
     "sales calculators",
     "retail calculators",
     "commercial calculators",
     "retailer margin calculator",
-    "sales tax calculator",
+    "retail selling price calculator",
+    "promotion support calculator",
+    "soa calculator",
     "promotion ROI calculator",
   ],
 });
@@ -70,54 +72,22 @@ export default function CalculatorsPage() {
         actions={
           <>
             <Link className="button" href="/roi-tool">
-              Open ROI planner
+              Model promotion sales and ROI
             </Link>
             <Link className="hero-text-link" href="#pricing-tools">
-              Browse quick calculators
+              Browse pricing tools
+            </Link>
+            <Link className="hero-text-link" href="#promotion-tools">
+              Browse promotion tools
             </Link>
           </>
         }
       >
         <p>
-          Use these free calculators to check promotion ROI, retailer margin, invoice price, trade support, sales tax,
-          VAT or IVA. Start with the full ROI planner for a complete customer proposal, or choose a quick calculator
-          when you only need one commercial answer.
+          Work out a retail selling price, compare baseline and promotional sales, or calculate the supplier support
+          (SOA) needed for a proposed promotion.
         </p>
       </Hero>
-
-      <section className="shell section" aria-labelledby="sales-retail-calculators-heading">
-        <div className="section-header">
-          <h2 id="sales-retail-calculators-heading">Choose a sales or retail calculator</h2>
-          <p>
-            These tools are designed for account managers, sales teams and retail supplier teams preparing prices,
-            promotions and buyer conversations.
-          </p>
-        </div>
-        <div className="calculator-tool-grid">
-          <article className="card calculator-hub-card">
-            <div className="calculator-preview">Promotion ROI · support · promo invoice</div>
-            <h3>Sales calculators</h3>
-            <p>
-              Model the commercial return from a promotion, calculate supplier support and turn the result into a
-              clearer customer proposal.
-            </p>
-            <Link className="text-link" href="#promotion-tools">
-              Browse sales calculators
-            </Link>
-          </article>
-          <article className="card calculator-hub-card">
-            <div className="calculator-preview">Retail price · margin · invoice · tax</div>
-            <h3>Retail calculators</h3>
-            <p>
-              Calculate retail selling price, back-solve invoice price, check actual retailer margin and apply sales
-              tax, VAT or IVA assumptions.
-            </p>
-            <Link className="text-link" href="#pricing-tools">
-              Browse retail calculators
-            </Link>
-          </article>
-        </div>
-      </section>
 
       <CalculatorsHubClient />
       <FaqSection title="Commercial calculator FAQs." faqs={calculatorFaqs} />
