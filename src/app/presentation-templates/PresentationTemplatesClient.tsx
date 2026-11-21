@@ -485,6 +485,20 @@ export function PresentationTemplatesFree() {
         </article>
       </div>
 
+      <nav className="card related-card" aria-labelledby="presentation-quick-chooser">
+        <h2 id="presentation-quick-chooser">Choose an editable PowerPoint template</h2>
+        <ul className="compact-list">
+          {freeTemplates
+            .filter((template) => ["joint-business-plan", "qbr-template", "promo-proposal"].includes(template.slug))
+            .map((template) => (
+              <li key={template.slug}>
+                <a download href={`/templates/${template.pptx}`}>Download the {template.title} template</a>
+                <p>{template.description}</p>
+              </li>
+            ))}
+        </ul>
+      </nav>
+
       <div className="section-header presentation-list-header">
         <h2>Deck builders and templates</h2>
         <p className="section-lead">

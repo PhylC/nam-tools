@@ -76,6 +76,16 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
 };
 
 const pricingExamples: Partial<Record<string, { title: string; steps: string[]; related?: { href: string; label: string } }>> = {
+  "soa-support-percent-calculator": {
+    title: "One allowance as a percentage of invoice and shelf price",
+    steps: [
+      "Use £0.50 of support per unit, a £5.00 invoice price excluding VAT and a £9.60 shelf price including 20% VAT.",
+      "Invoice basis: £0.50 ÷ £5.00 = 10%.",
+      "Shelf-price basis: £9.60 ÷ 1.20 = £8.00 excluding VAT. £0.50 ÷ £8.00 = 6.25%.",
+      "Name the price basis when sharing the result. Shelf price including VAT would give 5.21%.",
+    ],
+    related: { href: "/calculators/required-soa-calculator", label: "Calculate the allowance needed for a margin target" },
+  },
   "markup-vs-margin-calculator": {
     title: "Markup and margin on the same sale",
     steps: [

@@ -30,6 +30,11 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
 ];
 
 const routeLastModified: Record<string, string> = {
+  "/tools/trade-spend-calculator": "2026-11-21T00:00:00.000Z",
+  "/tools/joint-business-plan-builder": "2026-11-21T00:00:00.000Z",
+  "/tools/account-plan-generator": "2026-11-21T00:00:00.000Z",
+  "/presentation-templates": "2026-11-21T00:00:00.000Z",
+  "/calculators/soa-support-percent-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators": "2026-11-21T00:00:00.000Z",
   "/calculators/retail-selling-price-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators/actual-retailer-margin-calculator": "2026-11-21T00:00:00.000Z",
