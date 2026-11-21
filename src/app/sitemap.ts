@@ -33,6 +33,12 @@ const routeLastModified: Record<string, string> = {
   "/calculators": "2026-11-21T00:00:00.000Z",
   "/calculators/retail-selling-price-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators/actual-retailer-margin-calculator": "2026-11-21T00:00:00.000Z",
+  "/roi-tool": "2026-11-21T00:00:00.000Z",
+  "/calculators/markup-vs-margin-calculator": "2026-11-21T00:00:00.000Z",
+  "/calculators/invoice-price-calculator": "2026-11-21T00:00:00.000Z",
+  "/calculators/promo-invoice-calculator": "2026-11-21T00:00:00.000Z",
+  "/tools/promotion-roi-calculator": "2026-11-21T00:00:00.000Z",
+  "/tools/buyer-meeting-prep": "2026-11-21T00:00:00.000Z",
   "/calculators/required-soa-calculator": "2026-11-20T00:00:00.000Z",
 };
 

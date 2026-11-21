@@ -75,6 +75,35 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
   },
 };
 
+const pricingExamples: Partial<Record<string, { title: string; steps: string[]; related?: { href: string; label: string } }>> = {
+  "markup-vs-margin-calculator": {
+    title: "Markup and margin on the same sale",
+    steps: [
+      "A product costs £8 excluding VAT and sells for £12 excluding VAT. Gross profit per unit is £4.",
+      "Markup uses the cost as the denominator. £4 ÷ £8 = 50% markup.",
+      "Margin uses the selling price as the denominator. £4 ÷ £12 = 33.3% margin.",
+    ],
+  },
+  "invoice-price-calculator": {
+    title: "Worked example from shelf price to retailer invoice price",
+    steps: [
+      "A £12 shelf price including 20% VAT is £10 excluding VAT.",
+      "With a target retailer margin of 30%, the retailer can pay 70% of the excluding-VAT shelf price.",
+      "£10 × 70% = £7.00 per unit excluding VAT. This is what the retailer would pay the supplier before any separate promotional support.",
+    ],
+    related: { href: "/calculators/retail-selling-price-calculator", label: "Work from invoice price to shelf price" },
+  },
+  "promo-invoice-calculator": {
+    title: "Worked example of promotional invoice price and support",
+    steps: [
+      "The standard retailer invoice price is £10.00 per unit excluding VAT and the supplier funds £0.50 per unit.",
+      "Promotional invoice price is £10.00 − £0.50 = £9.50 per unit excluding VAT.",
+      "Over 5,000 units, the total per-unit support is £2,500. Add any separate fixed promotional fees in the full ROI planner.",
+    ],
+    related: { href: "/calculators/required-soa-calculator", label: "Work out the support needed for a target margin" },
+  },
+};
+
 export function generateStaticParams() {
   return quickCalculators.map((calculator) => ({ slug: calculator.slug }));
 }
@@ -119,6 +148,7 @@ export default async function CalculatorPage({
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const isRetailSellingPrice = calculator.slug === "retail-selling-price-calculator";
   const isActualRetailerMargin = calculator.slug === "actual-retailer-margin-calculator";
+  const pricingExample = pricingExamples[calculator.slug];
   const isRequiredSoa = calculator.slug === "required-soa-calculator";
   const breadcrumbs = breadcrumbJsonLd([
     { name: "Home", path: "/" },
@@ -171,6 +201,15 @@ export default async function CalculatorPage({
           <div id="calculator">
             <QuickCommercialCalculators only={calculator.id} />
           </div>
+          {pricingExample ? (
+            <article className="card related-card calculator-guide-card">
+              <h2>{pricingExample.title}</h2>
+              <ol className="compact-list">
+                {pricingExample.steps.map((step) => <li key={step}>{step}</li>)}
+              </ol>
+              {pricingExample.related ? <Link href={pricingExample.related.href}>{pricingExample.related.label}</Link> : null}
+            </article>
+          ) : null}
           {isActualRetailerMargin ? (
             <article className="card related-card calculator-guide-card" id="retailer-margin-example">
               <h2>How to calculate retailer margin from a VAT-inclusive shelf price</h2>

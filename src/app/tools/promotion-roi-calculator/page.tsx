@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
 import { seoMetadata } from "../../seo";
@@ -12,8 +13,11 @@ export default function Page() {
   return (
     <ToolPage
       slug="promotion-roi-calculator"
-      intro="Use this when a retailer asks for support, a lower promo price or more funding and you need to quickly understand whether the deal still makes sense."
-      interpretation={<p>Use the verdict to decide whether to repeat, renegotiate or redesign the event. A strong promo should be profitable after realistic cannibalisation and funding; a weak promo needs a strategic reason, a better mechanic or a lower investment ask.</p>}
+      intro="Check the impact of one promotional deal. Enter the normal and promotional invoice prices, volume and any supplier support to see what changes for the supplier and retailer."
+      interpretation={<>
+        <p>Start with the quick invoice view if you only have prices and volumes. Add your cost of goods and fixed fees to check incremental profit. Add the shelf price and VAT basis when you also need to check retailer margin.</p>
+        <p>For several SKUs or side-by-side scenarios, use the <Link href="/roi-tool">Promotion ROI Planner</Link>.</p>
+      </>}
     >
       <CommercialDealCalculator defaultTab="promo" />
     </ToolPage>

@@ -62,6 +62,17 @@ export default function RoiToolPage() {
         </p>
       </Hero>
       <RoiToolProduct />
+      <section className="shell" aria-labelledby="trade-promotion-example">
+        <article className="card related-card calculator-guide-card">
+          <h2 id="trade-promotion-example">Trade promotion ROI example</h2>
+          <p>All amounts exclude VAT. The example assumes a cost of goods of £2 per unit in both scenarios.</p>
+          <ul className="compact-list">
+            <li><strong>Baseline.</strong> 1,000 units at a £4 invoice price bring in £4,000 and generate £2,000 of profit.</li>
+            <li><strong>Promotion.</strong> 1,400 units at £3.50 bring in £4,900. Profit after a £200 fixed fee is £1,900.</li>
+          </ul>
+          <p>Revenue rises by £900 while profit falls by £100. At the same sales forecast, bringing the fee down to £100 restores baseline profit.</p>
+        </article>
+      </section>
       <div id="promotion-roi-faqs">
         <FaqSection title="Promotion ROI FAQs." faqs={roiToolFaqs} />
       </div>
