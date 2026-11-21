@@ -51,7 +51,7 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
   "actual-retailer-margin-calculator": {
     title: "Actual Retailer Margin Calculator",
     description:
-      "Check how invoice price, promo support, retail price and VAT or tax affect retailer margin.",
+      "Calculate retailer margin from shelf price including VAT, invoice price and supplier support. Follow a worked example from £6 shelf price to 40% margin.",
   },
   "invoice-price-calculator": {
     title: "Invoice Price from Retail Price + Margin Calculator",
@@ -118,6 +118,7 @@ export default async function CalculatorPage({
     .map((id) => getQuickCalculatorById(id))
     .filter((item): item is NonNullable<typeof item> => Boolean(item));
   const isRetailSellingPrice = calculator.slug === "retail-selling-price-calculator";
+  const isActualRetailerMargin = calculator.slug === "actual-retailer-margin-calculator";
   const isRequiredSoa = calculator.slug === "required-soa-calculator";
   const breadcrumbs = breadcrumbJsonLd([
     { name: "Home", path: "/" },
@@ -170,6 +171,26 @@ export default async function CalculatorPage({
           <div id="calculator">
             <QuickCommercialCalculators only={calculator.id} />
           </div>
+          {isActualRetailerMargin ? (
+            <article className="card related-card calculator-guide-card" id="retailer-margin-example">
+              <h2>How to calculate retailer margin from a VAT-inclusive shelf price</h2>
+              <p>
+                Suppose the shopper pays £6.00 at 20% VAT. The retailer pays a £3.50 invoice price excluding VAT
+                and receives £0.50 of supplier support per unit.
+              </p>
+              <ol className="compact-list">
+                <li><strong>Remove VAT from the shelf price.</strong> £6.00 ÷ 1.20 = £5.00 excluding VAT.</li>
+                <li><strong>Subtract support from the invoice price.</strong> £3.50 − £0.50 = £3.00 net cost.</li>
+                <li><strong>Calculate the margin.</strong> (£5.00 − £3.00) ÷ £5.00 = 40%, or £2.00 cash margin per unit.</li>
+              </ol>
+              <p>
+                In the calculator, set the selling price basis to including VAT and enter the shelf price of £6.00.
+                For a deal agreed at a net promotional invoice price, enter that price in promo invoice mode.
+                To work backwards from a target margin, use the{" "}
+                <Link href="/calculators/retail-selling-price-calculator">Retail Selling Price Calculator</Link>.
+              </p>
+            </article>
+          ) : null}
           {isRequiredSoa ? (
             <article className="card related-card calculator-guide-card" id="soa-promo-price-example">
               <h2>Should you reduce SOA or raise the promo price?</h2>
