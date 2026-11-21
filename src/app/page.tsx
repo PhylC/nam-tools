@@ -429,6 +429,15 @@ export default function Home() {
         </div>
       </section>
 
+
+      <section className="shell section">
+        <article className="card related-card">
+          <h2>From a buyer request to an account plan</h2>
+          <p>A buyer asks for a lower shelf price for a two-week feature. First check the <Link href="/calculators/actual-retailer-margin-calculator">retailer’s margin at the proposed price</Link>. Then use the <Link href="/roi-tool">Promotion ROI Planner</Link> to compare the proposal with baseline sales and supplier profit.</p>
+          <p>Bring both versions to <Link href="/tools/buyer-meeting-prep">buyer meeting prep</Link>. Once the offer is agreed, add its dates, owner and success measure to the <Link href="/tools/account-plan-generator">account plan</Link>.</p>
+        </article>
+      </section>
+
       <FaqSection title="Commercial planning FAQs." faqs={homeFaqs} />
 
       <section className="section shell final-cta">

@@ -69,6 +69,18 @@ export default function ToolsPage() {
           </div>
         </article>
       </section>
+
+      <section className="shell section">
+        <article className="card related-card">
+          <h2>Choose a planning tool by the output you need</h2>
+          <ul className="compact-list">
+            <li><strong>Quarterly review.</strong> Capture sales, margin, wins and next actions in the <Link href="/tools/customer-review-template">customer review template</Link>.</li>
+            <li><strong>Next 90 days.</strong> Set internal priorities, actions and owners in the <Link href="/tools/account-plan-generator">account plan generator</Link>.</li>
+            <li><strong>Shared retailer commitments.</strong> Record joint targets, investment and review dates in the <Link href="/tools/joint-business-plan-builder">joint business plan builder</Link>.</li>
+          </ul>
+        </article>
+      </section>
+
       {groups.map((group) => {
         const groupTools = group.slugs
           .map((slug) => getTool(slug))

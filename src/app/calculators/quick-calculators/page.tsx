@@ -54,6 +54,19 @@ export default function QuickCalculatorsIndexPage() {
         </article>
       </section>
 
+
+      <section className="shell section">
+        <article className="card related-card">
+          <h2>Choose by which price or margin is fixed</h2>
+          <ul className="compact-list">
+            <li>If invoice price and target margin are fixed, <Link href="/calculators/retail-selling-price-calculator">calculate the retail selling price</Link>.</li>
+            <li>If shelf price and invoice price are fixed, <Link href="/calculators/actual-retailer-margin-calculator">check the actual retailer margin</Link>.</li>
+            <li>If shelf price and target margin are fixed, <Link href="/calculators/invoice-price-calculator">work back to the invoice price</Link>.</li>
+          </ul>
+          <p>Compare prices on the same tax basis. If the shelf price includes tax, use the <Link href="/calculators/sales-tax-vat-iva-calculator">sales tax, VAT and IVA calculator</Link> to check the equivalent tax-exclusive price.</p>
+        </article>
+      </section>
+
       {quickCalculatorGroups.map((group) => {
         const groupCalculators = quickCalculators.filter((calculator) => calculator.group === group);
 

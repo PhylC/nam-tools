@@ -91,6 +91,15 @@ export default function AboutPage() {
           </div>
         </article>
       </section>
+
+      <section className="shell section">
+        <article className="legal-copy">
+          <h2>How to check a commercial calculation</h2>
+          <p>Read the formula and worked example on the relevant calculator page, then use your own invoice or cost assumptions. For instance, the <Link href="/calculators/actual-retailer-margin-calculator">retailer margin calculator</Link> shows which price forms the denominator and how to handle tax.</p>
+          <p>When you share a result, include the input prices, units, tax basis and time period. For a promotion, record what you used as the baseline so another team member can repeat the comparison.</p>
+        </article>
+      </section>
+
       <section className="shell section">
         <article className="legal-copy">
           <SectionHeader eyebrow="Product focus" title="What keeps improving.">

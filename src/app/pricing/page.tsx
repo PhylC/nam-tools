@@ -10,7 +10,7 @@ import { PricingUpgradeActions } from "./PricingUpgradeActions";
 import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
-  title: "International Pricing - Free vs APT Pro",
+  title: "APT Pro Pricing | Compare Free, Pro and Team",
   description:
     "Compare Free and APT Pro pricing for GBP, USD and EUR markets. Use free calculators or upgrade to save, compare and export commercial scenarios.",
   path: "/pricing",
@@ -105,6 +105,11 @@ const decisionCards = [
 
 const pricingFaqs = [
   {
+    question: "When is APT Pro useful for the same account?",
+    answer:
+      "Free is enough for a single margin or ROI check. Use APT Pro when you need to save a baseline and a revised deal, compare the two next week, and export the agreed scenario for a customer meeting.",
+  },
+  {
     question: "Which currencies does APT support?",
     answer:
       "APT Pro pricing is shown in GBP, USD or EUR where supported. Calculators can also be set up for GBP, USD and EUR planning contexts.",
@@ -190,7 +195,7 @@ export default async function PricingPage({
       />
       <PricingPlanGate
         free={
-          <Hero eyebrow="International pricing" title="Start free. Move to Pro when the work repeats.">
+          <Hero eyebrow="International pricing" title="APT Pro pricing and plan comparison">
             <p>
               Use Free for quick checks. Choose APT Pro when you need to save,
               compare and export customer-ready planning work across GBP, USD or EUR markets.
