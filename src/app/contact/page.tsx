@@ -3,7 +3,7 @@ import { seoMetadata } from "../seo";
 import { ContactForm } from "./ContactForm";
 
 export const metadata = seoMetadata({
-  title: "Contact",
+  title: "Contact APT for Support, Team Pricing or Custom Tools",
   description:
     "Contact Account Planning Tools for support, calculator feedback, team pricing, custom tool requests, team workflows and bespoke commercial planning questions.",
   path: "/contact",
@@ -44,6 +44,12 @@ export default function ContactPage() {
               ))}
             </ul>
           </SectionHeader>
+          <h2>What to include when contacting APT</h2>
+          <ul className="compact-list">
+            <li><strong>Calculator support.</strong> Include the calculator name, the inputs you used, and the result you expected. Use sample numbers if your pricing is confidential.</li>
+            <li><strong>Team pricing.</strong> Say how many colleagues would use it, what they need to save or share, and which outputs matter.</li>
+            <li><strong>Custom tools or templates.</strong> Describe the recurring task, the inputs you currently use, and the decision or document the tool should produce.</li>
+          </ul>
           <div className="operator-details">
             <h3>Operator</h3>
             <p>
