@@ -155,6 +155,14 @@ export default function InternationalAccountPlanningToolsPage() {
         </article>
       </section>
 
+      <section className="shell section">
+        <article className="card related-card">
+          <h2>Compare retailer margin across two markets</h2>
+          <p>Use the retailer’s invoice price and shopper price excluding local tax in each market. In this fictional example, a £2.00 invoice price and £3.00 shelf price excluding tax give a 33.3% margin. A €2.20 invoice price and €3.30 shelf price excluding tax also give a 33.3% margin.</p>
+          <p>Use the <Link href="/calculators/sales-tax-vat-iva-calculator">sales tax, VAT and IVA calculator</Link> first if a shelf price includes tax. Compare percentages directly. To compare cash profit across markets, convert both amounts to the same currency using the same reporting basis.</p>
+        </article>
+      </section>
+
       <FaqSection title="International planning FAQs." faqs={pageFaqs} />
     </div>
   );

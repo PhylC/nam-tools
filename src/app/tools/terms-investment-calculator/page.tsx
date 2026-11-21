@@ -16,6 +16,12 @@ export default function Page() {
       interpretation={<p>Use the recommendation to decide whether to support, negotiate or reject the ask. A sensible investment should pay back within the contract period and be tied to measurable customer delivery.</p>}
     >
       <CommercialDealCalculator defaultTab="investment" />
+
+      <article className="card related-card calculator-guide-card">
+        <h2>How much extra revenue covers a fixed investment ask?</h2>
+        <p>A buyer asks for £1,200 over six months. If supplier invoice sales are £20,000 over that period, enter the ask as 6% of sales. At a 30% gross margin and with no other costs or retention benefit, the ask needs £4,000 of incremental invoice sales to break even: £1,200 ÷ 0.30, or 20% uplift.</p>
+        <p>If expected uplift is 25%, the additional invoice sales are £5,000. At 80% likelihood, the calculator weights that to £4,000, which breaks even at the same 30% margin. Check whether the customer can deliver the volume within six months before you commit.</p>
+      </article>
     </ToolPage>
   );
 }

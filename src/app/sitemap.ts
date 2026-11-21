@@ -30,6 +30,11 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
 ];
 
 const routeLastModified: Record<string, string> = {
+  "/tools/gross-margin-calculator": "2026-11-21T00:00:00.000Z",
+  "/tools/terms-investment-calculator": "2026-11-21T00:00:00.000Z",
+  "/tools/customer-review-template": "2026-11-21T00:00:00.000Z",
+  "/calculators/sales-tax-vat-iva-calculator": "2026-11-21T00:00:00.000Z",
+  "/international-account-planning-tools": "2026-11-21T00:00:00.000Z",
   "/tools/trade-spend-calculator": "2026-11-21T00:00:00.000Z",
   "/tools/joint-business-plan-builder": "2026-11-21T00:00:00.000Z",
   "/tools/account-plan-generator": "2026-11-21T00:00:00.000Z",

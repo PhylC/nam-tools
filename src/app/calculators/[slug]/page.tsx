@@ -269,6 +269,13 @@ export default async function CalculatorPage({
               <a href={`#${requiredSoaWorkedExampleId}`}>Try the numbers in the SOA calculator</a>
             </article>
           ) : null}
+          {calculator.slug === "sales-tax-vat-iva-calculator" ? (
+            <article className="card related-card calculator-guide-card">
+              <h2>How to add and remove VAT from a retail price</h2>
+              <p>Using a 20% example rate, convert £10 excluding VAT to £12 including VAT by multiplying by 1.20. The tax amount is £2.</p>
+              <p>To work backwards from £12 including VAT, divide by 1.20 to recover the £10 price excluding VAT. Use your product’s applicable rate in the calculator.</p>
+            </article>
+          ) : null}
           {isRetailSellingPrice ? (
             <>
               <article className="card related-card calculator-guide-card" id="retail-price-formula">
