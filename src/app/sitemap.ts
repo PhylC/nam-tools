@@ -30,7 +30,7 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
 ];
 
 const routeLastModified: Record<string, string> = {
-  "/calculators": "2026-11-18T00:00:00.000Z",
+  "/calculators": "2026-11-21T00:00:00.000Z",
   "/calculators/required-soa-calculator": "2026-11-20T00:00:00.000Z",
 };
 

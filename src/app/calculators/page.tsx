@@ -6,9 +6,9 @@ import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
 import { CalculatorsHubClient } from "./CalculatorsHubClient";
 
 export const metadata = seoMetadata({
-  title: "Sales & Retail Calculators",
+  title: "Retail Calculators for Price, Margin and Promotions",
   description:
-    "Calculate retail selling price, model promotion sales and ROI, and work out the supplier support (SOA) needed for a promo price and target margin.",
+    "Calculate retail selling price, retailer margin, invoice price and promotional support (SOA). Model promotion sales and ROI with the planner.",
   path: "/calculators",
   keywords: [
     "sales calculators",
@@ -68,7 +68,7 @@ export default function CalculatorsPage() {
         ]}
       />
       <Hero
-        title="Sales and retail calculators for commercial planning"
+        title="Retail calculators for price, margin and promotions"
         actions={
           <>
             <Link className="button" href="/roi-tool">

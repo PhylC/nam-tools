@@ -28,28 +28,28 @@ type ToolGroup = {
 
 const taskCards: TaskCard[] = [
   {
-    title: "Retail selling price",
-    text: "Work out the selling price from your invoice price and the retailer’s target margin.",
-    cta: "Calculate retail price",
+    title: "Shelf price",
+    text: "Use the retailer’s buy price and target margin to calculate a shelf price, with the tax basis shown.",
+    cta: "Retail Selling Price Calculator",
     href: "/calculators/retail-selling-price-calculator",
   },
   {
-    title: "Sales and promotion ROI",
-    text: "Compare baseline and promotional sales, volume, profit and return on investment.",
-    cta: "Model promotion sales",
-    href: "/roi-tool",
-  },
-  {
-    title: "Promotion support (SOA)",
-    text: "Work out the supplier support per unit needed to reach a proposed promo price at your target margin.",
-    cta: "Calculate promotion support",
-    href: "/calculators/required-soa-calculator",
-  },
-  {
-    title: "Check retailer margin",
-    text: "Understand retailer margin from invoice, support and retail price.",
-    cta: "Check margin",
+    title: "Retailer margin",
+    text: "Use the shelf price, invoice price and any supplier support to check the retailer’s actual margin.",
+    cta: "Actual Retailer Margin Calculator",
     href: "/calculators/actual-retailer-margin-calculator",
+  },
+  {
+    title: "Invoice price",
+    text: "Start with a shelf price and target margin to work back to what the retailer would pay the supplier.",
+    cta: "Invoice Price Calculator",
+    href: "/calculators/invoice-price-calculator",
+  },
+  {
+    title: "Promotional support",
+    text: "Work out the supplier support per unit needed for a proposed promo price and target retailer margin.",
+    cta: "Required SOA Calculator",
+    href: "/calculators/required-soa-calculator",
   },
 ];
 
@@ -199,8 +199,7 @@ export function CalculatorsHubClient() {
     <>
       <section className="shell section calculator-task-section" aria-labelledby="calculator-task-heading">
         <div className="section-header">
-          <h2 id="calculator-task-heading">Choose the job in front of you</h2>
-          <p>Start from the commercial question, then open the tool that gets you there fastest.</p>
+          <h2 id="calculator-task-heading">Choose a retail calculator</h2>
         </div>
         <div className="calculator-task-grid">
           {taskCards.map((task) => (
