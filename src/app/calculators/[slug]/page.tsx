@@ -44,7 +44,7 @@ const metadataBySlug: Record<string, { title: string; description: string }> = {
       "Work out the supplier support needed to move from a standard retail price to a proposed retail price while delivering the retailer's required margin.",
   },
   "retail-selling-price-calculator": {
-    title: "Retail Price Calculator: Invoice Price to Selling Price",
+    title: "Retail Selling Price Calculator from Invoice Price and Margin",
     description:
       "Calculate retail selling price from invoice or buy price and target retailer margin. See the excluding-tax and VAT, sales tax or IVA inclusive result instantly.",
   },
@@ -134,9 +134,14 @@ export default async function CalculatorPage({
         title={calculator.h1}
         actions={
           isRetailSellingPrice ? (
-            <Link className="button" href="#calculator">
-              Calculate selling price
-            </Link>
+            <>
+              <Link className="button" href="#calculator">
+                Calculate selling price
+              </Link>
+              <Link className="hero-text-link" href="#retail-price-formula">
+                See the formula and VAT example
+              </Link>
+            </>
           ) : undefined
         }
       >
@@ -196,32 +201,20 @@ export default async function CalculatorPage({
           ) : null}
           {isRetailSellingPrice ? (
             <>
-              <article className="card related-card calculator-guide-card">
-                <h2>Calculate retail selling price from invoice price</h2>
-                <p>
-                  Start with the retailer invoice price or buy price—not your own cost—then enter the retailer&apos;s
-                  target margin. The calculator divides the invoice price by one minus the margin to find the required
-                  selling price excluding tax. It then applies the VAT, sales tax or IVA rate for the shopper-facing
-                  price.
-                </p>
-                <div className="calculator-example-grid" aria-label="Worked retail price example">
-                  <div>
-                    <span>Invoice price</span>
-                    <strong>£1.75</strong>
-                  </div>
-                  <div>
-                    <span>Target margin</span>
-                    <strong>30%</strong>
-                  </div>
-                  <div>
-                    <span>Price ex VAT</span>
-                    <strong>£2.50</strong>
-                  </div>
-                  <div>
-                    <span>Price inc 20% VAT</span>
-                    <strong>£3.00</strong>
-                  </div>
-                </div>
+              <article className="card related-card calculator-guide-card" id="retail-price-formula">
+                <h2>How to calculate retail selling price</h2>
+                <p>Use the retailer’s invoice price per unit and express the target retailer margin as a decimal.</p>
+                <ol className="compact-list">
+                  <li>
+                    <strong>Price excluding VAT = invoice price ÷ (1 − target retailer margin).</strong>{" "}
+                    For a £1.75 invoice price and 30% margin, £1.75 ÷ (1 − 0.30) gives £2.50 excluding VAT.
+                  </li>
+                  <li>
+                    <strong>Price including VAT = price excluding VAT × (1 + VAT rate).</strong>{" "}
+                    At 20% VAT, £2.50 × 1.20 gives a £3.00 shopper price.
+                  </li>
+                </ol>
+                <p>Check retailer margin against the £2.50 excluding VAT. Use the tax rate that applies to your product.</p>
                 <p>
                   Use the result as a planning estimate before a range review, price ladder or promotion discussion.
                   If the buyer wants a lower shelf price, use the{" "}
