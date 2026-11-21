@@ -266,6 +266,11 @@ export default async function CalculatorPage({
                 supplier can fund £10.50 per unit. Use the <Link href="/roi-tool">Promotion ROI Planner</Link> to
                 compare expected volume and supplier profit for £85 with £10.50 support and £90 with £7 support.
               </p>
+              <p>
+                <strong>When the calculator returns no SOA.</strong> If the proposed price is £100 excluding VAT and
+                the required margin is 25%, the retailer can pay up to £75. The normal £70 invoice is already below
+                that ceiling, so the required support per unit is £0.
+              </p>
               <a href={`#${requiredSoaWorkedExampleId}`}>Try the numbers in the SOA calculator</a>
             </article>
           ) : null}

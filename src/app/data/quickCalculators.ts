@@ -117,7 +117,7 @@ export const quickCalculators: QuickCalculator[] = [
     formula: [
       "Normal retailer invoice = standard retail price excluding tax x (1 - standard retailer margin).",
       "Required retailer invoice = proposed retail price excluding tax x (1 - required retailer margin).",
-      "Required SOA = normal retailer invoice - required retailer invoice.",
+      "Required SOA = the greater of zero and (normal retailer invoice - required retailer invoice).",
       "Total support = required SOA per unit x expected units.",
     ],
     related: ["promo-invoice-calculator", "soa-support-percent-calculator", "actual-retailer-margin-calculator"],
