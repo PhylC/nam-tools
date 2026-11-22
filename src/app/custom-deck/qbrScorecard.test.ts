@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import JSZip from "jszip";
+import { addDeckVisuals } from "./powerPointTemplate";
 import { readQbrScorecards } from "./qbrScorecard";
 import { buildQbrSlides, comparison, suggestedHeadline, variance } from "./qbrStory";
 import type { QbrContext, QbrStory } from "./qbrStory";
@@ -56,5 +58,19 @@ describe("QBR scorecards and slide plan", () => {
     expect(contents).toHaveLength(2);
     expect(contents[1].lines).toEqual([brief]);
     expect(contents.every(({ table, chart }) => !table && !chart)).toBe(true);
+  });
+
+  it("writes editable tables using PowerPoint's table graphic URI", async () => {
+    const zip = new JSZip();
+    const path = "ppt/slides/slide1.xml";
+    zip.file(path, "<p:sld><p:spTree></p:spTree></p:sld>");
+    const file = await addDeckVisuals(await zip.generateAsync({ type: "blob" }), [{
+      purpose: "content", title: "Commercial scorecard", lines: [],
+      table: { headers: ["Measure", "Actual"], widths: [.5, .5], rows: [["Net sales", "£410,000"]] },
+    }], { backgroundColor: "FFFFFF", textColor: "000000", bodyFontFace: "Arial", headFontFace: "Arial" });
+    const exported = await JSZip.loadAsync(await file.arrayBuffer());
+    const slide = await exported.file(path)?.async("text");
+    expect(slide).toContain('uri="http://schemas.openxmlformats.org/drawingml/2006/table"');
+    expect(slide).toContain("£410,000");
   });
 });

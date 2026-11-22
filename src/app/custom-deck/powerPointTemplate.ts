@@ -2,6 +2,7 @@ import type JSZip from "jszip";
 
 const presentationNamespace = "http://schemas.openxmlformats.org/presentationml/2006/main";
 const drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
+const tableGraphicUri = "http://schemas.openxmlformats.org/drawingml/2006/table";
 const officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 const packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
 const contentTypeNamespace = "http://schemas.openxmlformats.org/package/2006/content-types";
@@ -154,7 +155,7 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
     }).join("");
     return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="10000" name="Editable table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
       <p:xfrm><a:off x="${Math.round(width * x)}" y="${Math.round(height * y)}"/><a:ext cx="${Math.round(width * w)}" cy="${rowHeight * (rows.length + 1)}"/></p:xfrm>
-      <a:graphic><a:graphicData uri="${drawingNamespace}/table"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${tableRows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
+      <a:graphic><a:graphicData uri="${tableGraphicUri}"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${tableRows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
   }
   if (!content.chart?.length) return "";
   const chart = content.chart;
