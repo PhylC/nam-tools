@@ -6696,10 +6696,15 @@ p {
   text-decoration: none;
 }
 
-.workspace-icon-button:hover,
+.workspace-icon-button:not(:disabled):hover,
 .workspace-row-menu summary:hover {
   border-color: #87aaa3;
   background: #f7fbfa;
+}
+
+.workspace-icon-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
 .workspace-row-menu {

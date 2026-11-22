@@ -596,7 +596,7 @@ function WorkspaceSavedHeader({
       </div>
       <div className="workspace-compact-status">
         <span className="save-mode-badge save-mode-account">Account saves</span>
-        {loadMessage ? <small className="workspace-kicker">{loadMessage}</small> : null}
+        {loadMessage ? <small className="workspace-kicker" role="status">{loadMessage}</small> : null}
       </div>
     </div>
   );
@@ -935,9 +935,20 @@ function SavedWorkRow({
   selectionKey?: string;
   onToggleSelected?: (key: string) => void;
 }) {
+  const [isOpeningDeck, setIsOpeningDeck] = useState(false);
   const title = getSavedItemTitle(item.record, item.type);
   const href = item.type === "Deck" ? `/custom-deck?deck=${encodeURIComponent(item.id)}` : getItemHref(item.record, item.type);
   const generatedDeckFile = item.type === "Deck" ? getGeneratedDeckFile(item.record) : null;
+
+  async function openDeck() {
+    if (!onDownloadDeck || isOpeningDeck) return;
+    setIsOpeningDeck(true);
+    try {
+      await onDownloadDeck(item.id);
+    } finally {
+      setIsOpeningDeck(false);
+    }
+  }
 
   return (
     <article className="workspace-list-row">
@@ -960,14 +971,26 @@ function SavedWorkRow({
         </div>
         <small className="workspace-table-date">{getUpdatedDate(item.record)}</small>
         <div className="workspace-list-actions">
-          <WorkspaceIconLink href={href} label={`Open ${title}`} />
+          {item.type === "Deck" ? (
+            <button
+              aria-busy={isOpeningDeck}
+              aria-label={`Open ${title}`}
+              className="workspace-icon-button"
+              disabled={!onDownloadDeck || isOpeningDeck}
+              onClick={() => void openDeck()}
+              title={`Open ${title}`}
+              type="button"
+            >
+              <span aria-hidden="true">↗</span>
+            </button>
+          ) : <WorkspaceIconLink href={href} label={`Open ${title}`} />}
           <GeneralItemMenu
             id={item.id}
             type={item.type}
             primaryHref={item.type === "Analysis" ? undefined : href}
             primaryLabel={item.type === "Deck" ? "Create new from this" : "Edit"}
-            downloadDisabled={item.type === "Deck" && !generatedDeckFile}
-            onDownloadDeck={item.type === "Deck" ? onDownloadDeck : undefined}
+            downloadDisabled={!generatedDeckFile || isOpeningDeck}
+            onDownloadDeck={item.type === "Deck" && onDownloadDeck ? openDeck : undefined}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onRename={onRename}
@@ -1675,18 +1698,22 @@ export function WorkspaceClient() {
     if (!deck) return;
     const generatedDeckFile = getGeneratedDeckFile(deck);
     if (!generatedDeckFile) {
-      setLoadMessage("This saved deck does not have a stored presentation file. Open it and create a new copy to download.");
+      setLoadMessage("Only the brief is saved. Use “Create new from this” in More actions to generate a PowerPoint file.");
       return;
     }
 
     setLoadMessage("Preparing saved presentation download...");
-    const result = await downloadGeneratedDeck(generatedDeckFile.storagePath, generatedDeckFile.filename);
-    if (!result.file) {
-      setLoadMessage(result.error ?? "Could not download the saved presentation.");
-      return;
+    try {
+      const result = await downloadGeneratedDeck(generatedDeckFile.storagePath, generatedDeckFile.filename);
+      if (!result.file) {
+        setLoadMessage(result.error ?? "Could not download the saved presentation.");
+        return;
+      }
+      downloadBrowserFile(result.file);
+      setLoadMessage(`Downloaded ${generatedDeckFile.filename}.`);
+    } catch {
+      setLoadMessage("Could not retrieve the saved presentation. Try opening it again.");
     }
-    downloadBrowserFile(result.file);
-    setLoadMessage(`Downloaded ${generatedDeckFile.filename}.`);
   }
 
   async function renameSavedItem(id: string, type: SavedItemType) {
@@ -2028,7 +2055,7 @@ export function WorkspaceClient() {
           <WorkspaceSectionList
             id="decks"
             title="Decks"
-            description="Custom deck briefs and generated deck requests."
+            description="Open retrieves the saved PowerPoint file. To reuse a brief, choose “Create new from this” in More actions."
             action={
               <Link className="button button-secondary button-small" href="/presentation-templates">
                 New deck
