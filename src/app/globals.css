@@ -6705,6 +6705,7 @@ p {
 .workspace-deck-viewer {
   width: min(1080px, calc(100% - 1.5rem));
   max-height: calc(100dvh - 1.5rem);
+  margin: auto;
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
