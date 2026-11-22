@@ -24,6 +24,7 @@ const SAVED_TEMPLATE_DOWNLOAD_TIMEOUT_MS = 12000;
 const GENERATED_DECK_UPLOAD_TIMEOUT_MS = 15000;
 const WORKSPACE_SAVE_TIMEOUT_MS = 12000;
 const CUSTOM_DECK_DRAFT_STORAGE_KEY = "aptCustomDeckDraft";
+const qbrSampleFilename = "bridgeway-qbr-worked-scorecard.csv";
 const deckTemplateExtensions = [".pptx", ".potx"];
 const supportingFileExtensions = [".xlsx", ".csv", ".pdf", ".docx", ".txt", ".pptx", ".key", ".numbers", ".pages"];
 
@@ -1287,9 +1288,11 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   }
 
   function validateSupportingFiles(files: File[]) {
+    if (!files.length) return;
     setSupportingError("");
-    const next = [...supportingFiles, ...files].slice(0, MAX_SUPPORTING_FILES);
-    if (supportingFiles.length + files.length > MAX_SUPPORTING_FILES) {
+    const previous = isQbrExample ? supportingFiles.filter((file) => file.name !== qbrSampleFilename) : supportingFiles;
+    const next = [...previous, ...files];
+    if (next.length > MAX_SUPPORTING_FILES) {
       setSupportingError("You can upload up to 5 supporting files.");
       return;
     }
@@ -1304,6 +1307,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       return;
     }
     setSupportingFiles(next);
+    if (isQbrExample) setIsQbrExample(false);
   }
 
   async function createAndSaveDeck(review?: PendingLayoutReview, qbrApproval?: QbrApproval) {
@@ -1370,12 +1374,12 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             headline: qbrBenchmark.headline,
             decision: qbrBenchmark.decision,
             implication: qbrBenchmark.implication,
-            drivers: "",
-            actions: "",
+            drivers: activeDeckInputs[deckPlaybooks.qbr.inputPrompts[2]] ?? "",
+            actions: activeDeckInputs[deckPlaybooks.qbr.inputPrompts[3]] ?? "",
             commitments: qbrBenchmark.commitments,
             salesDrivers: qbrBenchmark.drivers.map(({ label, value, evidence }) => [label, String(value), evidence]),
             bridgeMeasure: "Supplier net sales",
-            actionRows: qbrBenchmark.actions,
+            actionRows: activeDeckInputs[deckPlaybooks.qbr.inputPrompts[3]] ? undefined : qbrBenchmark.actions,
           } : priorQbr?.story ?? {
             headline: "",
             decision: "",
@@ -1555,6 +1559,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   }
 
   function populateExampleData() {
+    if (deckType === "qbr" && supportingFiles.length && !isQbrExample) {
+      setRequestMessage("Remove your current reference files before loading the fictional worked example.");
+      return;
+    }
     setIsQbrExample(deckType === "qbr");
     if (deckType === "qbr") {
       setDeckName(`${qbrBenchmark.account} quarterly review`);
@@ -1565,7 +1573,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setFinancialSummary("Yes");
       setNextStepsSlide("Yes");
       setSupportingFiles((current) => current.length ? current : [
-        new File([qbrBenchmarkCsv], "bridgeway-qbr-worked-scorecard.csv", { type: "text/csv" }),
+        new File([qbrBenchmarkCsv], qbrSampleFilename, { type: "text/csv" }),
       ]);
       setRequestMessage("The Bridgeway Grocers worked example is ready to review.");
       return;
@@ -1785,6 +1793,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 multiple
                 onFilesSelected={validateSupportingFiles}
                 onRemoveFile={(index) => {
+                  if (isQbrExample && supportingFiles[index]?.name === qbrSampleFilename) setIsQbrExample(false);
                   setSupportingFiles(supportingFiles.filter((_, fileIndex) => fileIndex !== index));
                   setSupportingError("");
                 }}
