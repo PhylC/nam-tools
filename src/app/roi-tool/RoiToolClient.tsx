@@ -6,7 +6,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildRoiProposalDraft, roiProposalPath, roiProposalStorageKey, roiWorkedExample } from "../../lib/roiProposalDraft";
-import { calculateLine, roiNumber as n, type SupportMode } from "../../lib/roiCalculation";
+import { calculateLine, rankRoiScenarios, roiNumber as n, type SupportMode } from "../../lib/roiCalculation";
 import { readRoiCsv } from "../../lib/roiCsv";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { LoadExampleButton } from "../components/LoadExampleButton";
@@ -1034,32 +1034,19 @@ function ScenarioSummary({ scenario, currency = "GBP" }: { scenario: RoiScenario
 
 function scenarioMetrics(scenario: RoiScenario) {
   const summary = aggregate(scenario.lines);
+  const isNonNegative = (value: string) => has(value) && Number.isFinite(Number(value.replaceAll(",", ""))) && n(value) >= 0;
+  const complete = scenario.lines.length > 0 && scenario.lines.every((line) =>
+    [line.currentInvoice, line.baselineUnits, line.promoUnits].every(isNonNegative));
+  const hasProfit = complete && scenario.lines.every((line) => isNonNegative(line.cogs));
   return {
     scenario,
     summary,
-    revenueRoi: summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null,
-    profitRoi: summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null,
+    revenue: complete ? summary.revenueImpact : null,
+    support: complete ? summary.supportCost : null,
+    profit: hasProfit ? summary.profitImpact : null,
+    revenueRoi: complete && summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null,
+    profitRoi: hasProfit && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null,
   };
-}
-
-function maxBy<T>(items: T[], selector: (item: T) => number | null) {
-  return items.reduce<T | null>((best, item) => {
-    const value = selector(item);
-    if (value === null || !Number.isFinite(value)) return best;
-    if (!best) return item;
-    const bestValue = selector(best);
-    return bestValue === null || value > bestValue ? item : best;
-  }, null);
-}
-
-function minBy<T>(items: T[], selector: (item: T) => number | null) {
-  return items.reduce<T | null>((best, item) => {
-    const value = selector(item);
-    if (value === null || !Number.isFinite(value)) return best;
-    if (!best) return item;
-    const bestValue = selector(best);
-    return bestValue === null || value < bestValue ? item : best;
-  }, null);
 }
 
 function ScenarioComparison({
@@ -1074,19 +1061,16 @@ function ScenarioComparison({
   currency?: string;
 }) {
   const metrics = scenarios.map(scenarioMetrics);
-  const bestRevenue = maxBy(metrics, (item) => item.summary.revenueImpact);
-  const bestProfit = maxBy(metrics, (item) => (item.summary.profitRows ? item.summary.profitImpact : null));
-  const bestRoi = maxBy(metrics, (item) => item.profitRoi ?? item.revenueRoi);
-  const lowestSupport = minBy(metrics, (item) => item.summary.supportCost);
-  const highestRisk = maxBy(metrics, (item) => item.summary.supportCost || (item.revenueRoi !== null ? 1 / Math.max(item.revenueRoi, 0.01) : null));
-  const recommended = bestProfit?.profitRoi !== null && bestProfit?.profitRoi !== undefined ? bestProfit : bestRoi;
+  const { bestRevenue, bestProfit, bestRevenueRoi, bestProfitRoi, lowestSupport, highestSupport, complete, hasAllCosts, recommended } = rankRoiScenarios(metrics);
+  const profitText = (item: ReturnType<typeof scenarioMetrics>) => item.revenue === null ? "Complete inputs"
+    : item.profit === null ? "Add supplier COGS" : money(item.profit, currency);
 
   let narrative = "Add another scenario to compare options.";
-  if (scenarios.length > 1 && bestRevenue && lowestSupport && recommended) {
-    narrative =
-      bestRevenue.scenario.id === lowestSupport.scenario.id
-        ? `${bestRevenue.scenario.name} delivers the strongest incremental revenue while also requiring the lowest support cost.`
-        : `${bestRevenue.scenario.name} delivers the strongest incremental revenue, but ${lowestSupport.scenario.name} is more efficient on support cost. Recommended route: ${recommended.scenario.name}.`;
+  if (scenarios.length > 1) {
+    if (!complete) narrative = "Complete the invoice and volume inputs for every scenario to get a recommendation.";
+    else if (!hasAllCosts) narrative = "Add supplier COGS to every product line to get a profit-based recommendation.";
+    else if (!recommended) narrative = "None of the scenarios improves profit. Review the price, volume and funding before proceeding.";
+    else narrative = `${recommended.scenario.name} has the highest incremental profit at ${money(recommended.profit ?? 0, currency)}.`;
   }
   type ComparisonMetric = {
     label: string;
@@ -1105,28 +1089,29 @@ function ScenarioComparison({
     },
     {
       label: "Incremental supplier invoice revenue",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.revenueImpact, currency),
+      value: (item) => item.revenue === null ? "Complete inputs" : money(item.revenue, currency),
       bestScenarioId: bestRevenue?.scenario.id,
     },
     {
       label: "Support cost",
-      value: (item: ReturnType<typeof scenarioMetrics>) => money(item.summary.supportCost, currency),
+      value: (item) => item.support === null ? "Complete inputs" : money(item.support, currency),
       bestScenarioId: lowestSupport?.scenario.id,
       bestLabel: "Lowest",
     },
     {
-      label: "Gross Margin/Profit",
-      value: (item: ReturnType<typeof scenarioMetrics>) => (item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"),
+      label: "Incremental profit",
+      value: profitText,
       bestScenarioId: bestProfit?.scenario.id,
     },
     {
       label: "Supplier revenue ROI",
-      value: (item: ReturnType<typeof scenarioMetrics>) => pct(item.revenueRoi),
+      value: (item) => pct(item.revenueRoi),
+      bestScenarioId: bestRevenueRoi?.scenario.id,
     },
     {
       label: "Profit ROI",
       value: (item: ReturnType<typeof scenarioMetrics>) => pct(item.profitRoi),
-      bestScenarioId: bestRoi?.scenario.id,
+      bestScenarioId: bestProfitRoi?.scenario.id,
     },
     {
       label: "Lines",
@@ -1151,11 +1136,12 @@ function ScenarioComparison({
         {scenarios.length > 1 ? (
           <div className="comparison-chip-row">
             <div className="kpi-chip"><span>Best revenue</span><strong>{bestRevenue?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Best Gross Margin/Profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Best ROI</span><strong>{bestRoi?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Highest incremental profit</span><strong>{bestProfit?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best revenue ROI</span><strong>{bestRevenueRoi?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Best profit ROI</span><strong>{bestProfitRoi?.scenario.name ?? "n/a"}</strong></div>
             <div className="kpi-chip"><span>Lowest support</span><strong>{lowestSupport?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Highest risk</span><strong>{highestRisk?.scenario.name ?? "n/a"}</strong></div>
-            <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Highest support</span><strong>{highestSupport?.scenario.name ?? "n/a"}</strong></div>
+            <div className="kpi-chip"><span>Recommended</span><strong>{recommended?.scenario.name ?? "None"}</strong></div>
           </div>
         ) : null}
         {scenarios.length > 1 ? (
@@ -1207,8 +1193,9 @@ function ScenarioComparison({
               {metrics.map((item) => {
                 const badges = [
                   bestRevenue?.scenario.id === item.scenario.id ? "Best revenue" : "",
-                  bestProfit?.scenario.id === item.scenario.id ? "Best Gross Margin/Profit" : "",
-                  bestRoi?.scenario.id === item.scenario.id ? "Best ROI" : "",
+                  bestProfit?.scenario.id === item.scenario.id ? "Highest incremental profit" : "",
+                  bestRevenueRoi?.scenario.id === item.scenario.id ? "Best revenue ROI" : "",
+                  bestProfitRoi?.scenario.id === item.scenario.id ? "Best profit ROI" : "",
                   recommended?.scenario.id === item.scenario.id ? "Recommended" : "",
                 ].filter(Boolean);
 
@@ -1219,9 +1206,9 @@ function ScenarioComparison({
                       {badges.length ? <span>{badges.join(" · ")}</span> : null}
                     </div>
                     <dl>
-                      <div><dt>Incremental supplier invoice revenue</dt><dd>{money(item.summary.revenueImpact, currency)}</dd></div>
-                      <div><dt>Support cost</dt><dd>{money(item.summary.supportCost, currency)}</dd></div>
-                      <div><dt>Gross Margin/Profit</dt><dd>{item.summary.profitRows ? money(item.summary.profitImpact, currency) : "Add supplier COGS"}</dd></div>
+                      <div><dt>Incremental supplier invoice revenue</dt><dd>{item.revenue === null ? "Complete inputs" : money(item.revenue, currency)}</dd></div>
+                      <div><dt>Support cost</dt><dd>{item.support === null ? "Complete inputs" : money(item.support, currency)}</dd></div>
+                      <div><dt>Incremental profit</dt><dd>{profitText(item)}</dd></div>
                       <div><dt>Supplier revenue ROI</dt><dd>{pct(item.revenueRoi)}</dd></div>
                       <div><dt>Profit ROI</dt><dd>{pct(item.profitRoi)}</dd></div>
                       <div><dt>Lines</dt><dd>{item.scenario.lines.length.toLocaleString("en-GB")}</dd></div>

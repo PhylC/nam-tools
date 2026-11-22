@@ -25,6 +25,7 @@ import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
 import { canonicalQuickCalculatorPath } from "../data/quickCalculators";
+import { canRestoreCalculator } from "../data/savedCalculator";
 import { SavedDeckViewer } from "./SavedDeckViewer";
 
 type SavedRecord = Record<string, unknown>;
@@ -182,7 +183,12 @@ function getItemHref(item: SavedRecord, type: Exclude<SavedItemType, "Deck">) {
   const sourcePath = getText(item.sourcePath, defaultPath);
   if (type === "Comparison" && item.id) return `${sourcePath}?comparison=${String(item.id)}`;
   if (type === "Scenario" && item.id) return `${sourcePath}?saved=${String(item.id)}`;
-  return type === "Analysis" ? canonicalQuickCalculatorPath(sourcePath) : sourcePath;
+  if (type !== "Analysis") return sourcePath;
+  const canonical = canonicalQuickCalculatorPath(sourcePath);
+  if (!item.id || !canRestoreCalculator(getText(item.calculatorId, ""))) return canonical;
+  const [path, fragment] = canonical.split("#", 2);
+  const divider = path.includes("?") ? "&" : "?";
+  return `${path}${divider}analysis=${encodeURIComponent(String(item.id))}${fragment ? `#${fragment}` : ""}`;
 }
 
 function recordSearchText(item: SavedRecord, type: SavedItemType) {

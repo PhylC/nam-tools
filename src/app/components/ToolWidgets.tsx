@@ -3,11 +3,12 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LoadExampleButton } from "./LoadExampleButton";
 import { Field, ResultGrid } from "./Shell";
-import { useAptMode } from "./AptMode";
+import { RestoreCalculator } from "./RestoreCalculator";
 import { buildUpgradeHref, useProAction } from "./ProActionGuard";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
 import { quickCalculatorPath, requiredSoaWorkedExampleId, type QuickCalculatorId } from "../data/quickCalculators";
+import { quickCalculatorSnapshot } from "../data/savedCalculator";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "./CalculatorCaveat";
 import {
@@ -128,16 +129,6 @@ function readToolDefaults(): ToolDefaults {
     taxRate: String(savedDefaults.taxRate || inferred.taxRate),
     retailTaxBasis: savedDefaults.retailTaxBasis === "includes_tax" ? "includes" : "excludes",
   };
-}
-
-function readLastUsedCalculatorValues(id: string): Record<string, string> {
-  void id;
-  return {};
-}
-
-function writeLastUsedCalculatorValues(id: string, values: Record<string, string>) {
-  void id;
-  void values;
 }
 
 function csvEscape(value: string | number) {
@@ -688,6 +679,7 @@ function SaveAnalysisAction({
   outputs,
   summaryText,
   sourcePath,
+  calculatorState,
 }: {
   calculatorId: string;
   calculatorName: string;
@@ -696,6 +688,7 @@ function SaveAnalysisAction({
   outputs: CsvRow[];
   summaryText: string;
   sourcePath: string;
+  calculatorState?: Record<string, string>;
 }) {
   const { plan } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "calculator", feature: "save-analysis" });
@@ -726,7 +719,7 @@ function SaveAnalysisAction({
       title,
       inputs: rowsToRecord(inputs),
       outputs: rowsToRecord(outputs),
-      defaults: {},
+      defaults: calculatorState ? { calculatorState } : {},
       summaryText,
       sourcePath,
     });
@@ -1162,6 +1155,9 @@ function ContextualCalculatorSettings({
   retailTaxBasis,
   setRetailTaxBasis,
   compact,
+  market,
+  setMarket,
+  restored = false,
 }: {
   requirements: CalculatorFieldRequirements;
   currencyCode: string;
@@ -1175,6 +1171,9 @@ function ContextualCalculatorSettings({
   retailTaxBasis?: VatBasis;
   setRetailTaxBasis?: (value: VatBasis) => void;
   compact?: boolean;
+  market: string;
+  setMarket: (value: string) => void;
+  restored?: boolean;
 }) {
   const { isAuthenticated } = useSupabaseAuth();
   const [savedMessage, setSavedMessage] = useState("");
@@ -1184,7 +1183,6 @@ function ContextualCalculatorSettings({
     return window.localStorage.getItem(DISMISSED_ACCOUNT_DEFAULTS_PROMPT_KEY) !== "true";
   });
   const initialDefaults = readToolDefaults();
-  const [market, setMarket] = useState(initialDefaults.market);
   const [localRetailTaxBasis, setLocalRetailTaxBasis] = useState<VatBasis>(retailTaxBasis ?? initialDefaults.retailTaxBasis);
   const activeRetailTaxBasis = retailTaxBasis ?? localRetailTaxBasis;
   const needsSettings = requirements.usesCurrency || requirements.usesRetailTaxBasis || requirements.usesVatRate;
@@ -1192,7 +1190,7 @@ function ContextualCalculatorSettings({
 
   useEffect(() => {
     let isMounted = true;
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || restored) return;
     loadAccountSettings().then((result) => {
       if (!isMounted || result.message) return;
       const defaults = result.data.calculatorDefaults;
@@ -1208,7 +1206,7 @@ function ContextualCalculatorSettings({
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, setCurrencyCode, setRetailTaxBasis, setVatRate, setTaxLabel, setCustomTaxLabel]);
+  }, [isAuthenticated, restored, setMarket, setCurrencyCode, setRetailTaxBasis, setVatRate, setTaxLabel, setCustomTaxLabel]);
 
   if (!needsSettings) return null;
 
@@ -1448,15 +1446,22 @@ function DealProPreview() {
 }
 
 export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?: DealTab }) {
-  const { aptMode } = useAptMode();
-  const storageId = `commercial-deal-calculator-${defaultTab}`;
-  const lastUsed = readLastUsedCalculatorValues(storageId);
+  return (
+    <RestoreCalculator calculatorId={`commercial-deal-${defaultTab}`}>
+      {(values) => <CommercialDealForm defaultTab={defaultTab} lastUsed={values} />}
+    </RestoreCalculator>
+  );
+}
+
+function CommercialDealForm({ defaultTab, lastUsed = {} }: { defaultTab: DealTab; lastUsed?: Record<string, string> }) {
+  const restored = Object.keys(lastUsed).length > 0;
   const savedDefaults = readCalculatorDefaults();
   const toolDefaults = readToolDefaults();
+  const [market, setMarket] = useState(lastUsed.market ?? toolDefaults.market);
   const [exampleMessage, setExampleMessage] = useState("");
   const [activeTab, setActiveTab] = useState<DealTab>(defaultTab);
-  const [dealMode, setDealMode] = useState<DealMode>("invoice");
-  const [supportMethod, setSupportMethod] = useState<SupportMethod>("promoInvoice");
+  const [dealMode, setDealMode] = useState<DealMode>((lastUsed.dealMode as DealMode) ?? "invoice");
+  const [supportMethod, setSupportMethod] = useState<SupportMethod>((lastUsed.supportMethod as SupportMethod) ?? "promoInvoice");
   const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? toolDefaults.currency ?? savedDefaults.currency);
   const [baselineUnits, setBaselineUnits] = useState(lastUsed.baselineUnits ?? "");
   const [promoUnits, setPromoUnits] = useState(lastUsed.promoUnits ?? "");
@@ -1497,72 +1502,18 @@ export function CommercialDealCalculator({ defaultTab = "promo" }: { defaultTab?
     [currencyCode],
   );
 
-  useEffect(() => {
-    if (aptMode !== "free") return;
-    writeLastUsedCalculatorValues(storageId, {
-      currency: currencyCode,
-      baselineUnits,
-      promoUnits,
-      srp,
-      promoSrp,
-      cogs,
-      soa,
-      promoInvoicePrice,
-      fixedCost,
-      retailerBuyPrice,
-          taxLabel,
-          customTaxLabel,
-          retailerVatBasis,
-      promoRetailVatBasis,
-      vatRate,
-      promoRetailVatRate,
-      averageDiscount,
-      rebate,
-      marketingContribution,
-      expectedUplift,
-      grossMargin,
-      requestedInvestment,
-      probability,
-      cannibalisation,
-      postPromoDip,
-      retailerMarginRequirement,
-      contractMonths,
-      otherDeductions,
-      retentionValue,
-    });
-  }, [
-    storageId,
-    aptMode,
-    currencyCode,
-    baselineUnits,
-    promoUnits,
-    srp,
-    promoSrp,
-    cogs,
-    soa,
-    promoInvoicePrice,
-    fixedCost,
-    retailerBuyPrice,
-        taxLabel,
-        customTaxLabel,
-    retailerVatBasis,
-    promoRetailVatBasis,
-    vatRate,
-    promoRetailVatRate,
-    averageDiscount,
-    rebate,
-    marketingContribution,
-    expectedUplift,
-    grossMargin,
-    requestedInvestment,
-    probability,
-    cannibalisation,
-    postPromoDip,
-    retailerMarginRequirement,
-    contractMonths,
-    otherDeductions,
-    retentionValue,
-  ]);
+  const calculatorState = {
+    currency: currencyCode, market, dealMode, supportMethod, baselineUnits, promoUnits, srp, promoSrp,
+    cogs, soa, promoInvoicePrice, fixedCost, retailerBuyPrice, taxLabel, customTaxLabel, retailerVatBasis,
+    promoRetailVatBasis, vatRate, promoRetailVatRate, averageDiscount, rebate, marketingContribution,
+    expectedUplift, grossMargin, requestedInvestment, probability, cannibalisation, postPromoDip,
+    retailerMarginRequirement, contractMonths, otherDeductions, retentionValue,
+  };
+
+  const setDealTaxBasis = useCallback((value: VatBasis) => {
+    setRetailerVatBasis(value);
+    setPromoRetailVatBasis(value);
+  }, []);
 
   function loadDealExample() {
     setCurrencyCode("GBP");
@@ -1999,10 +1950,10 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
           customTaxLabel={customTaxLabel}
           setCustomTaxLabel={setCustomTaxLabel}
           retailTaxBasis={retailerVatBasis}
-          setRetailTaxBasis={(value) => {
-            setRetailerVatBasis(value);
-            setPromoRetailVatBasis(value);
-          }}
+          setRetailTaxBasis={setDealTaxBasis}
+          market={market}
+          setMarket={setMarket}
+          restored={restored}
         />
         <section className="input-section" aria-label="Promotion and price inputs">
           <div className="input-section-header">
@@ -2178,6 +2129,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
                 outputs={dealOutputsForCsv[activeTab]}
                 summaryText={activeDealExportSummary}
                 sourcePath={dealSourcePaths[activeTab]}
+                calculatorState={calculatorState}
               />
             </div>
           </div>
@@ -2390,6 +2342,7 @@ function QuickCalculatorCard({
   exampleMessage,
   trackOpened = true,
   validationError,
+  calculatorState,
 }: {
   id?: string;
   title: string;
@@ -2404,6 +2357,7 @@ function QuickCalculatorCard({
   exampleMessage?: string;
   trackOpened?: boolean;
   validationError?: string;
+  calculatorState: Record<string, string>;
 }) {
   const caveatType = getCalculatorCaveatType(id);
   const calculatorSlug = id ?? slugifyFilename(title);
@@ -2470,6 +2424,7 @@ function QuickCalculatorCard({
                   inputs={inputs}
                   outputs={results.map((item) => ({ label: item.label, value: item.value }))}
                   summaryText={exportSummary}
+                  calculatorState={quickCalculatorSnapshot(id, calculatorState)}
                   sourcePath={(id && quickCalculatorPath(id)) || "/calculators/quick-calculators"}
                 />
               </div>
@@ -2492,11 +2447,18 @@ function QuickCalculatorCard({
 }
 
 export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId } = {}) {
-  const { aptMode } = useAptMode();
-  const storageId = only ?? "quick-commercial-calculators";
-  const lastUsed = readLastUsedCalculatorValues(storageId);
+  return (
+    <RestoreCalculator calculatorId={only}>
+      {(values) => <QuickCalculatorsForm only={only} lastUsed={values} />}
+    </RestoreCalculator>
+  );
+}
+
+function QuickCalculatorsForm({ only, lastUsed = {} }: { only?: QuickCalculatorId; lastUsed?: Record<string, string> }) {
+  const restored = Object.keys(lastUsed).length > 0;
   const savedDefaults = readCalculatorDefaults();
   const toolDefaults = readToolDefaults();
+  const [market, setMarket] = useState(lastUsed.market ?? toolDefaults.market);
   const [exampleMessage, setExampleMessage] = useState<{ id?: QuickCalculatorId; text: string }>({ text: "" });
   const [currencyCode, setCurrencyCode] = useState(lastUsed.currency ?? toolDefaults.currency ?? savedDefaults.currency);
   const [taxLabel, setTaxLabel] = useState<TaxLabel>((lastUsed.taxLabel as TaxLabel) ?? toolDefaults.taxLabel ?? savedDefaults.taxLabel);
@@ -2618,74 +2580,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
     };
   }, [markupCost, markupRetail, quickRetailTaxBasis, quickTaxRate]);
 
-  useEffect(() => {
-    if (aptMode !== "free") return;
-    writeLastUsedCalculatorValues(storageId, {
-      currency: currencyCode,
-      taxLabel,
-      customTaxLabel,
-      retailTaxBasis: quickRetailTaxBasis,
-      taxRate: quickTaxRate,
-      soaStandardRetail,
-      soaStandardMargin,
-      soaProposedRetail,
-      soaRequiredMargin,
-      soaUnits,
-      rspInvoice,
-      rspMargin,
-      actualInvoice,
-      actualMode,
-      actualSupport,
-      actualPromoInvoice,
-      actualRetail,
-      actualFixed,
-      actualUnits,
-      invoiceRetail,
-      invoiceMargin,
-      supportValue,
-      supportInvoice,
-      supportRetail,
-      promoInvoiceCurrent,
-      promoInvoiceSupport,
-      promoInvoiceUnits,
-      converterPrice,
-      markupCost,
-      markupRetail,
-    });
-  }, [
-    storageId,
-    aptMode,
-    currencyCode,
-    taxLabel,
-    customTaxLabel,
-    quickRetailTaxBasis,
-    quickTaxRate,
-    soaStandardRetail,
-    soaStandardMargin,
-    soaProposedRetail,
-    soaRequiredMargin,
-    soaUnits,
-    rspInvoice,
-    rspMargin,
-    actualInvoice,
-    actualMode,
-    actualSupport,
-    actualPromoInvoice,
-    actualRetail,
-    actualFixed,
-    actualUnits,
-    invoiceRetail,
-    invoiceMargin,
-    supportValue,
-    supportInvoice,
-    supportRetail,
-    promoInvoiceCurrent,
-    promoInvoiceSupport,
-    promoInvoiceUnits,
-    converterPrice,
-    markupCost,
-    markupRetail,
-  ]);
+  const calculatorState = {
+    currency: currencyCode, market, taxLabel, customTaxLabel, retailTaxBasis: quickRetailTaxBasis, taxRate: quickTaxRate,
+    soaStandardRetail, soaStandardMargin, soaProposedRetail, soaRequiredMargin, soaUnits, rspInvoice, rspMargin,
+    actualInvoice, actualMode, actualSupport, actualPromoInvoice, actualRetail, actualFixed, actualUnits,
+    invoiceRetail, invoiceMargin, supportValue, supportInvoice, supportRetail, promoInvoiceCurrent,
+    promoInvoiceSupport, promoInvoiceUnits, converterPrice, markupCost, markupRetail,
+  };
 
   const loadSoaExample = useCallback((standardRetail: string, proposedRetail: string, units: string) => {
     setCurrencyCode("GBP");
@@ -2700,7 +2601,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   }, []);
 
   useEffect(() => {
-    if (only !== "required-soa-calculator") return;
+    if (only !== "required-soa-calculator" || restored) return;
 
     const exampleHash = `#${requiredSoaWorkedExampleId}`;
     const exampleLink = document.querySelector(`a[href="${exampleHash}"]`);
@@ -2720,7 +2621,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       window.removeEventListener("hashchange", loadFromHash);
       exampleLink?.removeEventListener("click", reloadExample);
     };
-  }, [only, loadSoaExample]);
+  }, [only, loadSoaExample, restored]);
 
   function markExampleLoaded(id: QuickCalculatorId) {
     setExampleMessage({ id, text: "Example loaded. Adjust the numbers to match your deal." });
@@ -2822,9 +2723,13 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         setCustomTaxLabel={setCustomTaxLabel}
         retailTaxBasis={quickRetailTaxBasis}
         setRetailTaxBasis={setQuickRetailTaxBasis}
+        market={market}
+        setMarket={setMarket}
+        restored={restored}
       />
       {shouldShow("required-soa-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="required-soa-calculator"
         isReady={ready.requiredSoa}
         title="Required SOA / Support Calculator"
@@ -2899,6 +2804,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("retail-selling-price-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="retail-selling-price-calculator"
         isReady={ready.retailFromInvoice}
         validationError={invalidTargetMargin ? "Enter a target retailer margin from 0% up to, but below, 100%." : undefined}
@@ -2929,6 +2835,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("actual-retailer-margin-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="actual-retailer-margin-calculator"
         isReady={ready.actualMargin}
         title="Actual Retailer Margin Calculator"
@@ -2983,6 +2890,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("invoice-price-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="invoice-price-calculator"
         isReady={ready.impliedInvoice}
         title="Invoice Price from Retail Price + Margin"
@@ -3023,6 +2931,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("soa-support-percent-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="soa-support-percent-calculator"
         isReady={ready.supportPercent}
         title="SOA % / Support % Calculator"
@@ -3066,6 +2975,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("promo-invoice-calculator") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="promo-invoice-calculator"
         isReady={ready.promoInvoice}
         title="Promo Invoice Calculator"
@@ -3094,6 +3004,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("sales-tax-vat-iva-retail-price-converter") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="sales-tax-vat-iva-retail-price-converter"
         isReady={ready.convertedVat}
         title="Sales Tax / VAT / IVA Retail Price Converter"
@@ -3132,6 +3043,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
       {shouldShow("markup-vs-margin-helper") ? (
       <QuickCalculatorCard
+        calculatorState={calculatorState}
         id="markup-vs-margin-helper"
         isReady={ready.markup}
         title="Markup vs Margin Helper"

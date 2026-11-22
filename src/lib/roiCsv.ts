@@ -26,11 +26,21 @@ export function readRoiCsv(text: string): { rows: Record<string, string>[]; erro
   if (new Set(namedHeaders).size !== namedHeaders.length) errors.push("Each CSV column must have a unique header.");
   if (errors.length) return { rows: [], errors };
 
-  const rows = body.map(({ number, cells }) => {
+  const rowTypeIndex = headers.indexOf("row_type");
+  const reportRows = rowTypeIndex >= 0 && headers[0] === "group_name" && headers[1] === "scenario_name";
+  const dataRows = body.filter(({ cells }) => !reportRows
+    || (cells[rowTypeIndex]?.trim() !== "scenario_summary"
+      && !(cells[0]?.trim() === "disclaimer" && cells.length === 2)));
+  if (!dataRows.length) return { rows: [], errors: ["The CSV does not contain any product lines."] };
+
+  const rows = dataRows.map(({ number, cells }) => {
     if (cells.slice(headers.length).some((cell) => cell.trim())) {
       errors.push(`Row ${number}: there are more values than column headers. Check the CSV separators.`);
     }
     const row = Object.fromEntries(headers.map((name, index) => [name, cells[index]?.trim() ?? ""]));
+    if (reportRows && row.row_type !== "line") {
+      errors.push(`Row ${number}: the report row type must be line or scenario_summary.`);
+    }
     const rowErrorStart = errors.length;
     for (const { name, alias, required, kind } of fields) {
       const value = row[name] || (alias ? row[alias] : "");

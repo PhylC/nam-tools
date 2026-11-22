@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateLine } from "./roiCalculation";
+import { calculateLine, rankRoiScenarios } from "./roiCalculation";
 
 const line = {
   currentInvoice: "10",
@@ -28,5 +28,26 @@ describe("promotion input selection", () => {
     expect(calculateLine({ ...line, supportMode: "promoInvoice", promoInvoice: "" })).toMatchObject({
       promoInvoice: 10, promoRevenue: 1500, supportCost: 0, revenueRoi: null,
     });
+  });
+});
+
+describe("scenario recommendations", () => {
+  const loss = { revenue: 200, support: 325, profit: -25, revenueRoi: 200 / 325, profitRoi: -25 / 325 };
+  const missing = { revenue: 800, support: 205, profit: null, revenueRoi: 800 / 205, profitRoi: null };
+
+  it("keeps revenue and profit ROI rankings separate and withholds advice when a cost is missing", () => {
+    expect(rankRoiScenarios([loss, missing])).toMatchObject({
+      bestRevenueRoi: missing, bestProfitRoi: loss, hasAllCosts: false, recommended: null,
+    });
+  });
+
+  it("does not recommend losses or break-even scenarios", () => {
+    const breakEven = { ...missing, profit: 0, profitRoi: 0 };
+    expect(rankRoiScenarios([loss, breakEven]).recommended).toBeNull();
+  });
+
+  it("recommends the highest positive profit, including when return on support is undefined", () => {
+    const profitable = { revenue: 300, support: 0, profit: 150, revenueRoi: null, profitRoi: null };
+    expect(rankRoiScenarios([loss, profitable]).recommended).toEqual(profitable);
   });
 });

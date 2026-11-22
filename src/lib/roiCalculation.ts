@@ -53,3 +53,42 @@ export function calculateLine(line: RoiLineAmounts) {
     profitRoi,
   };
 }
+
+type RoiComparisonMetrics = {
+  revenue: number | null;
+  support: number | null;
+  profit: number | null;
+  revenueRoi: number | null;
+  profitRoi: number | null;
+};
+
+function bestBy<T>(items: T[], valueOf: (item: T) => number | null, direction = 1) {
+  let best: T | null = null;
+  let score = -Infinity;
+  for (const item of items) {
+    const value = valueOf(item);
+    if (value !== null && Number.isFinite(value) && value * direction > score) {
+      best = item;
+      score = value * direction;
+    }
+  }
+  return best;
+}
+
+export function rankRoiScenarios<T extends RoiComparisonMetrics>(scenarios: T[]) {
+  const bestProfit = bestBy(scenarios, (item) => item.profit);
+  const complete = scenarios.every((item) => item.revenue !== null);
+  const hasAllCosts = complete && scenarios.every((item) => item.profit !== null);
+  const recommended = hasAllCosts && (bestProfit?.profit ?? 0) > 0 ? bestProfit : null;
+  return {
+    bestRevenue: bestBy(scenarios, (item) => item.revenue),
+    bestRevenueRoi: bestBy(scenarios, (item) => item.revenueRoi),
+    bestProfitRoi: bestBy(scenarios, (item) => item.profitRoi),
+    bestProfit,
+    lowestSupport: bestBy(scenarios, (item) => item.support, -1),
+    highestSupport: bestBy(scenarios, (item) => item.support),
+    complete,
+    hasAllCosts,
+    recommended,
+  };
+}
