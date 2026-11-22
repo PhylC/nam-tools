@@ -6696,15 +6696,81 @@ p {
   text-decoration: none;
 }
 
-.workspace-icon-button:not(:disabled):hover,
+.workspace-icon-button:hover,
 .workspace-row-menu summary:hover {
   border-color: #87aaa3;
   background: #f7fbfa;
 }
 
-.workspace-icon-button:disabled {
-  cursor: wait;
-  opacity: 0.55;
+.workspace-deck-viewer {
+  width: min(1080px, calc(100% - 1.5rem));
+  max-height: calc(100dvh - 1.5rem);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--foreground);
+  background: #fff;
+}
+
+.workspace-deck-viewer::backdrop {
+  background: rgb(8 22 29 / 65%);
+}
+
+.workspace-deck-viewer-inner {
+  display: grid;
+  gap: 0.85rem;
+  padding: clamp(0.7rem, 2vw, 1.15rem);
+}
+
+.workspace-deck-viewer-header,
+.workspace-deck-viewer-footer,
+.workspace-deck-viewer-actions,
+.workspace-deck-viewer-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.workspace-deck-viewer-header,
+.workspace-deck-viewer-footer {
+  justify-content: space-between;
+}
+
+.workspace-deck-viewer-header h2 {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.workspace-deck-viewer-controls span {
+  min-width: 6.4rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.workspace-deck-viewer-stage {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: clamp(11rem, 49vh, 30rem);
+  background: #112827;
+  color: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.workspace-deck-viewer-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: min(62dvh, 680px);
+  object-fit: contain;
+}
+
+.workspace-deck-viewer-stage p {
+  margin: 0;
+  padding: 0.85rem;
+  text-align: center;
 }
 
 .workspace-row-menu {

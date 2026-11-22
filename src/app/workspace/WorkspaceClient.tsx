@@ -24,6 +24,7 @@ import {
 import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
+import { SavedDeckViewer } from "./SavedDeckViewer";
 
 type SavedRecord = Record<string, unknown>;
 type SavedItemType = "Analysis" | "Comparison" | "Scenario" | "Deck";
@@ -935,18 +936,19 @@ function SavedWorkRow({
   selectionKey?: string;
   onToggleSelected?: (key: string) => void;
 }) {
-  const [isOpeningDeck, setIsOpeningDeck] = useState(false);
+  const [showDeck, setShowDeck] = useState(false);
+  const [isDownloadingDeck, setIsDownloadingDeck] = useState(false);
   const title = getSavedItemTitle(item.record, item.type);
   const href = item.type === "Deck" ? `/custom-deck?deck=${encodeURIComponent(item.id)}` : getItemHref(item.record, item.type);
   const generatedDeckFile = item.type === "Deck" ? getGeneratedDeckFile(item.record) : null;
 
-  async function openDeck() {
-    if (!onDownloadDeck || isOpeningDeck) return;
-    setIsOpeningDeck(true);
+  async function downloadDeck() {
+    if (!onDownloadDeck || isDownloadingDeck) return;
+    setIsDownloadingDeck(true);
     try {
       await onDownloadDeck(item.id);
     } finally {
-      setIsOpeningDeck(false);
+      setIsDownloadingDeck(false);
     }
   }
 
@@ -973,11 +975,10 @@ function SavedWorkRow({
         <div className="workspace-list-actions">
           {item.type === "Deck" ? (
             <button
-              aria-busy={isOpeningDeck}
+              aria-haspopup="dialog"
               aria-label={`Open ${title}`}
               className="workspace-icon-button"
-              disabled={!onDownloadDeck || isOpeningDeck}
-              onClick={() => void openDeck()}
+              onClick={() => setShowDeck(true)}
               title={`Open ${title}`}
               type="button"
             >
@@ -989,8 +990,8 @@ function SavedWorkRow({
             type={item.type}
             primaryHref={item.type === "Analysis" ? undefined : href}
             primaryLabel={item.type === "Deck" ? "Create new from this" : "Edit"}
-            downloadDisabled={!generatedDeckFile || isOpeningDeck}
-            onDownloadDeck={item.type === "Deck" && onDownloadDeck ? openDeck : undefined}
+            downloadDisabled={!generatedDeckFile || isDownloadingDeck}
+            onDownloadDeck={item.type === "Deck" && onDownloadDeck ? downloadDeck : undefined}
             onDelete={onDelete}
             onDuplicate={onDuplicate}
             onRename={onRename}
@@ -999,6 +1000,16 @@ function SavedWorkRow({
       </div>
 
       <SavedItemDetails item={item.record} type={item.type} />
+      {showDeck ? (
+        <SavedDeckViewer
+          title={title}
+          file={generatedDeckFile}
+          draftHref={href}
+          isDownloading={isDownloadingDeck}
+          onDownload={() => void downloadDeck()}
+          onClose={() => setShowDeck(false)}
+        />
+      ) : null}
     </article>
   );
 }
@@ -2055,7 +2066,7 @@ export function WorkspaceClient() {
           <WorkspaceSectionList
             id="decks"
             title="Decks"
-            description="Open retrieves the saved PowerPoint file. To reuse a brief, choose “Create new from this” in More actions."
+            description="Open a saved deck to view its slides in Workspace."
             action={
               <Link className="button button-secondary button-small" href="/presentation-templates">
                 New deck

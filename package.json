@@ -11,6 +11,8 @@
     "generate:templates": "node scripts/generate-pptx-templates.mjs"
   },
   "dependencies": {
+    "@office-kit/pptx": "0.30.0",
+    "@office-kit/pptx-preview": "0.23.0",
     "@supabase/supabase-js": "^2.106.1",
     "jszip": "^3.10.1",
     "next": "16.2.6",
