@@ -11,13 +11,20 @@ export const powerPointMimeType = "application/vnd.openxmlformats-officedocument
 
 export const slidePurposes = ["title", "divider", "content"] as const;
 export type SlidePurpose = typeof slidePurposes[number];
-export type SlideContent = { title: string; lines: string[]; purpose: SlidePurpose };
+export type SlideContent = {
+  title: string;
+  lines: string[];
+  purpose: SlidePurpose;
+  table?: { headers: string[]; widths: number[]; rows: string[][] };
+  chart?: { label: string; value: number; display: string }[];
+};
 export type LayoutChoices = Record<SlidePurpose, string>;
 type SlideDesign = {
   backgroundColor: string;
   textColor: string;
   headFontFace: string;
   bodyFontFace: string;
+  accentColor?: string;
 };
 type Relationship = { id: string; kind: string; target: string; external: boolean };
 type Box = [left: number, top: number, width: number, height: number];
@@ -118,6 +125,69 @@ function readableColor(background: string, preferred: string) {
   const fg = luminance(preferred);
   if ((Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05) >= 4.5) return preferred;
   return bg > 0.179 ? "000000" : "FFFFFF";
+}
+
+function slideVisual(content: SlideContent, bounds: Box, width: number, height: number, design: SlideDesign) {
+  const [x, y, w, h] = bounds;
+  const accent = design.accentColor ?? "0F766E";
+  const scale = Math.max(.42, Math.min(1, height / 6858000, width / 9144000));
+  const pt = (value: number) => Math.round(value * scale * 100);
+  if (content.table) {
+    const { headers, widths, rows } = content.table;
+    const rowHeight = Math.round(height * h / (rows.length + 1));
+    let allocatedWidth = 0;
+    const grid = widths.map((fraction, index) => {
+      const cellsWidth = index === 0 ? 1 - widths.slice(1).reduce((sum, value) => sum + value, 0) : fraction;
+      const column = index === widths.length - 1 ? Math.round(width * w) - allocatedWidth : Math.round(width * w * cellsWidth);
+      allocatedWidth += column;
+      return `<a:gridCol w="${column}"/>`;
+    }).join("");
+    const tableRows = [headers, ...rows].map((row, rowIndex) => {
+      const fill = rowIndex === 0 ? accent : rowIndex % 2 ? "E8F4F1" : "FFFFFF";
+      const color = readableColor(fill, rowIndex === 0 ? "FFFFFF" : "152C2C");
+      const cells = row.map((value) => {
+        const text = textBody([value], design.bodyFontFace, color, pt(headers.length > 4 ? 14 : 15), rowIndex === 0)
+          .replaceAll("p:txBody", "a:txBody");
+        return `<a:tc>${text}<a:tcPr marL="85000" marR="85000" marT="20000" marB="20000" anchor="ctr"><a:solidFill><a:srgbClr val="${fill}"/></a:solidFill></a:tcPr></a:tc>`;
+      }).join("");
+      return `<a:tr h="${rowHeight}">${cells}</a:tr>`;
+    }).join("");
+    return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="10000" name="Editable table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+      <p:xfrm><a:off x="${Math.round(width * x)}" y="${Math.round(height * y)}"/><a:ext cx="${Math.round(width * w)}" cy="${rowHeight * (rows.length + 1)}"/></p:xfrm>
+      <a:graphic><a:graphicData uri="${drawingNamespace}/table"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${tableRows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
+  }
+  if (!content.chart?.length) return "";
+  const chart = content.chart;
+  const magnitude = Math.max(...chart.map(({ value }) => Math.abs(value)));
+  if (!Number.isFinite(magnitude) || magnitude <= 0) return "";
+  const rowHeight = h / chart.length;
+  const zero = x + w * .60;
+  const baseline = drawingBox(10000, "Zero line", width, height, [zero - .0006, y, .0012, h], "93A7AB", "");
+  return baseline + chart.map((point, index) => {
+    const top = y + rowHeight * (index + .23);
+    const barWidth = w * .23 * Math.abs(point.value) / magnitude;
+    const id = 10001 + index * 3;
+    const label = textBody([point.label], design.bodyFontFace, design.textColor, pt(15));
+    const value = textBody([point.display], design.bodyFontFace, design.textColor, pt(15), true);
+    return drawingBox(id, "Measure", width, height, [x, top, w * .34, rowHeight * .7], "", label)
+      + drawingBox(id + 1, "Variance", width, height, [x + w * .85, top, w * .15, rowHeight * .7], "", value)
+      + (barWidth ? drawingBox(id + 2, "Editable variance bar", width, height, [point.value < 0 ? zero - barWidth : zero, top, barWidth, rowHeight * .43], point.value < 0 ? "AC5235" : accent, "") : "");
+  }).join("");
+}
+
+export async function addDeckVisuals(output: Blob, contents: SlideContent[], design: SlideDesign) {
+  if (!contents.some(({ table, chart }) => table || chart)) return output;
+  const { default: JSZip } = await import("jszip");
+  const zip = await JSZip.loadAsync(await output.arrayBuffer());
+  for (const [index, content] of contents.entries()) {
+    if (!content.table && !content.chart) continue;
+    const path = `ppt/slides/slide${index + 1}.xml`;
+    const slide = await zip.file(path)?.async("string");
+    if (!slide) throw new Error("Could not add editable visuals to the deck.");
+    const shapes = slideVisual(content, [.054, .22, .892, .63], 12192000, 6858000, design);
+    zip.file(path, slide.replace("</p:spTree>", shapes + "</p:spTree>"));
+  }
+  return zip.generateAsync({ type: "blob", mimeType: powerPointMimeType, compression: "DEFLATE" });
 }
 
 function slideArtwork(document: Document | null) {
@@ -420,10 +490,16 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
     const textScale = Math.max(.4, Math.min(1, height / 6858000, width / 9144000));
     const title = textBody([content.title], design.headFontFace, textColor, Math.round(2900 * textScale), true);
     const body = textBody(content.lines, design.bodyFontFace, textColor, Math.round(1800 * textScale));
-    const boxes = slideBoxes(candidate, content.purpose, width, height);
+    const naturalBoxes = slideBoxes(candidate, content.purpose, width, height);
+    const hasVisual = Boolean(content.table || content.chart);
+    const boxes = hasVisual && (!naturalBoxes.body || naturalBoxes.body[3] < .40)
+      ? { title: [.07, .13, .86, .13] as Box, body: [.07, .32, .86, .55] as Box, panel: false }
+      : naturalBoxes;
     const panel = boxes.panel ? drawingBox(2, "Content background", width, height, [.04, .15, .92, .77], backgroundColor, "") : "";
     const titleBox = drawingBox(3, "Title", width, height, boxes.title, "", title);
-    const bodyBox = boxes.body ? drawingBox(4, "Content", width, height, boxes.body, "", body) : "";
+    const bodyBox = boxes.body ? hasVisual
+      ? slideVisual(content, boxes.body, width, height, { ...design, textColor })
+      : drawingBox(4, "Content", width, height, boxes.body, "", body) : "";
     const showMasterShapes = document?.documentElement.getAttribute("showMasterSp") === "0" ? ' showMasterSp="0"' : "";
     const roleName = { title: "Title slide", divider: "Section divider", content: "Content slide" }[content.purpose];
     zip.file(part, `<p:sld xmlns:p="${presentationNamespace}" xmlns:a="${drawingNamespace}"${showMasterShapes}><p:cSld name="${roleName}">${retainedBackground}
