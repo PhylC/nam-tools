@@ -7,7 +7,7 @@ import { useAptMode } from "./AptMode";
 import { buildUpgradeHref, useProAction } from "./ProActionGuard";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackUpgradeClicked } from "../../lib/analytics";
-import { requiredSoaWorkedExampleId, type QuickCalculatorId } from "../data/quickCalculators";
+import { quickCalculatorPath, requiredSoaWorkedExampleId, type QuickCalculatorId } from "../data/quickCalculators";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "./CalculatorCaveat";
 import {
@@ -346,6 +346,7 @@ function NumericInput({
   placeholder,
   required = true,
   step = "0.01",
+  invalid = false,
 }: {
   label: string;
   help: string;
@@ -354,6 +355,7 @@ function NumericInput({
   placeholder?: string;
   required?: boolean;
   step?: string;
+  invalid?: boolean;
 }) {
   return (
     <Field label={<InfoLabel label={label} info={help} required={required} />} help={help}>
@@ -363,6 +365,7 @@ function NumericInput({
         min="0"
         placeholder={placeholder}
         required={required}
+        aria-invalid={invalid || undefined}
         step={step}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -2386,6 +2389,7 @@ function QuickCalculatorCard({
   onLoadExample,
   exampleMessage,
   trackOpened = true,
+  validationError,
 }: {
   id?: string;
   title: string;
@@ -2399,6 +2403,7 @@ function QuickCalculatorCard({
   onLoadExample?: () => void;
   exampleMessage?: string;
   trackOpened?: boolean;
+  validationError?: string;
 }) {
   const caveatType = getCalculatorCaveatType(id);
   const calculatorSlug = id ?? slugifyFilename(title);
@@ -2465,7 +2470,7 @@ function QuickCalculatorCard({
                   inputs={inputs}
                   outputs={results.map((item) => ({ label: item.label, value: item.value }))}
                   summaryText={exportSummary}
-                  sourcePath={id ? `/calculators/${id}` : "/calculators/quick-calculators"}
+                  sourcePath={(id && quickCalculatorPath(id)) || "/calculators/quick-calculators"}
                 />
               </div>
             </div>
@@ -2477,7 +2482,8 @@ function QuickCalculatorCard({
             <LockedProActions />
           </>
         ) : (
-          <p className="empty-state">Enter the required fields to see your result.</p>
+          validationError ? <p className="field-error" role="alert">{validationError}</p>
+            : <p className="empty-state">Enter the required fields to see your result.</p>
         )}
       </div>
       {caveatType === "pricing" ? <RetailerPricingCaveat /> : null}
@@ -2526,12 +2532,14 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
 
   const [rspInvoice, setRspInvoice] = useState(lastUsed.rspInvoice ?? "");
   const [rspMargin, setRspMargin] = useState(lastUsed.rspMargin ?? "");
+  const targetMargin = Number(rspMargin);
+  const invalidTargetMargin = hasValues([rspMargin]) && (!Number.isFinite(targetMargin) || targetMargin < 0 || targetMargin >= 100);
 
   const retailFromInvoice = useMemo(() => {
-    const exVat = num(rspInvoice) / Math.max(1 - rate(rspMargin), 0.01);
+    const exVat = invalidTargetMargin ? 0 : num(rspInvoice) * (100 / (100 - targetMargin));
     const incVat = exVat * (1 + rate(quickTaxRate));
-    return { exVat, incVat, cashMargin: exVat - num(rspInvoice), margin: exVat > 0 ? (exVat - num(rspInvoice)) / exVat : 0 };
-  }, [rspInvoice, rspMargin, quickTaxRate]);
+    return { exVat, incVat, cashMargin: exVat - num(rspInvoice), margin: exVat > 0 ? targetMargin / 100 : 0 };
+  }, [rspInvoice, targetMargin, invalidTargetMargin, quickTaxRate]);
 
   const [actualInvoice, setActualInvoice] = useState(lastUsed.actualInvoice ?? "");
   const [actualMode, setActualMode] = useState(lastUsed.actualMode ?? "soa");
@@ -2785,7 +2793,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
   const hasQuickTax = hasValues([quickTaxRate]);
   const ready = {
     requiredSoa: hasValues([soaStandardRetail, soaStandardMargin, soaProposedRetail, soaRequiredMargin]) && hasQuickTax,
-    retailFromInvoice: hasValues([rspInvoice, rspMargin]) && hasQuickTax,
+    retailFromInvoice: hasValues([rspInvoice, rspMargin]) && hasQuickTax && !invalidTargetMargin,
     actualMargin:
       hasValues([
         actualInvoice,
@@ -2893,6 +2901,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
       <QuickCalculatorCard
         id="retail-selling-price-calculator"
         isReady={ready.retailFromInvoice}
+        validationError={invalidTargetMargin ? "Enter a target retailer margin from 0% up to, but below, 100%." : undefined}
         title="Retail Selling Price from Invoice + Margin"
         question="Estimate retail/sale price from invoice price and target retailer margin."
         onLoadExample={() => loadExample("retail-selling-price-calculator")}
@@ -2914,7 +2923,7 @@ export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId 
         ]}
       >
         <NumericInput label="Retailer invoice/buy price" help="Price the retailer pays the supplier per unit." placeholder="e.g. 1.75" value={rspInvoice} onChange={setRspInvoice} />
-        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={rspMargin} onChange={setRspMargin} />
+        <NumericInput label="Target retailer margin %" help="Target margin on excluding-tax retail selling price." placeholder="e.g. 25" value={rspMargin} onChange={setRspMargin} invalid={invalidTargetMargin} />
       </QuickCalculatorCard>
       ) : null}
 

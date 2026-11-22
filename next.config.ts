@@ -58,6 +58,11 @@ const nextConfig: NextConfig = {
         destination: "/calculators/sales-tax-vat-iva-calculator",
         permanent: true,
       },
+      {
+        source: "/calculators/markup-vs-margin-helper",
+        destination: "/calculators/markup-vs-margin-calculator",
+        permanent: true,
+      },
     ];
   },
 };

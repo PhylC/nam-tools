@@ -24,6 +24,7 @@ import {
 import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
+import { canonicalQuickCalculatorPath } from "../data/quickCalculators";
 import { SavedDeckViewer } from "./SavedDeckViewer";
 
 type SavedRecord = Record<string, unknown>;
@@ -181,7 +182,7 @@ function getItemHref(item: SavedRecord, type: Exclude<SavedItemType, "Deck">) {
   const sourcePath = getText(item.sourcePath, defaultPath);
   if (type === "Comparison" && item.id) return `${sourcePath}?comparison=${String(item.id)}`;
   if (type === "Scenario" && item.id) return `${sourcePath}?saved=${String(item.id)}`;
-  return sourcePath;
+  return type === "Analysis" ? canonicalQuickCalculatorPath(sourcePath) : sourcePath;
 }
 
 function recordSearchText(item: SavedRecord, type: SavedItemType) {

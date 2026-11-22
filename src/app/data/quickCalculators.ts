@@ -194,3 +194,14 @@ export function getQuickCalculatorBySlug(slug: string) {
 export function getQuickCalculatorById(id: QuickCalculatorId) {
   return quickCalculators.find((calculator) => calculator.id === id);
 }
+
+export function quickCalculatorPath(id: string) {
+  const calculator = quickCalculators.find((item) => item.id === id);
+  return calculator ? `/calculators/${calculator.slug}` : undefined;
+}
+
+export function canonicalQuickCalculatorPath(path: string) {
+  const match = /^\/calculators\/([^/?#]+)([?#].*)?$/.exec(path);
+  const canonical = match ? quickCalculatorPath(match[1]) : undefined;
+  return canonical ? canonical + (match?.[2] ?? "") : path;
+}

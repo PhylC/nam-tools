@@ -6,6 +6,8 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildRoiProposalDraft, roiProposalPath, roiProposalStorageKey, roiWorkedExample } from "../../lib/roiProposalDraft";
+import { calculateLine, roiNumber as n, type SupportMode } from "../../lib/roiCalculation";
+import { readRoiCsv } from "../../lib/roiCsv";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { LoadExampleButton } from "../components/LoadExampleButton";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
@@ -22,8 +24,6 @@ import {
   saveScenario,
   saveRoiPlan,
 } from "../../lib/saveStore";
-
-type SupportMode = "soa" | "promoInvoice";
 
 type RoiLine = {
   id: string;
@@ -214,11 +214,6 @@ const blankGroup = (name = "Q4 Retailer Promo Plan"): RoiGroup => ({
   scenarios: [blankScenario()],
 });
 
-function n(value: string) {
-  const parsed = Number(value.replace(/,/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 function has(value: string) {
   return value.trim() !== "";
 }
@@ -239,44 +234,6 @@ function pct(value: number | null) {
   return value !== null && Number.isFinite(value)
     ? new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 1 }).format(value)
     : "n/a";
-}
-
-function calculateLine(line: RoiLine) {
-  const currentInvoice = n(line.currentInvoice);
-  const fixedSupport = n(line.fixedSupport);
-  const hasPromoInvoice = has(line.promoInvoice);
-  const hasSoa = has(line.soa);
-  const supportPerUnit = hasSoa ? n(line.soa) : hasPromoInvoice ? currentInvoice - n(line.promoInvoice) : 0;
-  const promoInvoice = hasPromoInvoice ? n(line.promoInvoice) : hasSoa ? currentInvoice - n(line.soa) : currentInvoice;
-  const baselineUnits = n(line.baselineUnits);
-  const promoUnits = n(line.promoUnits);
-  const incrementalUnits = promoUnits - baselineUnits;
-  const baselineRevenue = baselineUnits * currentInvoice;
-  const promoRevenue = promoUnits * promoInvoice;
-  const incrementalRevenue = promoRevenue - baselineRevenue;
-  const supportCost = supportPerUnit * promoUnits + fixedSupport;
-  const hasCogs = has(line.cogs);
-  const baselineProfit = hasCogs ? (currentInvoice - n(line.cogs)) * baselineUnits : 0;
-  const promoProfit = hasCogs ? (promoInvoice - n(line.cogs)) * promoUnits - fixedSupport : 0;
-  const profitImpact = hasCogs ? promoProfit - baselineProfit : 0;
-  const revenueRoi = supportCost > 0 ? incrementalRevenue / supportCost : null;
-  const profitRoi = hasCogs && supportCost > 0 ? profitImpact / supportCost : null;
-
-  return {
-    supportPerUnit,
-    promoInvoice,
-    incrementalUnits,
-    baselineRevenue,
-    promoRevenue,
-    incrementalRevenue,
-    supportCost,
-    hasCogs,
-    baselineProfit,
-    promoProfit,
-    profitImpact,
-    revenueRoi,
-    profitRoi,
-  };
 }
 
 function aggregate(lines: RoiLine[]) {
@@ -335,7 +292,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function restoreSavedLine(value: unknown): RoiLine {
   const line = isRecord(value) ? value : {};
-  const supportMode = line.supportMode === "soa" || line.supportMode === "promoInvoice" ? line.supportMode : "promoInvoice";
+  const promoInvoice = typeof line.promoInvoice === "string" ? line.promoInvoice : "";
+  const soa = typeof line.soa === "string" ? line.soa : "";
+  const supportMode = line.supportMode === "soa" || line.supportMode === "promoInvoice"
+    ? line.supportMode : has(soa) && !has(promoInvoice) ? "soa" : "promoInvoice";
   return {
     ...blankLine(),
     id: typeof line.id === "string" ? line.id : crypto.randomUUID(),
@@ -343,8 +303,8 @@ function restoreSavedLine(value: unknown): RoiLine {
     product: typeof line.product === "string" ? line.product : "",
     notes: typeof line.notes === "string" ? line.notes : "",
     currentInvoice: typeof line.currentInvoice === "string" ? line.currentInvoice : "",
-    promoInvoice: typeof line.promoInvoice === "string" ? line.promoInvoice : "",
-    soa: typeof line.soa === "string" ? line.soa : "",
+    promoInvoice,
+    soa,
     currentSrp: typeof line.currentSrp === "string" ? line.currentSrp : "",
     promoSrp: typeof line.promoSrp === "string" ? line.promoSrp : "",
     baselineUnits: typeof line.baselineUnits === "string" ? line.baselineUnits : "",
@@ -541,46 +501,6 @@ function downloadCsv(filename: string, rows: Array<Array<string | number | null>
   URL.revokeObjectURL(url);
 }
 
-function splitCsvRow(row: string) {
-  const cells: string[] = [];
-  let current = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < row.length; index += 1) {
-    const char = row[index];
-    const nextChar = row[index + 1];
-    if (char === '"' && inQuotes && nextChar === '"') {
-      current += '"';
-      index += 1;
-    } else if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      cells.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-
-  cells.push(current.trim());
-  return cells;
-}
-
-function parseCsv(text: string) {
-  const rows = text
-    .replace(/^\uFEFF/, "")
-    .split(/\r?\n/)
-    .filter((row) => row.trim().length > 0)
-    .map(splitCsvRow);
-  const [headers = [], ...body] = rows;
-  return body.map((row) =>
-    headers.reduce<Record<string, string>>((record, header, index) => {
-      record[header.trim().toLowerCase().split(" ")[0]] = row[index] ?? "";
-      return record;
-    }, {}),
-  );
-}
-
 // These required/optional fields may change as the ROI model evolves.
 const inputTemplateHeaders = [
   "scenario_name OPTIONAL",
@@ -644,19 +564,6 @@ function lineFromUploadRow(row: Record<string, string>): RoiLine {
     currency: row.currency ?? "",
     supportMode: soa && !promoInvoice ? "soa" : "promoInvoice",
   };
-}
-
-function validateUploadRows(rows: Record<string, string>[]) {
-  const errors: string[] = [];
-  rows.forEach((row, index) => {
-    const rowNumber = index + 2;
-    if (!has(row.current_retailer_invoice_buy_price ?? row.current_invoice_price ?? "")) {
-      errors.push(`Row ${rowNumber}: current_retailer_invoice_buy_price is required.`);
-    }
-    if (!has(row.baseline_units ?? "")) errors.push(`Row ${rowNumber}: baseline_units is required.`);
-    if (!has(row.promo_units ?? "")) errors.push(`Row ${rowNumber}: promo_units is required.`);
-  });
-  return errors;
 }
 
 function isLineCalculationComplete(line: RoiLine) {
@@ -723,8 +630,8 @@ function CsvExportButton({
             line.product,
             line.notes,
             line.currentInvoice,
-            line.promoInvoice,
-            line.soa,
+            line.supportMode === "promoInvoice" ? line.promoInvoice : "",
+            line.supportMode === "soa" ? line.soa : "",
             line.currentSrp,
             line.promoSrp,
             line.baselineUnits,
@@ -1833,6 +1740,7 @@ export function RoiPlanner() {
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoSaveSignature = useRef("");
   const autoSaveRequest = useRef(0);
+  const csvUploadRequest = useRef(0);
   const pendingAutoSave = useRef<{ snapshot: ReturnType<typeof buildRoiPlanSnapshot>; signature: string } | null>(null);
   const [plannerState, setPlannerState] = useState(initialRoiPlannerState);
   const { groups, activeGroupId, activeScenarioId } = plannerState;
@@ -1843,6 +1751,7 @@ export function RoiPlanner() {
   const [autoSaveMessage, setAutoSaveMessage] = useState("");
   const [proMessage, setProMessage] = useState("");
   const [proposalError, setProposalError] = useState("");
+  const [csvErrors, setCsvErrors] = useState<string[]>([]);
   const [savingScenarioId, setSavingScenarioId] = useState("");
   const [scenarioSaveMode, setScenarioSaveMode] = useState<"update" | "copy">("update");
   const [scenarioSaveName, setScenarioSaveName] = useState("");
@@ -2487,14 +2396,16 @@ export function RoiPlanner() {
     setGroups(groups.map((group) => (group.id === activeGroup.id ? { ...group, ...patch } : group)));
   }
 
-  function uploadCsv(file: File | undefined) {
+  async function uploadCsv(file: File | undefined) {
     if (!ensureRoiPro("upload-spreadsheet")) return;
     if (!file || !activeGroup) return;
-    file.text().then((text) => {
-      const rows = parseCsv(text);
-      const errors = validateUploadRows(rows);
+    const request = ++csvUploadRequest.current;
+    setCsvErrors([]);
+    try {
+      const { rows, errors } = readRoiCsv(await file.text());
+      if (request !== csvUploadRequest.current) return;
       if (errors.length > 0) {
-        window.alert(errors.slice(0, 8).join("\n"));
+        setCsvErrors(errors);
         return;
       }
 
@@ -2523,9 +2434,13 @@ export function RoiPlanner() {
               }
             : group,
         ),
-        activeScenarioId: scenarios[0]?.id ?? "",
+        activeScenarioId: current.activeGroupId === activeGroup.id ? scenarios[0].id : current.activeScenarioId,
       }));
-    });
+    } catch (error) {
+      if (request === csvUploadRequest.current) {
+        setCsvErrors([error instanceof Error ? error.message : "Could not read the selected CSV."]);
+      }
+    }
   }
 
   const validNumber = (value: string) => Number(value.replaceAll(",", ""));
@@ -2662,7 +2577,11 @@ export function RoiPlanner() {
             <label className="button button-secondary button-small roi-locked-action roi-toolbar-action-button" title="Upload spreadsheet">
               <span aria-hidden="true">↑</span>
               <span>Upload</span>
-              <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
+              <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                void uploadCsv(file);
+              }} />
             </label>
             <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
             <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={() => saveCurrentGroup()} type="button">
@@ -2678,6 +2597,13 @@ export function RoiPlanner() {
         </div> : null}
 
         {proMessage ? <p className="pro-inline-message" role="status">{proMessage}</p> : null}
+        {csvErrors.length ? (
+          <div className="pro-inline-message roi-save-status-warning" role="alert">
+            <strong>CSV import failed. Your current comparison was kept.</strong>
+            <ul>{csvErrors.slice(0, 8).map((error) => <li key={error}>{error}</li>)}</ul>
+            {csvErrors.length > 8 ? <p>{csvErrors.length - 8} more issues. Fix these and try again.</p> : null}
+          </div>
+        ) : null}
         {isPro && saveMessage ? <p className={saveStatusClass} role="status">{saveMessage}</p> : null}
 
         {isPro ? (
