@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { readRoiProposalDraft, roiProposalEvidence, roiProposalPath, roiProposalStorageKey, type RoiProposalDraft } from "../../lib/roiProposalDraft";
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type PptxGenJS from "pptxgenjs";
 import { addDeckVisuals, powerPointMimeType, slidePurposes } from "./powerPointTemplate";
@@ -1105,7 +1106,7 @@ function TemplateLayoutReview({ review, deckName, busy, onChange, onConfirm, onC
   );
 }
 
-export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnDeckId: string; selectedTemplate: string }) {
+export function CustomDeckClient({ basedOnDeckId, selectedTemplate, fromRoi }: { basedOnDeckId: string; selectedTemplate: string; fromRoi: boolean }) {
   const { isLoading: isAuthLoading, plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
@@ -1144,6 +1145,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [qbrReview, setQbrReview] = useState<PendingQbrReview | null>(null);
   const [commercialReview, setCommercialReview] = useState<PendingCommercialReview | null>(null);
   const [commercialDraft, setCommercialDraft] = useState<CommercialApproval | null>(null);
+  const [importedRoi, setImportedRoi] = useState<RoiProposalDraft | null>(null);
   const [priorQbr, setPriorQbr] = useState<QbrApproval | null>(null);
   const [isQbrExample, setIsQbrExample] = useState(false);
   const isPro = plan === "pro" || plan === "team";
@@ -1208,7 +1210,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   }, []);
 
   useEffect(() => {
-    if (basedOnDeckId || !isPro) return;
+    if (basedOnDeckId || fromRoi || !isPro) return;
     let timeoutId: number | null = null;
     try {
       const rawDraft = window.localStorage.getItem(CUSTOM_DECK_DRAFT_STORAGE_KEY);
@@ -1234,7 +1236,31 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     return () => {
       if (timeoutId) window.clearTimeout(timeoutId);
     };
-  }, [basedOnDeckId, isPro]);
+  }, [basedOnDeckId, fromRoi, isPro]);
+
+  useEffect(() => {
+    if (!fromRoi || basedOnDeckId) return;
+    const restore = window.setTimeout(() => {
+      try {
+        const draft = readRoiProposalDraft(window.sessionStorage);
+        if (!draft) return;
+        setImportedRoi(draft);
+        setCommercialDraft({
+          kind: "promo-proposal",
+          data: {
+            baselineUnits: String(draft.baselineUnits), expectedUnits: String(draft.expectedUnits),
+            funding: String(draft.fixedFunding), baselinePriceImpact: String(draft.baselinePriceImpact),
+            contribution: draft.unitContribution === null ? "" : String(draft.unitContribution),
+            currency: draft.currency, roiSource: "true",
+          },
+        });
+        setBrief(roiProposalEvidence(draft));
+      } catch {
+        // A blocked or expired local draft leaves the proposal builder available.
+      }
+    }, 0);
+    return () => window.clearTimeout(restore);
+  }, [fromRoi, basedOnDeckId]);
 
   useEffect(() => {
     if (!basedOnDeckId || !isPro) return;
@@ -1634,6 +1660,9 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             : "Deck created and saved to your account."
           : `Deck created, but file storage did not save it: ${uploaded.error ?? "storage unavailable"}. Use the download link below.`,
       );
+      if (importedRoi && commercialApproved?.kind === "promo-proposal" && uploaded.path) {
+        try { window.sessionStorage.removeItem(roiProposalStorageKey); } catch { /* The deck is already saved. */ }
+      }
     } catch (error) {
       if (pendingDownloadUrl) {
         setGeneratedDeckUrl(pendingDownloadUrl);
@@ -1700,6 +1729,15 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     <section className="shell section">
       <div className="custom-deck-layout">
         <form className="card custom-deck-page-form" onSubmit={preventSubmit}>
+          {importedRoi ? (
+            <section className="roi-import-note" aria-labelledby="roi-import-heading">
+              <h2 id="roi-import-heading">Figures from your ROI calculation</h2>
+              <p>{importedRoi.baselineUnits.toLocaleString("en-GB")} baseline units · {importedRoi.expectedUnits.toLocaleString("en-GB")} expected units · {new Intl.NumberFormat("en-GB", { style: "currency", currency: importedRoi.currency }).format(importedRoi.fixedFunding)} fixed funding</p>
+              <p>These figures are held in this tab. Confirm or edit them during the proposal review.</p>
+              {!isAuthLoading && !user ? <Link className="button button-small" href={`/login?returnTo=${encodeURIComponent(roiProposalPath)}`}>Sign in to continue</Link> : null}
+              <Link className="text-link" href="/roi-tool?resume=proposal#roi-planner-start">Back to the ROI calculation</Link>
+            </section>
+          ) : null}
           {!isPro ? (
             <div className="locked-card custom-deck-lock">
               <div>
@@ -1709,7 +1747,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 </span>
               </div>
               <div className="summary-actions">
-                <Link className="button button-secondary button-small" href={buildUpgradeHref({ from: "custom-deck", feature: "custom-deck" })}>
+                <Link className="button button-secondary button-small" href={buildUpgradeHref(importedRoi ? { from: "roi-tool", feature: "roi-proposal" } : { from: "custom-deck", feature: "custom-deck" })}>
                   Switch to Pro
                 </Link>
                 <Link className="button button-secondary button-small" href="/presentation-templates">

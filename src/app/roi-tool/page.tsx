@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { retailMediaRoasPath } from "../../lib/retailMediaRoas";
 import { FaqSection } from "../components/FaqSection";
+import { ResourceMethodology } from "../components/ResourceMethodology";
 import { Hero } from "../components/Shell";
 import { JsonLd } from "../components/JsonLd";
 import { breadcrumbJsonLd, faqJsonLd, seoMetadata } from "../seo";
+import { roiWorkedExample } from "../../lib/roiProposalDraft";
 import { RoiToolProduct } from "./RoiToolClient";
 
 export const metadata = seoMetadata({
@@ -69,12 +71,15 @@ export default function RoiToolPage() {
           <h2 id="trade-promotion-example">Trade promotion ROI example</h2>
           <p>All amounts exclude VAT. The example assumes a cost of goods of £2 per unit in both scenarios.</p>
           <ul className="compact-list">
-            <li><strong>Baseline.</strong> 1,000 units at a £4 invoice price bring in £4,000 and generate £2,000 of profit.</li>
-            <li><strong>Promotion.</strong> 1,400 units at £3.50 bring in £4,900. Profit after a £200 fixed fee is £1,900.</li>
+            <li><strong>Baseline.</strong> {Number(roiWorkedExample.baselineUnits).toLocaleString("en-GB")} units at a £{roiWorkedExample.currentInvoice} invoice price bring in £4,000 and generate £2,000 of profit.</li>
+            <li><strong>Promotion.</strong> {Number(roiWorkedExample.promoUnits).toLocaleString("en-GB")} units at £{roiWorkedExample.promoInvoice} bring in £4,900. Profit after a £200 fixed fee is £1,900.</li>
           </ul>
           <p>Revenue rises by £900 while profit falls by £100. At the same sales forecast, bringing the fee down to £100 restores baseline profit.</p>
           <p>For a retailer’s paid media proposal, use the <Link href={retailMediaRoasPath}>retail media ROAS and profit calculator</Link>.</p>
         </article>
+      </section>
+      <section className="shell">
+        <ResourceMethodology reviewedOn="2026-11-22">Use matched periods and stores for the baseline and forecast. Supplier revenue uses invoice prices excluding tax. Profit compares both periods after cost of goods and subtracts fixed promotion fees once. The proposal carries fixed funding separately from any price change on baseline units.</ResourceMethodology>
       </section>
       <div id="promotion-roi-faqs">
         <FaqSection title="Promotion ROI FAQs." faqs={roiToolFaqs} />

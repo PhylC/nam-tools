@@ -1,4 +1,4 @@
-import { at, money, normalizedRows, readNumber, signed, signedMoney, unitCurrency, units } from "./deckBenchmarkFormat.mjs";
+import { at, money, normalizedRows, readNumber, signed, signedMoney, units } from "./deckBenchmarkFormat.mjs";
 import { planningConfig } from "./planningBenchmarks.mjs";
 import { planningPages } from "./planningPages.mjs";
 
@@ -102,6 +102,7 @@ export const commercialConfig = {
       { key: "expectedUnits", label: "Expected total units" },
       { key: "upsideUnits", label: "Upside total units" },
       { key: "funding", label: "Fixed funding (£)" },
+      { key: "baselinePriceImpact", label: "Price impact on baseline units (£)", note: "The change in invoice price applied to normal volume. Enter zero if the price stays the same." },
       { key: "contribution", label: "Contribution per incremental unit before fixed funding (£)" },
     ],
   },
@@ -112,9 +113,12 @@ export function commercialCalculations(kind, data, { financial = true, next = tr
   const notes = [];
   const config = commercialConfig[kind];
   const fields = financial ? config.numeric : [];
+  const promoCurrency = ["GBP", "USD", "EUR"].includes(at(data, "currency")) ? at(data, "currency") : "GBP";
+  const formatPromo = new Intl.NumberFormat("en-GB", { style: "currency", currency: promoCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 });
+  const promoMoney = (value) => value === null ? "—" : formatPromo.format(value);
   const values = Object.fromEntries(fields.map(({ key, label }) => {
     const value = readNumber(at(data, key), key.endsWith("Units"));
-    if (Number.isNaN(value) || (key !== "contribution" && value !== null && value < 0)) errors.push(`Enter a valid value for ${label}.`);
+    if (Number.isNaN(value) || (!["contribution", "baselinePriceImpact"].includes(key) && value !== null && value < 0)) errors.push(`Enter a valid value for ${kind === "promo-proposal" && promoCurrency !== "GBP" ? label.replace("£", promoCurrency) : label}.`);
     return [key, value];
   }));
   const rows = Object.fromEntries(config.groups.map((group) => {
@@ -140,19 +144,20 @@ export function commercialCalculations(kind, data, { financial = true, next = tr
     return { errors, notes, sales, funding: funding ?? (investments.length ? total : null), investments, rows };
   }
 
-  const { baselineUnits, downsideUnits, expectedUnits, upsideUnits, funding, contribution } = values;
+  const { baselineUnits, downsideUnits, expectedUnits, upsideUnits, funding, contribution, baselinePriceImpact } = values;
   const volumes = [downsideUnits, expectedUnits, upsideUnits];
   const hasAssumptions = financial && fields.some(({ key }) => at(data, key));
   if (hasAssumptions && (!Number.isFinite(baselineUnits) || !Number.isFinite(expectedUnits))) errors.push("Enter baseline and expected total units to calculate incremental volume.");
-  if (financial && (funding === null) !== (contribution === null)) errors.push("Enter both fixed funding and contribution per incremental unit to calculate the economics.");
+  if (financial && contribution !== null && funding === null) errors.push("Enter fixed funding to calculate the economics. Enter 0 if there is no fixed funding.");
   if (hasAssumptions && ((downsideUnits !== null && downsideUnits > expectedUnits) || (upsideUnits !== null && upsideUnits < expectedUnits))) errors.push("Put downside, expected and upside totals in ascending order.");
   const economics = financial && Number.isFinite(funding) && Number.isFinite(contribution);
-  const breakEven = economics && funding === 0 && contribution >= 0 ? 0
-    : economics && contribution > 0 ? Math.ceil(Math.round(funding * 100) / Math.round(contribution * 100)) : null;
+  const costPennies = Math.round((funding ?? 0) * 100) + Math.round((baselinePriceImpact ?? 0) * 100);
+  const breakEven = economics && costPennies <= 0 && contribution >= 0 ? 0
+    : economics && contribution > 0 ? Math.ceil(costPennies / Math.round(contribution * 100)) : null;
   const scenarios = volumes.map((total, index) => {
     if (!Number.isFinite(total) || !Number.isFinite(baselineUnits)) return null;
     const incremental = total - baselineUnits;
-    const profit = economics ? (incremental * Math.round(contribution * 100) - Math.round(funding * 100)) / 100 : null;
+    const profit = economics ? (incremental * Math.round(contribution * 100) - costPennies) / 100 : null;
     return {
       label: ["Downside", "Expected", "Upside"][index], total, incremental, profit,
       uplift: baselineUnits > 0 ? incremental / baselineUnits * 100 : null,
@@ -163,10 +168,11 @@ export function commercialCalculations(kind, data, { financial = true, next = tr
     notes.push(`Expected incremental volume is ${units.format(scenarios[1].incremental)} units.`);
     if (economics) notes.push(breakEven === null
       ? "A positive contribution per incremental unit is needed for a finite break-even volume."
-      : `Break-even is ${units.format(breakEven)} incremental units. Expected contribution after funding is ${money(scenarios[1].profit)}.`);
+      : `Break-even is ${units.format(breakEven)} incremental units. Expected contribution after funding is ${promoMoney(scenarios[1].profit)}.`);
+    if (!economics && Number.isFinite(funding)) notes.push("Funding is recorded. Add contribution per incremental unit to calculate profit and break-even.");
     if (economics && scenarios[1].profit < 0) notes.push("The expected case loses money. Rework the terms or record why approval is still justified.");
   }
-  return { errors, notes, baselineUnits, funding, contribution, breakEven, scenarios, economics, rows };
+  return { errors, notes, baselineUnits, funding, contribution, baselinePriceImpact, promoCurrency, costPennies, breakEven, scenarios, economics, rows };
 }
 
 /**
@@ -218,8 +224,11 @@ export function commercialPages(kind, data, options = {}) {
     groupTable(jbpGroups[3], "Give each quarter an owner and a measurable decision or outcome.");
     note("Review cadence and approval", "Capture the approval and the forum that will track delivery.", [["Decision requested", decision], ["Governance", governance]]);
   } else {
+    const formattedMoney = new Intl.NumberFormat("en-GB", { style: "currency", currency: model.promoCurrency, maximumFractionDigits: 2, minimumFractionDigits: 0 });
+    const formattedRate = new Intl.NumberFormat("en-GB", { style: "currency", currency: model.promoCurrency, minimumFractionDigits: 2 });
+    const signedValue = (value) => (value > 0 ? "+" : "") + formattedMoney.format(value);
     const expected = model.scenarios[1];
-    const result = expected ? `${units.format(expected.incremental)} incremental units expected${model.economics ? `; ${signedMoney(expected.profit)} contribution after funding.` : "."}` : "";
+    const result = expected ? `${units.format(expected.incremental)} incremental units expected${model.economics ? `; ${signedValue(expected.profit)} contribution after funding.` : "."}` : "";
     note("Offer and approval requested", "Lead with the offer, the commercial case and the buying decision.", [["Decision today", decision], ["Offer", scope], ["Expected result", result || benefit]]);
     note("Retailer benefit and baseline", "Use comparable stores and periods, and make the shopper benefit explicit.", [["Retailer benefit", benefit], ["Baseline and assumptions", evidence]]);
     const columns = ["Measure", "Downside", "Expected", "Upside"];
@@ -231,15 +240,22 @@ export function commercialPages(kind, data, options = {}) {
         scenarioRow("Uplift vs baseline", ({ uplift }) => uplift === null ? "—" : `${signed.format(uplift)}%`),
       ], [.34, .22, .22, .22], true);
     }
+    const fundingDetail = Number.isFinite(model.funding) ? `Fixed funding ${formattedMoney.format(model.funding)}` : "";
+    const priceDetail = model.baselinePriceImpact ? `Price impact on baseline units ${formattedMoney.format(model.baselinePriceImpact)}` : "";
     if (expected && model.economics) {
-      table("Funding and break-even", `Fixed funding ${money(model.funding)} · ${unitCurrency.format(model.contribution)} contribution per incremental unit before funding.`, columns, [
-        scenarioRow("Contribution after funding", ({ profit }) => signedMoney(profit)),
-        scenarioRow("Contribution before funding", ({ profit }) => money(profit + model.funding)),
+      const guidance = [fundingDetail, priceDetail, `${formattedRate.format(model.contribution)} contribution per incremental unit before funding.`].filter(Boolean).join(" · ");
+      table("Funding and break-even", guidance, columns, [
+        scenarioRow("Contribution after funding", ({ profit }) => signedValue(profit)),
+        scenarioRow("Contribution before funding", ({ profit }) => formattedMoney.format(profit + model.costPennies / 100)),
         scenarioRow("Break-even incremental units", () => model.breakEven === null ? "No finite break-even" : units.format(model.breakEven)),
         scenarioRow("Incremental units vs break-even", ({ headroom }) => headroom === null ? "—" : signed.format(headroom)),
       ], [.40, .20, .20, .20], true);
-      chart("Contribution after funding by scenario", "Compare profit or loss against the zero contribution line.", model.scenarios.filter(Boolean).map(({ label, profit }) => ({ label, value: profit, display: signedMoney(profit) })));
+      chart("Contribution after funding by scenario", "Compare profit or loss against the zero contribution line.", model.scenarios.filter(Boolean).map(({ label, profit }) => ({ label, value: profit, display: signedValue(profit) })));
     }
+    if (!model.economics && (fundingDetail || priceDetail)) note("Funding assumptions", "Confirm the commitments with the retailer.", [
+      ["Fixed funding", fundingDetail ? formattedMoney.format(model.funding) : ""],
+      ["Price impact on baseline units", priceDetail ? formattedMoney.format(model.baselinePriceImpact) : ""],
+    ]);
     groupTable(promoGroups[0], "Separate funding approval, in-store execution and data delivery.");
     groupTable(promoGroups[1], "Record the baseline or source, success threshold and who will run the review.");
     const guardrail = model.breakEven === null ? "" : `Review the offer below ${units.format(model.breakEven)} incremental units.`;

@@ -10,7 +10,7 @@ export const metadata = privateMetadata(
 export default async function CustomDeckPage({
   searchParams,
 }: {
-  searchParams: Promise<{ deck?: string | string[]; template?: string | string[] }>;
+  searchParams: Promise<{ deck?: string | string[]; template?: string | string[]; source?: string }>;
 }) {
   const params = await searchParams;
   const deck = Array.isArray(params.deck) ? params.deck[0] : params.deck;
@@ -23,7 +23,7 @@ export default async function CustomDeckPage({
           Turn your brief into an editable PowerPoint draft. Use the built-in design or upload your own template.
         </p>
       </Hero>
-      <CustomDeckClient basedOnDeckId={deck ?? ""} selectedTemplate={template ?? ""} />
+      <CustomDeckClient basedOnDeckId={deck ?? ""} selectedTemplate={template ?? ""} fromRoi={template === "promo-proposal" && params.source === "roi"} />
     </div>
   );
 }

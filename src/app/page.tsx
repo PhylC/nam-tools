@@ -204,6 +204,7 @@ export default function Home() {
             <Link className="button button-secondary" href="#tool-chooser">
               Choose a tool
             </Link>
+            <Link className="hero-text-link" href="/presentation-templates">Download free PowerPoint templates</Link>
           </>
         }
         visual={

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { roiProposalPath } from "../../lib/roiProposalDraft";
 import { FaqSection } from "../components/FaqSection";
 import { JsonLd } from "../components/JsonLd";
 import { Hero, ProductVisual, SectionHeader } from "../components/Shell";
@@ -25,6 +26,7 @@ const plans = [
       "Core calculators",
       "Single-line ROI checks",
       "Basic summaries and CSVs",
+      "Download editable PowerPoint starters and worked examples",
       "GBP, USD and EUR calculator defaults",
       "Saved calculator defaults with an account",
     ],
@@ -36,13 +38,13 @@ const plans = [
     price: getAptProPriceLabels("GBP").monthly,
     detail: getAptProPriceLabels("GBP").annualDetail,
     features: [
-      "Save analyses, scenarios and deck briefs",
-      "Compare deal versions and reopen saved work",
+      "Save, reopen and compare analyses, ROI scenarios and decks in Workspace",
+      "Create editable PowerPoint decks with the built-in design or your own template",
       "Plan multi-SKU ROI scenarios",
       "Upload or paste spreadsheet data",
       "Use sales tax, VAT or IVA assumptions",
       "Save templates, branding and export preferences",
-      "Export cleaner meeting-ready outputs",
+      "Export ROI comparisons and download generated PowerPoint decks",
     ],
     href: "/pricing",
     cta: "Upgrade to Pro",
@@ -69,8 +71,8 @@ const comparisonRows = [
   ["ROI planning", "Single line", "Multi-SKU scenarios"],
   ["Saved work", "Defaults only", "Analyses, scenarios, decks and exports"],
   ["Scenario handling", "One version", "Save, duplicate and compare versions"],
-  ["Exports", "Basic summary and CSV", "Cleaner meeting-ready outputs"],
-  ["Branding and templates", "Not included", "Logo, disclaimer and saved templates"],
+  ["Exports", "Basic summary and CSV", "ROI comparison exports and editable PowerPoint"],
+  ["Presentations", "Free PowerPoint starters and worked examples", "Guided deck builder, uploaded templates and saved decks"],
 ];
 
 const mobileComparisonRows = [
@@ -79,7 +81,7 @@ const mobileComparisonRows = [
   ["Saved work", "Defaults", "Work + exports"],
   ["Scenarios", "One version", "Save + compare"],
   ["Exports", "Basic", "Meeting-ready"],
-  ["Branding", "—", "Logo + templates"],
+  ["Presentations", "Free starters and examples", "Deck builder, custom templates and saved decks"],
 ];
 
 const decisionCards = [
@@ -150,6 +152,7 @@ const upgradeMessages: Record<string, string> = {
   "compare-scenarios": "Upgrade to Pro to compare saved scenarios.",
   "company-template": "Upgrade to Pro to use company templates.",
   "custom-deck": "Upgrade to Pro to build custom decks from your data.",
+  "roi-proposal": "APT Pro creates an editable PowerPoint from your ROI figures. Return to your proposal in this tab when you are ready.",
   "download-template": "Upgrade to Pro to download ROI spreadsheet templates.",
   "export-excel": "Upgrade to Pro to export Excel workbooks.",
   "export-powerpoint": "Upgrade to Pro to export PowerPoint outputs.",
@@ -181,6 +184,7 @@ export default async function PricingPage({
   const params = searchParams ? await searchParams : {};
   const upgradeMessage = getUpgradeMessage(params.feature);
   const checkoutMessage = getCheckoutMessage(params.checkout);
+  const returnToProposal = params.feature === "roi-proposal";
 
   return (
     <div className="page-stack pricing-page">
@@ -195,17 +199,23 @@ export default async function PricingPage({
       />
       <PricingPlanGate
         free={
-          <Hero eyebrow="International pricing" title="APT Pro pricing and plan comparison">
+          <Hero eyebrow="International pricing" title="APT Pro pricing and plan comparison"
+            actions={<>
+              <Link className="button" href="#apt-pro-plan">See APT Pro</Link>
+              {returnToProposal ? <Link className="hero-text-link" href={roiProposalPath}>Back to your proposal</Link> : null}
+            </>}>
             <p>
               Use Free for quick checks. Choose APT Pro when you need to save,
               compare and export customer-ready planning work across GBP, USD or EUR markets.
             </p>
+            <div className="pricing-hero-rate" aria-label="APT Pro monthly and annual prices"><LocalizedProPrice /></div>
             {checkoutMessage ? <p className="pricing-context-note">{checkoutMessage}</p> : null}
             {upgradeMessage ? <p className="pricing-context-note">{upgradeMessage}</p> : null}
           </Hero>
         }
         pro={
-          <Hero eyebrow="Plan and billing" title="Manage your plan or explore custom options.">
+          <Hero eyebrow="Plan and billing" title="Manage your plan or explore custom options."
+            actions={returnToProposal ? <Link className="button" href={roiProposalPath}>Return to your proposal</Link> : undefined}>
             <p>
               You already have APT Pro access. Use this page to check what is included,
               compare plan levels and explore custom or team workflows.
@@ -357,29 +367,13 @@ export default async function PricingPage({
         </div>
         <PricingPlanGate
           free={
-            <>
-              <article className="card comparison-cta mobile-comparison-cta">
-                <div>
-                  <h3>Ready to save the work?</h3>
-                  <p>Choose Pro when the calculation becomes a planning workflow.</p>
-                </div>
-                <div className="cta-row">
-                  <Link className="button button-secondary" href="/calculators">
-                    Use free calculators
-                  </Link>
-                  <Link className="button" href="#apt-pro-plan">
-                    See APT Pro
-                  </Link>
-                </div>
-              </article>
-              <article className="card comparison-cta comparison-cta-desktop">
-                <div>
-                  <h3>Ready to save the work?</h3>
-                  <p>Choose Pro when the calculation becomes a planning workflow.</p>
-                </div>
-                <PricingUpgradeActions location="pricing_comparison" variant="panel" />
-              </article>
-            </>
+            <article className="card comparison-cta">
+              <div>
+                <h3>Ready to save the work?</h3>
+                <p>Save scenarios and reopen them in Workspace when you need to update the plan.</p>
+              </div>
+              <PricingUpgradeActions location="pricing_comparison" variant="panel" />
+            </article>
           }
           pro={
             <article className="card comparison-cta">

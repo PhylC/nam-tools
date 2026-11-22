@@ -1,3 +1,4 @@
+import { ResourceMethodology } from "../../components/ResourceMethodology";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -211,6 +212,7 @@ export default async function CalculatorPage({
           <div id="calculator">
             <QuickCommercialCalculators only={calculator.id} />
           </div>
+          <ResourceMethodology reviewedOn="2026-11-22">Use the same unit and price basis across inputs. Check whether each price includes tax, and enter supplier support separately only when it is outside the invoice price. The worked example and formula show how to reproduce the result.</ResourceMethodology>
           {pricingExample ? (
             <article className="card related-card calculator-guide-card">
               <h2>{pricingExample.title}</h2>

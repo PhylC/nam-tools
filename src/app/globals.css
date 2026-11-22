@@ -3786,53 +3786,6 @@ p {
   scroll-margin-top: 110px;
 }
 
-.roi-first-calculation-guide {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
-  min-width: 0;
-}
-
-.roi-first-calculation-guide div {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  column-gap: 0.55rem;
-  row-gap: 0.12rem;
-  align-items: center;
-  min-width: 0;
-  border: 1px solid #dce7e4;
-  border-radius: 8px;
-  background: #f7fbfa;
-  padding: 0.65rem 0.75rem;
-}
-
-.roi-first-calculation-guide span {
-  grid-row: span 2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #ffffff;
-  font-size: 0.78rem;
-  font-weight: 950;
-}
-
-.roi-first-calculation-guide strong {
-  color: var(--foreground);
-  font-size: 0.92rem;
-  line-height: 1.2;
-}
-
-.roi-first-calculation-guide small {
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 780;
-  line-height: 1.25;
-}
-
 .roi-free-form-heading {
   display: grid;
   gap: 0.18rem;
@@ -4622,7 +4575,6 @@ p {
     grid-column: 1 / -1;
   }
 
-  .roi-first-calculation-guide,
   .roi-free-result-strip {
     grid-template-columns: 1fr;
   }
@@ -10149,10 +10101,6 @@ p {
   }
 
   .desktop-comparison-table,
-  .comparison-cta-desktop {
-    display: none;
-  }
-
   .mobile-comparison-table {
     display: block;
   }
@@ -10336,4 +10284,63 @@ p {
     grid-template-columns: minmax(0, 1fr);
   }
 
+}
+
+.roi-calculation-section {
+  scroll-margin-top: 5rem;
+}
+
+.roi-free-form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .75rem;
+}
+
+.roi-free-form-heading h3,
+.resource-methodology h2,
+.roi-import-note h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.roi-free-pro-actions,
+.roi-proposal-action {
+  margin-block: 1rem;
+}
+
+.roi-free-pro-actions .summary-actions {
+  margin-top: .75rem;
+}
+
+.roi-import-note,
+.resource-methodology {
+  display: grid;
+  gap: .45rem;
+  align-items: start;
+  border-inline-start: 3px solid var(--accent, #137a6d);
+  padding: .65rem 1rem;
+}
+
+.roi-import-note p,
+.resource-methodology p,
+.pricing-hero-rate p {
+  margin: 0;
+}
+
+.roi-import-note .button {
+  justify-self: start;
+}
+
+.pricing-hero-rate .price {
+  margin: 0;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  font-weight: 750;
+}
+
+@media (max-width: 720px) {
+  .roi-calculation-section > .section-header {
+    display: none;
+  }
 }

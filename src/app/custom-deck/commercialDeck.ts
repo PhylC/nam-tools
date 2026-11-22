@@ -41,7 +41,7 @@ export function restoreCommercialApproval(value: unknown): CommercialApproval | 
   const kind = getCommercialKind(value.kind);
   if (!kind || !value.data || typeof value.data !== "object" || Array.isArray(value.data)) return null;
   const data: CommercialData = {};
-  const fields = [...commercialConfig[kind].numeric.map(({ key }) => key), "period", "scope", "benefit", "decision", "evidence", "governance"];
+  const fields = [...commercialConfig[kind].numeric.map(({ key }) => key), "period", "scope", "benefit", "decision", "evidence", "governance", ...(kind === "promo-proposal" ? ["currency", "roiSource"] : [])];
   const saved = value.data as Record<string, unknown>;
   for (const key of fields) if (typeof saved[key] === "string") data[key] = saved[key];
   for (const { key } of commercialConfig[kind].groups) {

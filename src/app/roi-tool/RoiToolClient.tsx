@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
+import { buildRoiProposalDraft, roiProposalPath, roiProposalStorageKey, roiWorkedExample } from "../../lib/roiProposalDraft";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
@@ -879,10 +881,12 @@ function RoiFreeLineForm({
   lines,
   onChangeLines,
   currency = "GBP",
+  onLoadExample,
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
   currency?: string;
+  onLoadExample: () => void;
 }) {
   const line = lines[0];
 
@@ -902,32 +906,13 @@ function RoiFreeLineForm({
   const calc = calculateLine(line);
 
   return (
-    <div className="roi-free-line-form" id="roi-planner-start">
-      <div className="roi-first-calculation-guide" aria-label="First calculation steps">
-        <div>
-          <span>1</span>
-          <strong>Current trade</strong>
-          <small>Invoice price and normal units.</small>
-        </div>
-        <div>
-          <span>2</span>
-          <strong>Promo ask</strong>
-          <small>Promo price or support per unit.</small>
-        </div>
-        <div>
-          <span>3</span>
-          <strong>Uplift</strong>
-          <small>Expected promo units and optional COGS.</small>
-        </div>
-      </div>
-
+    <div className="roi-free-line-form">
       <div className="roi-free-form-heading">
-        <h4>First calculation</h4>
-        <p>Enter one product line. Use either a promotional invoice price or SOA/support per unit.</p>
+        <h3>Calculate promotion ROI</h3>
+        <button className="button button-secondary button-small" onClick={onLoadExample} type="button">Load example</button>
       </div>
 
       <div className="roi-free-input-grid roi-primary-field-grid">
-        <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine({ sku: value, product: "" })} />
         <MobileField field="currentInvoice" label="Current invoice" required type="number" value={line.currentInvoice} onChange={(value) => changeLine({ currentInvoice: value })} />
         <MobileField field="baselineUnits" type="number" value={line.baselineUnits} onChange={(value) => changeLine({ baselineUnits: value })} />
         <div className="roi-linked-promo-fields">
@@ -946,6 +931,7 @@ function RoiFreeLineForm({
       <details className="roi-free-advanced">
         <summary>Show optional profit inputs</summary>
         <div className="roi-free-advanced-grid">
+          <MobileField field="sku" value={lineIdentifier(line)} onChange={(value) => changeLine({ sku: value, product: "" })} />
           <MobileField field="cogs" type="number" value={line.cogs} onChange={(value) => changeLine({ cogs: value })} />
           <MobileField field="fixedSupport" type="number" value={line.fixedSupport} onChange={(value) => changeLine({ fixedSupport: value })} />
         </div>
@@ -1088,61 +1074,17 @@ function RoiMobileLineBuilder({
 }
 
 function RoiEditableTable({
-  lines,
-  onChangeLines,
-  onAddLine,
-  lineActions = true,
-  newLineProOnly = false,
-  currency = "GBP",
+  lines, onChangeLines, onAddLine, currency = "GBP",
 }: {
   lines: RoiLine[];
   onChangeLines: (lines: RoiLine[]) => void;
   onAddLine: () => void;
-  lineActions?: boolean;
-  newLineProOnly?: boolean;
   currency?: string;
 }) {
-  if (!lineActions) {
-    return (
-      <>
-        <RoiFreeLineForm lines={lines} onChangeLines={onChangeLines} currency={currency} />
-        <button
-          className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
-          onClick={onAddLine}
-          type="button"
-        >
-          {newLineProOnly ? (
-            <>
-              Add another line
-              <ProBadge />
-            </>
-          ) : (
-            "+ New line"
-          )}
-        </button>
-        {newLineProOnly ? <p className="pro-action-note">Available with APT Pro.</p> : null}
-      </>
-    );
-  }
-
   return (
     <>
-      <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions={lineActions} currency={currency} />
-      <button
-        className={newLineProOnly ? "button button-secondary button-small new-line-button pro-only-button" : "button button-secondary new-line-button"}
-        onClick={onAddLine}
-        type="button"
-      >
-        {newLineProOnly ? (
-          <>
-            Add another line
-            <ProBadge />
-          </>
-        ) : (
-          "+ New line"
-        )}
-      </button>
-      {newLineProOnly ? <p className="pro-action-note">Available with APT Pro.</p> : null}
+      <RoiMobileLineBuilder lines={lines} onChangeLines={onChangeLines} lineActions currency={currency} />
+      <button className="button button-secondary new-line-button" onClick={onAddLine} type="button">+ New line</button>
     </>
   );
 }
@@ -1883,6 +1825,7 @@ function FreeProPrompt() {
 
 export function RoiPlanner() {
   const { isAuthenticated, isLoading, plan } = useSupabaseAuth();
+  const router = useRouter();
   const { requirePro } = useProAction({ from: "roi-tool", feature: "pro-action" });
   const isPro = plan === "pro" || plan === "team";
   const hasTrackedCompletion = useRef(false);
@@ -1898,6 +1841,7 @@ export function RoiPlanner() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<AutoSaveStatus>("idle");
   const [autoSaveMessage, setAutoSaveMessage] = useState("");
   const [proMessage, setProMessage] = useState("");
+  const [proposalError, setProposalError] = useState("");
   const [savingScenarioId, setSavingScenarioId] = useState("");
   const [scenarioSaveMode, setScenarioSaveMode] = useState<"update" | "copy">("update");
   const [scenarioSaveName, setScenarioSaveName] = useState("");
@@ -1917,6 +1861,21 @@ export function RoiPlanner() {
       : autoSaveStatus === "saving"
         ? "roi-autosave-status roi-autosave-status-saving"
         : "roi-autosave-status";
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("resume") !== "proposal") return;
+    const restore = window.setTimeout(() => {
+      try {
+        const raw = window.sessionStorage.getItem("apt:roi-active-scenario");
+        if (!raw) return;
+        const group = restoreSavedGroup(JSON.parse(raw));
+        setPlannerState({ groups: [group], activeGroupId: group.id, activeScenarioId: group.scenarios[0].id });
+      } catch {
+        // A missing local snapshot leaves the empty planner available.
+      }
+    }, 0);
+    return () => window.clearTimeout(restore);
+  }, []);
 
   useEffect(() => {
     if (isPro) refreshSavedRoiWork();
@@ -2568,8 +2527,57 @@ export function RoiPlanner() {
     });
   }
 
+  const validNumber = (value: string) => Number(value.replaceAll(",", ""));
+  const proposalDraft = activeScenario?.lines.every(isLineCalculationComplete) ? buildRoiProposalDraft(
+    activeScenario.lines.map((line) => {
+      const calc = calculateLine(line);
+      return {
+        baselineUnits: validNumber(line.baselineUnits), expectedUnits: validNumber(line.promoUnits), fixedFunding: validNumber(line.fixedSupport),
+        baselinePriceImpact: (validNumber(line.currentInvoice) - calc.promoInvoice) * validNumber(line.baselineUnits),
+        unitContribution: calc.hasCogs ? calc.promoInvoice - validNumber(line.cogs) : null,
+      };
+    }), activeGroup?.currency ?? "GBP",
+  ) : null;
+
+  function openProposal() {
+    if (!proposalDraft || !activeGroup || !activeScenario) return;
+    try {
+      window.sessionStorage.setItem(roiProposalStorageKey, JSON.stringify(proposalDraft));
+      window.sessionStorage.setItem("apt:roi-active-scenario", JSON.stringify({
+        name: activeGroup.name, currency: activeGroup.currency, vatRate: activeGroup.vatRate, scenarios: [activeScenario],
+      }));
+    } catch {
+      setProposalError("This browser could not keep the figures for the handoff. Try again with site storage enabled.");
+      return;
+    }
+    router.push(roiProposalPath);
+  }
+
+  const proposalAction = proposalDraft ? (
+    <div className="roi-proposal-action">
+      <button className="button button-secondary" onClick={openProposal} type="button">Use this in a Promotional Proposal</button>
+      <p className="field-help">Review the figures in the deck builder. Creating the PowerPoint requires APT Pro.</p>
+      {proposalError ? <p role="alert" className="field-error">{proposalError}</p> : null}
+    </div>
+  ) : null;
+
+  function loadPromotionExample() {
+    if (!activeScenario) return;
+    const sample = activeScenario.lines[0];
+    if (sample && [sample.currentInvoice, sample.baselineUnits, sample.promoUnits, sample.soa, sample.promoInvoice].some(has) && !window.confirm("Replace the first product line with the worked example?")) return;
+    const line = { ...blankLine(), ...roiWorkedExample, id: sample?.id ?? crypto.randomUUID() };
+    setPlannerState((current) => ({
+      ...current,
+      groups: current.groups.map((group) => group.id === activeGroup?.id ? {
+        ...group, currency: "GBP",
+        scenarios: group.scenarios.map((scenario) => scenario.id === activeScenario.id
+          ? { ...scenario, lines: [line, ...scenario.lines.slice(1)] } : scenario),
+      } : group),
+    }));
+  }
+
   return (
-    <section className="shell section">
+    <section className="shell section roi-calculation-section" id="roi-planner-start">
       <div className="section-header">
         <h2>Build your plan</h2>
         <p className="section-lead">
@@ -2577,117 +2585,96 @@ export function RoiPlanner() {
         </p>
       </div>
       <article className="card roi-planner">
-        <div className="roi-plan-header">
+        {isPro ? <div className="roi-plan-header">
           <div>
-            {isPro ? (
-              <div className="roi-comparison-toolbar">
-                {isEditingSavedComparison && activeGroup && editingComparisonNameId !== activeGroup.id ? (
-                  <div className="roi-comparison-name-display inline-plan-name">
-                    <span>Name</span>
-                    <div className="roi-comparison-name-row">
-                      <strong>{activeGroup.name}</strong>
-                      <button
-                        className="workspace-icon-button roi-name-edit-button"
-                        aria-label={`Rename ${activeGroup.name}`}
-                        onClick={() => setEditingComparisonNameId(activeGroup.id)}
-                        title="Rename comparison"
-                        type="button"
-                      >
-                        <span aria-hidden="true">✎</span>
-                      </button>
-                    </div>
-                    <small>Editing saved comparison. Use the pencil to rename; Save as copy creates a separate comparison.</small>
+            <div className="roi-comparison-toolbar">
+              {isEditingSavedComparison && activeGroup && editingComparisonNameId !== activeGroup.id ? (
+                <div className="roi-comparison-name-display inline-plan-name">
+                  <span>Name</span>
+                  <div className="roi-comparison-name-row">
+                    <strong>{activeGroup.name}</strong>
+                    <button
+                      className="workspace-icon-button roi-name-edit-button"
+                      aria-label={`Rename ${activeGroup.name}`}
+                      onClick={() => setEditingComparisonNameId(activeGroup.id)}
+                      title="Rename comparison"
+                      type="button"
+                    >
+                      <span aria-hidden="true">✎</span>
+                    </button>
                   </div>
-                ) : (
-                  <label className="field inline-plan-name">
-                    <span>Name</span>
-                    <input
-                      aria-describedby="roi-comparison-name-help"
-                      value={activeGroup?.name ?? ""}
-                      onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
-                    />
-                    <small id="roi-comparison-name-help">
-                      {isEditingSavedComparison ? "Rename mode. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
-                    </small>
+                  <small>Editing saved comparison. Use the pencil to rename; Save as copy creates a separate comparison.</small>
+                </div>
+              ) : (
+                <label className="field inline-plan-name">
+                  <span>Name</span>
+                  <input
+                    aria-describedby="roi-comparison-name-help"
+                    value={activeGroup?.name ?? ""}
+                    onChange={(event) => updateActiveGroupAssumptions({ name: event.target.value })}
+                  />
+                  <small id="roi-comparison-name-help">
+                    {isEditingSavedComparison ? "Rename mode. Update saves changes here; Save as copy creates a new comparison." : "Name this comparison before saving it to your account."}
+                  </small>
+                </label>
+              )}
+              <details className="roi-local-settings">
+                <summary aria-label="Comparison settings" className="workspace-icon-button roi-toolbar-icon-button" title="Comparison settings">
+                  <span aria-hidden="true">⚙</span>
+                </summary>
+                <div className="roi-local-settings-menu">
+                  <label className="field roi-assumption-field">
+                    <span>Currency</span>
+                    <select value={activeGroup?.currency ?? "GBP"} onChange={(event) => updateActiveGroupAssumptions({ currency: event.target.value })}>
+                      {roiCurrencyOptions.map((currency) => (
+                        <option key={currency} value={currency}>{currency}</option>
+                      ))}
+                    </select>
                   </label>
-                )}
-                <details className="roi-local-settings">
-                  <summary aria-label="Comparison settings" className="workspace-icon-button roi-toolbar-icon-button" title="Comparison settings">
-                    <span aria-hidden="true">⚙</span>
-                  </summary>
-                  <div className="roi-local-settings-menu">
-                    <label className="field roi-assumption-field">
-                      <span>Currency</span>
-                      <select value={activeGroup?.currency ?? "GBP"} onChange={(event) => updateActiveGroupAssumptions({ currency: event.target.value })}>
-                        {roiCurrencyOptions.map((currency) => (
-                          <option key={currency} value={currency}>{currency}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label className="field roi-assumption-field">
-                      <span>VAT rate</span>
-                      <input
-                        inputMode="decimal"
-                        type="number"
-                        value={activeGroup?.vatRate ?? "20"}
-                        onChange={(event) => updateActiveGroupAssumptions({ vatRate: event.target.value })}
-                      />
-                    </label>
-                  </div>
-                </details>
-              </div>
-            ) : null}
-            {isPro ? (
-              <p className="roi-planner-helper">
-                <span>{isEditingSavedComparison ? "Editing saved comparison" : "New comparison"}</span>
-                <span>{activeGroup?.currency ?? "GBP"} · VAT {activeGroup?.vatRate || "0"}%</span>
-              </p>
-            ) : (
-              <p className="roi-planner-helper">
-                Free lets you model one product line and one scenario. APT Pro adds multiple lines, saved scenarios, spreadsheet upload and exports.
-              </p>
-            )}
+                  <label className="field roi-assumption-field">
+                    <span>VAT rate</span>
+                    <input
+                      inputMode="decimal"
+                      type="number"
+                      value={activeGroup?.vatRate ?? "20"}
+                      onChange={(event) => updateActiveGroupAssumptions({ vatRate: event.target.value })}
+                    />
+                  </label>
+                </div>
+              </details>
+            </div>
+            <p className="roi-planner-helper">
+              <span>{isEditingSavedComparison ? "Editing saved comparison" : "New comparison"}</span>
+              <span>{activeGroup?.currency ?? "GBP"} · VAT {activeGroup?.vatRate || "0"}%</span>
+            </p>
           </div>
           <div className="roi-action-bar roi-action-bar-simple">
-            {isPro ? (
-              <>
-                <button
-                  className="button button-secondary button-small roi-locked-action roi-toolbar-action-button"
-                  onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}
-                  title="Download template"
-                  type="button"
-                >
-                  <span aria-hidden="true">↓</span>
-                  <span>Template</span>
-                </button>
-                <label className="button button-secondary button-small roi-locked-action roi-toolbar-action-button" title="Upload spreadsheet">
-                  <span aria-hidden="true">↑</span>
-                  <span>Upload</span>
-                  <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
-                </label>
-                <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
-                <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={() => saveCurrentGroup()} type="button">
-                  {isEditingSavedComparison ? "Update" : "Save"}
-                </button>
-                {isEditingSavedComparison ? (
-                  <button className="button button-secondary button-small roi-locked-action roi-save-copy-button" onClick={() => saveCurrentGroup({ asCopy: true })} type="button">
-                    Save as copy
-                  </button>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <ProOnlyAction onClick={() => ensureRoiPro("upload-spreadsheet")}>Upload spreadsheet</ProOnlyAction>
-                <ProOnlyAction onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}>
-                  Download template
-                </ProOnlyAction>
-                <ProOnlyAction onClick={() => ensureRoiPro("save-plan")}>Save comparison</ProOnlyAction>
-                <ProOnlyAction onClick={() => ensureRoiPro("export-results")}>Export results</ProOnlyAction>
-              </>
-            )}
-            {isPro && autoSaveMessage ? <span className={autoSaveStatusClass} role="status">{autoSaveMessage}</span> : null}
+            <button
+              className="button button-secondary button-small roi-locked-action roi-toolbar-action-button"
+              onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}
+              title="Download template"
+              type="button"
+            >
+              <span aria-hidden="true">↓</span>
+              <span>Template</span>
+            </button>
+            <label className="button button-secondary button-small roi-locked-action roi-toolbar-action-button" title="Upload spreadsheet">
+              <span aria-hidden="true">↑</span>
+              <span>Upload</span>
+              <input accept=".csv,text/csv" className="visually-hidden" type="file" onChange={(event) => uploadCsv(event.target.files?.[0])} />
+            </label>
+            <CsvExportButton compact groups={activeGroup ? [activeGroup] : groups} onBeforeExport={() => ensureRoiPro("export-results")} />
+            <button className="button button-secondary button-small roi-locked-action roi-save-comparison-button" onClick={() => saveCurrentGroup()} type="button">
+              {isEditingSavedComparison ? "Update" : "Save"}
+            </button>
+            {isEditingSavedComparison ? (
+              <button className="button button-secondary button-small roi-locked-action roi-save-copy-button" onClick={() => saveCurrentGroup({ asCopy: true })} type="button">
+                Save as copy
+              </button>
+            ) : null}
+            {autoSaveMessage ? <span className={autoSaveStatusClass} role="status">{autoSaveMessage}</span> : null}
           </div>
-        </div>
+        </div> : null}
 
         {proMessage ? <p className="pro-inline-message" role="status">{proMessage}</p> : null}
         {isPro && saveMessage ? <p className={saveStatusClass} role="status">{saveMessage}</p> : null}
@@ -2704,7 +2691,24 @@ export function RoiPlanner() {
           />
         ) : null}
 
-        <div className="roi-workspace-layout">
+        {!isPro && activeScenario ? <>
+          <RoiFreeLineForm lines={activeScenario.lines} onChangeLines={(lines) => setScenarioLines(activeScenario.id, lines)}
+            currency={activeGroup?.currency} onLoadExample={loadPromotionExample} />
+          {activeScenario.lines[0] && isLineCalculationComplete(activeScenario.lines[0]) ? <ScenarioSummary scenario={activeScenario} currency={activeGroup?.currency} /> : null}
+          {proposalAction}
+          <details className="roi-free-advanced roi-free-pro-actions">
+            <summary>Save, compare or export with APT Pro</summary>
+            <div className="summary-actions">
+              <ProOnlyAction onClick={() => ensureRoiPro("save-plan")}>Save comparison</ProOnlyAction>
+              <ProOnlyAction onClick={() => ensureRoiPro("add-scenario")}>Compare scenarios</ProOnlyAction>
+              <ProOnlyAction onClick={() => ensureRoiPro("upload-spreadsheet")}>Upload spreadsheet</ProOnlyAction>
+              <ProOnlyAction onClick={() => requirePro(downloadInputTemplate, { feature: "download-template", location: "roi_tool_download_template" })}>Download template</ProOnlyAction>
+              <ProOnlyAction onClick={() => ensureRoiPro("export-results")}>Export results</ProOnlyAction>
+            </div>
+          </details>
+        </> : null}
+
+        {isPro ? <div className="roi-workspace-layout">
           <aside className="roi-scenario-nav" aria-label="Scenarios">
             <div className="roi-scenario-nav-heading">
               <span>Scenarios</span>
@@ -2728,20 +2732,7 @@ export function RoiPlanner() {
                 );
               })}
             </div>
-            <button
-              className={isPro ? "button button-secondary button-small new-scenario-button" : "button button-secondary button-small new-scenario-button pro-only-button"}
-              onClick={addScenario}
-              type="button"
-            >
-              {isPro ? (
-                "+ New scenario"
-              ) : (
-                <>
-                  Add another scenario
-                  <ProBadge />
-                </>
-              )}
-            </button>
+            <button className="button button-secondary button-small new-scenario-button" onClick={addScenario} type="button">+ New scenario</button>
           </aside>
 
           <div className="roi-scenario-editor">
@@ -2779,34 +2770,18 @@ export function RoiPlanner() {
                       </label>
                     )}
                     <div className="scenario-card-actions">
-                      {isPro ? (
-                        <>
-                          <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
-                          {activeSavedScenarioSource ? <button className="table-action" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
-                          <button className="table-action" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
-                          <button className="table-action" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
-                        </>
-                      ) : (
-                        <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">
-                          Save scenario <ProBadge />
-                        </button>
-                      )}
+                      <button className="table-action" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
+                      {activeSavedScenarioSource ? <button className="table-action" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
+                      <button className="table-action" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
+                      <button className="table-action" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
                     </div>
                     <details className="roi-mobile-actions">
                       <summary>Scenario actions</summary>
-                      <div>
-                        {isPro ? (
-                          <div className="summary-actions">
-                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
-                            {activeSavedScenarioSource ? <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
-                            <button className="button button-secondary button-small" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
-                            <button className="button button-secondary button-small" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
-                          </div>
-                        ) : (
-                          <div className="summary-actions">
-                            <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">Save scenario <ProBadge /></button>
-                          </div>
-                        )}
+                      <div className="summary-actions">
+                        <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario)} type="button">{activeSavedScenarioSource ? "Update scenario" : "Save scenario"}</button>
+                        {activeSavedScenarioSource ? <button className="button button-secondary button-small" onClick={() => openSaveScenario(activeScenario, { asCopy: true })} type="button">Save as</button> : null}
+                        <button className="button button-secondary button-small" onClick={() => duplicateScenario(activeScenario.id)} type="button">Duplicate scenario</button>
+                        <button className="button button-secondary button-small" onClick={() => deleteScenario(activeScenario.id)} type="button">Delete scenario</button>
                       </div>
                     </details>
                   </div>
@@ -2855,16 +2830,15 @@ export function RoiPlanner() {
                     lines={activeScenario.lines}
                     onAddLine={() => addLineToScenario(activeScenario.id)}
                     onChangeLines={(lines) => setScenarioLines(activeScenario.id, lines)}
-                    lineActions={isPro}
-                    newLineProOnly={!isPro}
                     currency={activeGroup?.currency}
                   />
                   <ScenarioSummary scenario={activeScenario} currency={activeGroup?.currency} />
+                  {proposalAction}
                 </section>
               ) : null}
             </div>
           </div>
-        </div>
+        </div> : null}
 
         <CalculatorCaveat />
 

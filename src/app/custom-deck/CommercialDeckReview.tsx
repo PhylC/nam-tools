@@ -34,6 +34,8 @@ export function CommercialDeckReview({ initial, context, busy, onConfirm, onBack
   const groups = planning
     ? planning.groups.filter((group) => (context.financial || !group.financial) && (context.next || !group.next))
     : config.groups.filter(({ key }) => (context.financial || key !== "investment") && (context.next || !["milestones", "execution", "measurement"].includes(key)));
+  const currency = kind === "promo-proposal" ? commercialText(data, "currency") || "GBP" : "GBP";
+  const hasPriceImpact = commercialText(data, "roiSource") === "true" || commercialText(data, "baselinePriceImpact") !== "";
   const decisionLabel = kind === "account-plan" || kind === "annual-planning" ? "internal decision" : "buyer decision";
 
   return (
@@ -55,9 +57,9 @@ export function CommercialDeckReview({ initial, context, busy, onConfirm, onBack
           <fieldset className="qbr-editor" disabled={busy}>
             <legend>{planning ? "Figures and assumptions" : kind === "jbp" ? "Sales ambition and funding" : "Volume, funding and contribution"}</legend>
             <div className="qbr-editable-fields">
-              {config.numeric.map(({ key, label, note }) => (
+              {config.numeric.filter(({ key }) => key !== "baselinePriceImpact" || hasPriceImpact).map(({ key, label, note }) => (
                 <label className="field" key={key}>
-                  <span>{label}</span>
+                  <span>{currency === "GBP" ? label : label.replace("£", currency)}</span>
                   <input inputMode={key.endsWith("Units") || key === "stores" || key === "weeks" ? "numeric" : "decimal"} value={commercialText(data, key)}
                     onChange={(event) => setText(key, event.target.value)} />
                   {note ? <small>{note}</small> : null}

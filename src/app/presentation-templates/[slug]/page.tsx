@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ResourceMethodology } from "../../components/ResourceMethodology";
 import { JsonLd } from "../../components/JsonLd";
 import { Hero } from "../../components/Shell";
 import { buyerMeetingProposal, featuredTemplates, getTemplateGuide } from "../../data/presentationTemplates";
@@ -65,6 +66,9 @@ export default async function TemplateGuide({ params }: Props) {
             <Link href="/presentation-templates">Browse all PowerPoint templates</Link>
           </div>
         </div>
+      </section>
+      <section className="shell">
+        <ResourceMethodology reviewedOn="2026-11-22">The starter and fictional worked example use the same slide structure. Replace the example assumptions with your own evidence and agree the decision, owner and review date before presenting.</ResourceMethodology>
       </section>
       {guide.slug === "buyer-meeting" ? (
         <section className="shell section">

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { retailMediaRoasName, retailMediaRoasPath } from "../../../lib/retailMediaRoas";
 import { FaqSection } from "../../components/FaqSection";
 import { JsonLd } from "../../components/JsonLd";
+import { ResourceMethodology } from "../../components/ResourceMethodology";
 import { Hero } from "../../components/Shell";
 import { breadcrumbJsonLd, seoMetadata } from "../../seo";
 import { RetailMediaCalculator } from "./RetailMediaCalculator";
@@ -62,6 +63,9 @@ export default function RetailMediaRoasPage() {
           <p><a href="https://iabeurope.eu/wp-content/uploads/IAB-Europes-Commerce-Media-Measurement-Standards-V2.1-May-2026.pdf">Read IAB Europe’s commerce media measurement standards</a></p>
           <p><Link href="/roi-tool">Model a price promotion and supplier support</Link> or <Link href="/tools/trade-spend-calculator">check the rest of your trade spend</Link>.</p>
         </article>
+      </section>
+      <section className="shell">
+        <ResourceMethodology reviewedOn="2026-11-22">Use attributed retail sales for reported ROAS. Use incremental supplier net revenue and contribution margin to estimate supplier profit, then subtract media spend and fees. Use a consistent attribution window when comparing campaigns.</ResourceMethodology>
       </section>
       <FaqSection title="Retail media ROAS and ROI questions" faqs={faqs} />
     </div>
