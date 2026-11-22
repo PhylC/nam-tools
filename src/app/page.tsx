@@ -67,8 +67,7 @@ const comparisonRows = [
   ["Scenarios", "1", "Save + compare"],
   ["Result summary", "Basic", "Advanced"],
   ["Copy summary", "Included", "Included"],
-  ["CSV export", "Current calculation", "Included"],
-  ["Excel export", "—", "Workbook"],
+  ["CSV export", "Current calculation", "Calculations and ROI comparisons"],
   ["PowerPoint export", "—", "Deck export"],
   ["Branding/disclaimer", "—", "Logo + disclaimer"],
   ["Templates", "Download", "Save templates"],
@@ -97,7 +96,7 @@ const mobilePlanSummaries = [
     items: [
       "Multiple product lines and saved scenarios",
       "Advanced summaries and scenario comparison",
-      "Excel and PowerPoint exports",
+      "ROI comparison CSV and editable PowerPoint exports",
       "Saved defaults, templates, logo and disclaimer",
     ],
     emphasis: true,

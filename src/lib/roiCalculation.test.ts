@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateLine, rankRoiScenarios } from "./roiCalculation";
+import { calculateLine, rankRoiScenarios, summarizeRoiLines } from "./roiCalculation";
 
 const line = {
   currentInvoice: "10",
@@ -49,5 +49,28 @@ describe("scenario recommendations", () => {
   it("recommends the highest positive profit, including when return on support is undefined", () => {
     const profitable = { revenue: 300, support: 0, profit: 150, revenueRoi: null, profitRoi: null };
     expect(rankRoiScenarios([loss, profitable]).recommended).toEqual(profitable);
+  });
+});
+
+describe("multi-product profit totals", () => {
+  const known = { ...line, supportMode: "promoInvoice" as const, promoInvoice: "9", promoUnits: "200", fixedSupport: "5" };
+  const second = { ...line, supportMode: "promoInvoice" as const, fixedSupport: "25" };
+
+  it("keeps revenue and support available while suppressing all profit totals when any cost is missing", () => {
+    for (const cogs of ["", "invalid", "-1"]) {
+      expect(summarizeRoiLines([known, { ...second, cogs }])).toMatchObject({
+        complete: true, allCostsEntered: false, revenueImpact: 1000, supportCost: 530, revenueRoi: 1000 / 530,
+        baselineProfit: null, promoProfit: null, profitImpact: null, profitRoi: null,
+      });
+    }
+  });
+
+  it("includes all product lines when costs are complete, including an explicit zero cost", () => {
+    expect(summarizeRoiLines([known, second])).toMatchObject({
+      allCostsEntered: true, profitImpact: 370, profitRoi: 370 / 530,
+    });
+    expect(summarizeRoiLines([known, { ...second, cogs: "0" }])).toMatchObject({
+      allCostsEntered: true, profitImpact: 570, profitRoi: 570 / 530,
+    });
   });
 });

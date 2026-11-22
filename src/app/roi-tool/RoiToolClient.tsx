@@ -6,7 +6,7 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgradeClicked } from "../../lib/analytics";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildRoiProposalDraft, roiProposalPath, roiProposalStorageKey, roiWorkedExample } from "../../lib/roiProposalDraft";
-import { calculateLine, rankRoiScenarios, roiNumber as n, type SupportMode } from "../../lib/roiCalculation";
+import { calculateLine, rankRoiScenarios, roiNumber as n, summarizeRoiLines as aggregate, type SupportMode } from "../../lib/roiCalculation";
 import { readRoiCsv } from "../../lib/roiCsv";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
 import { LoadExampleButton } from "../components/LoadExampleButton";
@@ -234,39 +234,6 @@ function pct(value: number | null) {
   return value !== null && Number.isFinite(value)
     ? new Intl.NumberFormat("en-GB", { style: "percent", maximumFractionDigits: 1 }).format(value)
     : "n/a";
-}
-
-function aggregate(lines: RoiLine[]) {
-  return lines.reduce(
-    (total, line) => {
-      const calc = calculateLine(line);
-      total.baselineUnits += n(line.baselineUnits);
-      total.promoUnits += n(line.promoUnits);
-      total.incrementalUnits += calc.incrementalUnits;
-      total.baselineRevenue += calc.baselineRevenue;
-      total.promoRevenue += calc.promoRevenue;
-      total.revenueImpact += calc.incrementalRevenue;
-      total.supportCost += calc.supportCost;
-      total.profitImpact += calc.hasCogs ? calc.profitImpact : 0;
-      total.baselineProfit += calc.hasCogs ? calc.baselineProfit : 0;
-      total.promoProfit += calc.hasCogs ? calc.promoProfit : 0;
-      total.profitRows += calc.hasCogs ? 1 : 0;
-      return total;
-    },
-    {
-      baselineUnits: 0,
-      promoUnits: 0,
-      incrementalUnits: 0,
-      baselineRevenue: 0,
-      promoRevenue: 0,
-      revenueImpact: 0,
-      supportCost: 0,
-      baselineProfit: 0,
-      promoProfit: 0,
-      profitImpact: 0,
-      profitRows: 0,
-    },
-  );
 }
 
 function updateLine(lines: RoiLine[], id: string, patch: Partial<RoiLine>) {
@@ -620,6 +587,8 @@ function CsvExportButton({
 
     groups.map(withGroupAssumptions).forEach((group) => {
       group.scenarios.forEach((scenario) => {
+        const total = aggregate(scenario.lines);
+        const showProfit = total.profitImpact !== null;
         scenario.lines.forEach((line) => {
           const calc = calculateLine(line);
           rows.push([
@@ -645,15 +614,14 @@ function CsvExportButton({
             calc.promoRevenue,
             calc.incrementalRevenue,
             calc.supportCost,
-            calc.hasCogs ? calc.baselineProfit : "",
-            calc.hasCogs ? calc.promoProfit : "",
-            calc.hasCogs ? calc.profitImpact : "",
+            showProfit ? calc.baselineProfit : "",
+            showProfit ? calc.promoProfit : "",
+            showProfit ? calc.profitImpact : "",
             calc.revenueRoi,
-            calc.profitRoi,
+            showProfit ? calc.profitRoi : null,
           ]);
         });
 
-        const total = aggregate(scenario.lines);
         rows.push([
           group.name,
           scenario.name,
@@ -677,11 +645,11 @@ function CsvExportButton({
           total.promoRevenue,
           total.revenueImpact,
           total.supportCost,
-          total.profitRows ? total.baselineProfit : "",
-          total.profitRows ? total.promoProfit : "",
-          total.profitRows ? total.profitImpact : "",
-          total.supportCost > 0 ? total.revenueImpact / total.supportCost : "",
-          total.profitRows && total.supportCost > 0 ? total.profitImpact / total.supportCost : "",
+          total.baselineProfit,
+          total.promoProfit,
+          total.profitImpact,
+          total.revenueRoi,
+          total.profitRoi,
         ]);
       });
     });
@@ -1004,9 +972,11 @@ function ScenarioSummary({ scenario, currency = "GBP" }: { scenario: RoiScenario
     ["Promo supplier invoice revenue", money(summary.promoRevenue, currency)],
     ["Incremental supplier invoice revenue", money(summary.revenueImpact, currency)],
     ["Support", money(summary.supportCost, currency)],
-    ["Incremental profit", summary.profitRows ? money(summary.profitImpact, currency) : "n/a"],
-    ["Supplier revenue ROI", pct(summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)],
-    ["Profit ROI", pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null)],
+    ["Supplier revenue ROI", pct(summary.revenueRoi)],
+    ...(summary.profitImpact === null ? [] : [
+      ["Incremental profit", money(summary.profitImpact, currency)],
+      ["Profit ROI", pct(summary.profitRoi)],
+    ]),
     ["Lines", scenario.lines.length.toLocaleString("en-GB")],
   ];
 
@@ -1023,29 +993,33 @@ function ScenarioSummary({ scenario, currency = "GBP" }: { scenario: RoiScenario
       </div>
       <div className="roi-mobile-summary" aria-label={`${scenario.name} mobile summary`}>
         <div><span>Incremental supplier invoice revenue</span><strong>{money(summary.revenueImpact, currency)}</strong></div>
-        <div><span>Incremental profit</span><strong>{summary.profitRows ? money(summary.profitImpact, currency) : "Add supplier COGS to see profit ROI"}</strong></div>
-        <div><span>ROI</span><strong>{pct(summary.profitRows && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null)}</strong></div>
+        <div><span>Supplier revenue ROI</span><strong>{pct(summary.revenueRoi)}</strong></div>
+        {summary.profitImpact === null ? null : (
+          <>
+            <div><span>Incremental profit</span><strong>{money(summary.profitImpact, currency)}</strong></div>
+            <div><span>Profit ROI</span><strong>{pct(summary.profitRoi)}</strong></div>
+          </>
+        )}
         <div><span>Baseline supplier invoice revenue</span><strong>{money(summary.baselineRevenue, currency)}</strong></div>
         <div><span>Promo supplier invoice revenue</span><strong>{money(summary.promoRevenue, currency)}</strong></div>
       </div>
+      {summary.complete && !summary.allCostsEntered ? (
+        <p className="field-help">Add supplier COGS to every product line to see profit and profit ROI.</p>
+      ) : null}
     </div>
   );
 }
 
 function scenarioMetrics(scenario: RoiScenario) {
   const summary = aggregate(scenario.lines);
-  const isNonNegative = (value: string) => has(value) && Number.isFinite(Number(value.replaceAll(",", ""))) && n(value) >= 0;
-  const complete = scenario.lines.length > 0 && scenario.lines.every((line) =>
-    [line.currentInvoice, line.baselineUnits, line.promoUnits].every(isNonNegative));
-  const hasProfit = complete && scenario.lines.every((line) => isNonNegative(line.cogs));
   return {
     scenario,
     summary,
-    revenue: complete ? summary.revenueImpact : null,
-    support: complete ? summary.supportCost : null,
-    profit: hasProfit ? summary.profitImpact : null,
-    revenueRoi: complete && summary.supportCost > 0 ? summary.revenueImpact / summary.supportCost : null,
-    profitRoi: hasProfit && summary.supportCost > 0 ? summary.profitImpact / summary.supportCost : null,
+    revenue: summary.complete ? summary.revenueImpact : null,
+    support: summary.complete ? summary.supportCost : null,
+    profit: summary.profitImpact,
+    revenueRoi: summary.complete ? summary.revenueRoi : null,
+    profitRoi: summary.profitRoi,
   };
 }
 
@@ -1946,9 +1920,11 @@ export function RoiPlanner() {
         promoSupplierInvoiceRevenue: money(total.promoRevenue, currency),
         incrementalSupplierInvoiceRevenue: money(total.revenueImpact, currency),
         totalSupplierSupport: money(total.supportCost, currency),
-        incrementalProfit: total.profitRows ? money(total.profitImpact, currency) : "n/a",
-        supplierRevenueRoi: pct(total.supportCost > 0 ? total.revenueImpact / total.supportCost : null),
-        profitRoi: total.profitRows && total.supportCost > 0 ? pct(total.profitImpact / total.supportCost) : "n/a",
+        supplierRevenueRoi: pct(total.revenueRoi),
+        ...(total.profitImpact === null ? {} : {
+          incrementalProfit: money(total.profitImpact, currency),
+          profitRoi: pct(total.profitRoi),
+        }),
         lines: scenario.lines.length,
       },
       defaults: {},

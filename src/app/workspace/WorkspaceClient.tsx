@@ -21,6 +21,7 @@ import {
   saveRoiPlan,
   saveScenario,
 } from "../../lib/saveStore";
+import { calculateLine, summarizeRoiLines, type RoiLineAmounts } from "../../lib/roiCalculation";
 import { downloadGeneratedDeck } from "../../lib/storageUploads";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { AccountMenu } from "../components/AccountMenu";
@@ -350,17 +351,6 @@ function firstTextValue(record: SavedRecord, keys: string[]) {
   return "";
 }
 
-function parseScenarioNumber(value: unknown) {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (typeof value !== "string") return 0;
-  const parsed = Number(value.replace(/[^0-9.-]/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function hasScenarioValue(value: unknown) {
-  return typeof value === "string" ? value.trim() !== "" : typeof value === "number" && Number.isFinite(value);
-}
-
 function formatScenarioMoney(value: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", {
     style: "currency",
@@ -378,42 +368,21 @@ function formatScenarioRatio(value: number | null) {
   return `${value.toFixed(1)}x`;
 }
 
-function calculateScenarioLine(line: SavedRecord) {
-  const currentInvoice = parseScenarioNumber(firstTextValue(line, ["currentInvoice", "current_invoice", "current_retailer_invoice_buy_price"]));
-  const fixedSupport = parseScenarioNumber(firstTextValue(line, ["fixedSupport", "fixed_support"]));
-  const promoInvoiceRaw = firstTextValue(line, ["promoInvoice", "promo_invoice", "promo_retailer_invoice_buy_price"]);
-  const soaRaw = firstTextValue(line, ["soa", "support", "supportPerUnit", "support_per_unit"]);
-  const hasPromoInvoice = hasScenarioValue(promoInvoiceRaw);
-  const hasSoa = hasScenarioValue(soaRaw);
-  const supportPerUnit = hasSoa ? parseScenarioNumber(soaRaw) : hasPromoInvoice ? currentInvoice - parseScenarioNumber(promoInvoiceRaw) : 0;
-  const promoInvoice = hasPromoInvoice ? parseScenarioNumber(promoInvoiceRaw) : hasSoa ? currentInvoice - supportPerUnit : currentInvoice;
-  const baselineUnits = parseScenarioNumber(firstTextValue(line, ["baselineUnits", "baseline_units"]));
-  const promoUnits = parseScenarioNumber(firstTextValue(line, ["promoUnits", "promo_units"]));
-  const incrementalUnits = promoUnits - baselineUnits;
-  const baselineRevenue = baselineUnits * currentInvoice;
-  const promoRevenue = promoUnits * promoInvoice;
-  const incrementalRevenue = promoRevenue - baselineRevenue;
-  const supportCost = supportPerUnit * promoUnits + fixedSupport;
-  const cogsRaw = firstTextValue(line, ["cogs", "supplierCogs", "supplier_cogs"]);
-  const hasCogs = hasScenarioValue(cogsRaw);
-  const cogs = parseScenarioNumber(cogsRaw);
-  const baselineProfit = hasCogs ? (currentInvoice - cogs) * baselineUnits : 0;
-  const promoProfit = hasCogs ? (promoInvoice - cogs) * promoUnits - fixedSupport : 0;
-  const profitImpact = hasCogs ? promoProfit - baselineProfit : 0;
-
+function savedRoiAmounts(line: SavedRecord): RoiLineAmounts {
+  const amount = (...keys: string[]) => firstTextValue(line, keys).replace(/^([+-]?)[£€$]\s*/, "$1");
+  const promoInvoice = amount("promoInvoice", "promo_invoice", "promo_retailer_invoice_buy_price", "promo_invoice_price");
+  const soa = amount("soa", "support", "supportPerUnit", "support_per_unit", "support_per_unit_soa");
+  const supportMode = line.supportMode === "soa" || line.supportMode === "promoInvoice"
+    ? line.supportMode : soa && !promoInvoice ? "soa" : "promoInvoice";
   return {
-    currentInvoice,
+    supportMode,
+    currentInvoice: amount("currentInvoice", "current_invoice", "current_retailer_invoice_buy_price", "current_invoice_price"),
     promoInvoice,
-    supportPerUnit,
-    baselineUnits,
-    promoUnits,
-    incrementalUnits,
-    incrementalRevenue,
-    supportCost,
-    profitImpact,
-    revenueRoi: supportCost > 0 ? incrementalRevenue / supportCost : null,
-    profitRoi: hasCogs && supportCost > 0 ? profitImpact / supportCost : null,
-    hasCogs,
+    soa,
+    fixedSupport: amount("fixedSupport", "fixed_support"),
+    baselineUnits: amount("baselineUnits", "baseline_units"),
+    promoUnits: amount("promoUnits", "promo_units"),
+    cogs: amount("cogs", "supplierCogs", "supplier_cogs", "supplier_cogs_per_unit", "cogs_per_unit"),
   };
 }
 
@@ -421,9 +390,9 @@ function getScenarioLineCurrency(line: SavedRecord) {
   return firstTextValue(line, ["currency"]) || "GBP";
 }
 
-function getScenarioLineDetails(line: SavedRecord) {
+function getScenarioLineDetails(line: SavedRecord, showProfit: boolean) {
   const currency = getScenarioLineCurrency(line);
-  const calc = calculateScenarioLine(line);
+  const calc = calculateLine(savedRoiAmounts(line));
   return {
     sku: firstTextValue(line, ["sku", "model", "modelNumber", "model_number", "sku_model_item_number"]) || "Not set",
     product: firstTextValue(line, ["product", "productName", "product_name"]) || "Not set",
@@ -433,51 +402,17 @@ function getScenarioLineDetails(line: SavedRecord) {
     units: `${formatScenarioNumber(calc.baselineUnits)} -> ${formatScenarioNumber(calc.promoUnits)}`,
     incrementalRevenue: formatScenarioMoney(calc.incrementalRevenue, currency),
     supportCost: formatScenarioMoney(calc.supportCost, currency),
-    roi: formatScenarioRatio(calc.hasCogs ? calc.profitRoi : calc.revenueRoi),
+    roi: formatScenarioRatio(showProfit ? calc.profitRoi : calc.revenueRoi),
     notes: firstTextValue(line, ["notes"]),
   };
-}
-
-function getScenarioLineAggregate(lines: SavedRecord[]) {
-  type ScenarioLineAggregate = {
-    baselineUnits: number;
-    promoUnits: number;
-    incrementalUnits: number;
-    incrementalRevenue: number;
-    supportCost: number;
-    profitImpact: number;
-    linesWithCogs: number;
-  };
-
-  return lines.reduce<ScenarioLineAggregate>(
-    (total, line) => {
-      const calc = calculateScenarioLine(line);
-      total.baselineUnits += calc.baselineUnits;
-      total.promoUnits += calc.promoUnits;
-      total.incrementalUnits += calc.incrementalUnits;
-      total.incrementalRevenue += calc.incrementalRevenue;
-      total.supportCost += calc.supportCost;
-      total.profitImpact += calc.profitImpact;
-      total.linesWithCogs += calc.hasCogs ? 1 : 0;
-      return total;
-    },
-    {
-      baselineUnits: 0,
-      promoUnits: 0,
-      incrementalUnits: 0,
-      incrementalRevenue: 0,
-      supportCost: 0,
-      profitImpact: 0,
-      linesWithCogs: 0,
-    },
-  );
 }
 
 function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord; savedRecord?: SavedRecord }) {
   const normalizedScenario = getScenarioRecord(savedRecord ?? scenario);
   const scenarioEntries = getRecordEntries(normalizedScenario).filter(([label]) => !["id", "name", "lines"].includes(label)).slice(0, 8);
   const lines = Array.isArray(normalizedScenario.lines) ? normalizedScenario.lines.filter(isRecord) : [];
-  const aggregate = getScenarioLineAggregate(lines);
+  const aggregate = summarizeRoiLines(lines.map(savedRoiAmounts));
+  const showProfit = aggregate.profitImpact !== null;
   const aggregateCurrency = lines[0] ? getScenarioLineCurrency(lines[0]) : "GBP";
 
   if (!scenarioEntries.length && !lines.length) {
@@ -500,19 +435,22 @@ function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord
           </div>
           <div>
             <span>Incremental revenue</span>
-            <strong>{formatScenarioMoney(aggregate.incrementalRevenue, aggregateCurrency)}</strong>
+            <strong>{formatScenarioMoney(aggregate.revenueImpact, aggregateCurrency)}</strong>
           </div>
           <div>
             <span>Support cost</span>
             <strong>{formatScenarioMoney(aggregate.supportCost, aggregateCurrency)}</strong>
           </div>
-          {aggregate.linesWithCogs ? (
+          {aggregate.profitImpact !== null ? (
             <div>
               <span>Profit impact</span>
               <strong>{formatScenarioMoney(aggregate.profitImpact, aggregateCurrency)}</strong>
             </div>
           ) : null}
         </div>
+      ) : null}
+      {aggregate.complete && !aggregate.allCostsEntered ? (
+        <p className="field-help">Add supplier COGS to every product line to see profit and profit ROI.</p>
       ) : null}
       {scenarioEntries.length ? (
         <dl>
@@ -533,10 +471,10 @@ function ScenarioDetailsPanel({ scenario, savedRecord }: { scenario: SavedRecord
             <span>Promo / support</span>
             <span>Units</span>
             <span>Revenue</span>
-            <span>ROI</span>
+            <span>{showProfit ? "Profit ROI" : "Revenue ROI"}</span>
           </div>
           {lines.slice(0, 10).map((line, index) => {
-            const detail = getScenarioLineDetails(line);
+            const detail = getScenarioLineDetails(line, showProfit);
             return (
               <div className="workspace-scenario-line-row" key={`${getText(line.id, "")}-${index}`}>
                 <span>{detail.sku}</span>

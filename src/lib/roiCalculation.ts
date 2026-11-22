@@ -1,6 +1,6 @@
 export type SupportMode = "soa" | "promoInvoice";
 
-type RoiLineAmounts = {
+export type RoiLineAmounts = {
   supportMode: SupportMode;
   currentInvoice: string;
   promoInvoice: string;
@@ -14,6 +14,12 @@ type RoiLineAmounts = {
 export function roiNumber(value: string) {
   const parsed = Number(value.replace(/,/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isNonNegativeAmount(value: string) {
+  const text = value.replaceAll(",", "").trim();
+  const amount = Number(text);
+  return Boolean(text) && Number.isFinite(amount) && amount >= 0;
 }
 
 export function calculateLine(line: RoiLineAmounts) {
@@ -30,7 +36,7 @@ export function calculateLine(line: RoiLineAmounts) {
   const promoRevenue = promoUnits * promoInvoice;
   const incrementalRevenue = promoRevenue - baselineRevenue;
   const supportCost = supportPerUnit * promoUnits + fixedSupport;
-  const hasCogs = line.cogs.trim() !== "";
+  const hasCogs = isNonNegativeAmount(line.cogs);
   const baselineProfit = hasCogs ? (currentInvoice - roiNumber(line.cogs)) * baselineUnits : 0;
   const promoProfit = hasCogs ? (promoInvoice - roiNumber(line.cogs)) * promoUnits - fixedSupport : 0;
   const profitImpact = hasCogs ? promoProfit - baselineProfit : 0;
@@ -38,8 +44,11 @@ export function calculateLine(line: RoiLineAmounts) {
   const profitRoi = hasCogs && supportCost > 0 ? profitImpact / supportCost : null;
 
   return {
+    currentInvoice,
     supportPerUnit,
     promoInvoice,
+    baselineUnits,
+    promoUnits,
     incrementalUnits,
     baselineRevenue,
     promoRevenue,
@@ -51,6 +60,41 @@ export function calculateLine(line: RoiLineAmounts) {
     profitImpact,
     revenueRoi,
     profitRoi,
+  };
+}
+
+export function summarizeRoiLines(lines: RoiLineAmounts[]) {
+  const totals = {
+    baselineUnits: 0, promoUnits: 0, incrementalUnits: 0, baselineRevenue: 0, promoRevenue: 0,
+    revenueImpact: 0, supportCost: 0, baselineProfit: 0, promoProfit: 0, profitImpact: 0,
+  };
+  let complete = lines.length > 0;
+  let allCostsEntered = lines.length > 0;
+  for (const line of lines) {
+    const calc = calculateLine(line);
+    complete &&= [line.currentInvoice, line.baselineUnits, line.promoUnits].every(isNonNegativeAmount);
+    allCostsEntered &&= calc.hasCogs;
+    totals.baselineUnits += calc.baselineUnits;
+    totals.promoUnits += calc.promoUnits;
+    totals.incrementalUnits += calc.incrementalUnits;
+    totals.baselineRevenue += calc.baselineRevenue;
+    totals.promoRevenue += calc.promoRevenue;
+    totals.revenueImpact += calc.incrementalRevenue;
+    totals.supportCost += calc.supportCost;
+    totals.baselineProfit += calc.baselineProfit;
+    totals.promoProfit += calc.promoProfit;
+    totals.profitImpact += calc.profitImpact;
+  }
+  const showProfit = complete && allCostsEntered;
+  return {
+    ...totals,
+    complete,
+    allCostsEntered,
+    baselineProfit: showProfit ? totals.baselineProfit : null,
+    promoProfit: showProfit ? totals.promoProfit : null,
+    profitImpact: showProfit ? totals.profitImpact : null,
+    profitRoi: showProfit && totals.supportCost > 0 ? totals.profitImpact / totals.supportCost : null,
+    revenueRoi: totals.supportCost > 0 ? totals.revenueImpact / totals.supportCost : null,
   };
 }
 
