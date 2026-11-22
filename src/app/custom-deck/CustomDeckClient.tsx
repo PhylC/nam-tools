@@ -875,7 +875,7 @@ async function createDeckFile({
     if (!layoutChoices) throw new Error("Choose the PowerPoint layouts before creating the deck.");
     try {
       const { applyPowerPointTemplate } = await import("./powerPointTemplate");
-      const blob = await applyPowerPointTemplate(templateFile, contents, design, layoutChoices);
+      const blob = await applyPowerPointTemplate(templateFile, contents, design, layoutChoices, readabilityMode === "auto");
       return {
         file: new File([blob], filename, { type: powerPointMimeType }),
         filename,

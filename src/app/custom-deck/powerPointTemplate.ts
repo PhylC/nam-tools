@@ -1,4 +1,5 @@
 import type JSZip from "jszip";
+import { readableBackgroundText, resolveBackgroundColors } from "./powerPointBackground";
 import { waterfallPlot } from "./qbrBenchmark.mjs";
 
 const presentationNamespace = "http://schemas.openxmlformats.org/presentationml/2006/main";
@@ -37,7 +38,7 @@ type SlideDesign = {
 type Relationship = { id: string; kind: string; target: string; external: boolean };
 type Box = [left: number, top: number, width: number, height: number];
 type SourceSlide = { path: string; layout: string; links: Relationship[]; document: Document | null };
-type TemplateLayout = { path: string; document: Document | null; master: Document | null };
+type TemplateLayout = { path: string; document: Document | null; master: Document | null; theme: Document | null };
 type Candidate = { id: string; label: string; source?: SourceSlide; layout: TemplateLayout; scores: Record<SlidePurpose, number> };
 export type LayoutPreview = {
   id: string;
@@ -120,21 +121,6 @@ function textBody(lines: string[], font: string, color: string, size: number, bo
   return `<p:txBody><a:bodyPr wrap="square" lIns="0" rIns="0" tIns="0" bIns="0"><a:normAutofit/></a:bodyPr><a:lstStyle/>${paragraphs.join("") || "<a:p/>"}</p:txBody>`;
 }
 
-function luminance(color: string) {
-  const channels = [0, 2, 4].map((offset) => {
-    const value = parseInt(color.slice(offset, offset + 2), 16) / 255;
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
-  });
-  return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
-}
-
-function readableColor(background: string, preferred: string) {
-  const bg = luminance(background);
-  const fg = luminance(preferred);
-  if ((Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05) >= 4.5) return preferred;
-  return bg > 0.179 ? "000000" : "FFFFFF";
-}
-
 function slideVisual(content: SlideContent, bounds: Box, width: number, height: number, design: SlideDesign) {
   const [x, originalY, w, originalH] = bounds;
   const accent = design.accentColor ?? "0F766E";
@@ -157,7 +143,7 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
     }).join("");
     const tableRows = [headers, ...rows].map((row, rowIndex) => {
       const fill = rowIndex === 0 ? accent : rowIndex % 2 ? "E8F4F1" : "FFFFFF";
-      const color = readableColor(fill, rowIndex === 0 ? "FFFFFF" : "152C2C");
+      const color = readableBackgroundText([fill], rowIndex === 0 ? "FFFFFF" : "152C2C");
       const cells = row.map((value) => {
         const text = textBody([value], design.bodyFontFace, color, pt(headers.length > 4 ? 14 : 15), rowIndex === 0)
           .replaceAll("p:txBody", "a:txBody");
@@ -308,8 +294,12 @@ function sourceTextShapes(document?: Document | null) {
   return shapes(document).filter((shape) => shapeText(shape) && !["dt", "ftr", "hdr", "sldNum"].includes(placeholderType(shape) ?? ""));
 }
 
+function templateBackground(...documents: (Document | null | undefined)[]) {
+  return documents.map((document) => slideArtwork(document ?? null).background).find(Boolean);
+}
+
 function solidBackground(...documents: (Document | null | undefined)[]) {
-  const design = documents.map((document) => slideArtwork(document ?? null).background).find(Boolean);
+  const design = templateBackground(...documents);
   const color = design?.getElementsByTagNameNS(drawingNamespace, "solidFill")[0]
     ?.getElementsByTagNameNS(drawingNamespace, "srgbClr")[0]?.getAttribute("val");
   return color && /^[0-9a-f]{6}$/i.test(color) ? color : undefined;
@@ -401,9 +391,12 @@ async function readTemplate(file: File) {
   const layouts = (await Promise.all(masters.map(async (master) => {
     const path = resolveTarget(presentationPath, master.target);
     const [document, rels] = await Promise.all([readXml(zip, path), readXml(zip, relationshipPath(path))]);
-    return Promise.all(relationships(rels).filter((link) => isRelationship(link, "slideLayout")).map(async (link) => {
+    const masterLinks = relationships(rels);
+    const themeLink = masterLinks.find((link) => isRelationship(link, "theme"));
+    const theme = themeLink ? await readXml(zip, resolveTarget(path, themeLink.target)) : null;
+    return Promise.all(masterLinks.filter((link) => isRelationship(link, "slideLayout")).map(async (link) => {
       const layout = resolveTarget(path, link.target);
-      return { path: layout, document: await readXml(zip, layout), master: document };
+      return { path: layout, document: await readXml(zip, layout), master: document, theme };
     }));
   }))).flat();
   if (!layouts.length) throw new Error("The template does not have a usable PowerPoint layout.");
@@ -471,7 +464,7 @@ export async function inspectPowerPointTemplate(file: File): Promise<LayoutRevie
   return { options, choices, uncertain, aspectRatio: width / height };
 }
 
-export async function applyPowerPointTemplate(file: File, contents: SlideContent[], design: SlideDesign, choices: LayoutChoices) {
+export async function applyPowerPointTemplate(file: File, contents: SlideContent[], design: SlideDesign, choices: LayoutChoices, autoContrast: boolean) {
   const { zip, presentation, root, sourceList, contentTypes, size, width, height, designLinks, candidates } = await readTemplate(file);
   const serializer = new XMLSerializer();
   const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
@@ -524,15 +517,19 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
       return copyArtwork(logo);
     }).join("");
     const backgroundColor = solidBackground(document, layout.document, layout.master) ?? design.backgroundColor;
-    const textColor = readableColor(backgroundColor, design.textColor);
     const textScale = Math.max(.4, Math.min(1, height / 6858000, width / 9144000));
-    const title = textBody([content.title], design.headFontFace, textColor, Math.round(2900 * textScale), true);
-    const body = textBody(content.lines, design.bodyFontFace, textColor, Math.round(1800 * textScale));
     const naturalBoxes = slideBoxes(candidate, content.purpose, width, height);
     const hasVisual = Boolean(content.table || content.chart || content.waterfall);
     const boxes = hasVisual && (!naturalBoxes.body || naturalBoxes.body[3] < .40)
       ? { title: [.07, .13, .86, .13] as Box, body: [.07, .32, .86, .55] as Box, panel: false }
       : naturalBoxes;
+    const artwork = templateBackground(retainedBackground ? document : null, layout.document, layout.master);
+    const backgroundColors = autoContrast && !boxes.panel && content.purpose !== "content"
+      ? resolveBackgroundColors(artwork, layout.master, layout.theme)
+      : [];
+    const textColor = readableBackgroundText(backgroundColors.length ? backgroundColors : [backgroundColor], design.textColor);
+    const title = textBody([content.title], design.headFontFace, textColor, Math.round(2900 * textScale), true);
+    const body = textBody(content.lines, design.bodyFontFace, textColor, Math.round(1800 * textScale));
     const panel = boxes.panel ? drawingBox(2, "Content background", width, height, [.04, .15, .92, .77], backgroundColor, "") : "";
     const titleBox = drawingBox(3, "Title", width, height, boxes.title, "", title);
     const bodyBox = boxes.body ? hasVisual
