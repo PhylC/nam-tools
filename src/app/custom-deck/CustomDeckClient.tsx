@@ -1083,6 +1083,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [savedTemplates, setSavedTemplates] = useState<SavedPresentationTemplate[]>([]);
   const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
   const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
+  const choseBlankTemplate = useRef(false);
   const [selectedSavedTemplateId, setSelectedSavedTemplateId] = useState(defaultSavedTemplate?.id ?? "");
   const [oneOffTemplateFiles, setOneOffTemplateFiles] = useState<File[]>([]);
   const [googleSlidesTemplateUrl, setGoogleSlidesTemplateUrl] = useState("");
@@ -1157,7 +1158,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       const defaultTemplate = reusableTemplates.find((template) => template.isDefault) ?? reusableTemplates[0] ?? null;
       if (!defaultTemplate) return;
       setSelectedSavedTemplateId((current) => current || defaultTemplate.id);
-      setTemplateSource((current) => (current === "apt_default" ? "saved" : current));
+      if (!choseBlankTemplate.current) setTemplateSource((current) => (current === "apt_default" ? "saved" : current));
     });
     return () => {
       isMounted = false;
@@ -1640,7 +1641,11 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     name="template-source"
                     type="radio"
                     value="apt_default"
-                    onChange={() => setTemplateSource("apt_default")}
+                    onClick={() => { choseBlankTemplate.current = true; }}
+                    onChange={() => {
+                      choseBlankTemplate.current = true;
+                      setTemplateSource("apt_default");
+                    }}
                   />
                   <span>
                     <strong>Use simple blank template</strong>
