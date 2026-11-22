@@ -125,10 +125,24 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, message: "You already have Pro access.", redirectTo: "/account" }, { status: 409 });
   }
 
+  let price;
   try {
-    await stripe.prices.retrieve(priceId);
+    price = await stripe.prices.retrieve(priceId);
   } catch (error) {
     logCheckoutFailure("retrieve-selected-price", error, { ...logContext, priceId });
+    return Response.json({ ok: false, message: "Checkout is temporarily unavailable." }, { status: 503 });
+  }
+
+  const expectedInterval = interval === "monthly" ? "month" : "year";
+  if (!price.active || price.type !== "recurring" ||
+      price.recurring?.interval !== expectedInterval || price.recurring.interval_count !== 1) {
+    console.error("APT Stripe checkout price does not match the selected billing period", {
+      interval,
+      priceId,
+      stripeInterval: price.recurring?.interval ?? null,
+      stripeIntervalCount: price.recurring?.interval_count ?? null,
+      active: price.active,
+    });
     return Response.json({ ok: false, message: "Checkout is temporarily unavailable." }, { status: 503 });
   }
 
@@ -189,7 +203,7 @@ export async function POST(request: Request) {
         cancel_url: `${origin}/pricing?checkout=cancelled`,
       },
       {
-        idempotencyKey: `apt-checkout-${auth.user.id}-${interval}-${Math.floor(Date.now() / 60_000)}`,
+        idempotencyKey: `apt-checkout-${auth.user.id}-${interval}-${priceId}-${Math.floor(Date.now() / 60_000)}`,
       },
     );
   } catch (error) {
