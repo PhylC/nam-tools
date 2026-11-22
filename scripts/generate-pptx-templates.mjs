@@ -114,6 +114,32 @@ function addWaterfall(pptx, slide, content, example) {
   });
 }
 
+function addScenarioChart(pptx, slide, points, example) {
+  const x = .74;
+  const y = 2.13;
+  const w = 11.9;
+  const rowHeight = Math.min(1, 3.9 / points.length);
+  const split = points.some(({ value }) => value < 0) && points.some(({ value }) => value > 0);
+  const negativeOnly = points.every(({ value }) => value <= 0);
+  const zero = x + w * (split ? .60 : negativeOnly ? .84 : .35);
+  const scale = w * (split ? .23 : .47) / Math.max(...points.map(({ value }) => Math.abs(value)));
+  slide.addShape(pptx.ShapeType.line, {
+    x: zero, y, w: 0, h: rowHeight * points.length, line: { color: theme.muted, width: 1 },
+  });
+  points.forEach(({ label, value, display }, index) => {
+    const top = y + index * rowHeight + .2;
+    const barW = Math.abs(value) * scale;
+    if (barW) {
+      const color = example ? value < 0 ? "A74D35" : theme.accent : "8CA9A1";
+      slide.addShape(pptx.ShapeType.rect, {
+        x: value < 0 ? zero - barW : zero, y: top, w: barW, h: .40, line: { color }, fill: { color },
+      });
+    }
+    addText(slide, example ? label : `[Item ${index + 1}]`, { x, y: top, w: 3.9, h: .5, fontSize: 17, bold: true, fit: "shrink" });
+    addText(slide, example ? display : "[Enter value]", { x: x + w * .85, y: top, w: w * .15, h: .47, fontSize: 17, bold: true, fit: "shrink" });
+  });
+}
+
 function addContentSlide(pptx, deck, content, example, index) {
   const slide = pptx.addSlide({ masterName: "APT" });
   addText(slide, example ? content.exampleTitle ?? content.title : content.title, {
@@ -124,6 +150,7 @@ function addContentSlide(pptx, deck, content, example, index) {
     x: 0.73, y: 1.57, w: 11.88, h: 0.33, fontSize: 16, color: theme.muted,
   });
   if (content.waterfall) addWaterfall(pptx, slide, content, example);
+  else if (content.chart) addScenarioChart(pptx, slide, content.chart, example);
   else if (content.headers) addTable(slide, content, example);
   else addNotes(slide, content.rows, example);
 

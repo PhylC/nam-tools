@@ -17,6 +17,7 @@ export type SlideContent = {
   title: string;
   lines: string[];
   purpose: SlidePurpose;
+  subtitle?: string;
   table?: { headers: string[]; widths: number[]; rows: string[][] };
   chart?: { label: string; value: number; display: string }[];
   waterfall?: {
@@ -135,10 +136,15 @@ function readableColor(background: string, preferred: string) {
 }
 
 function slideVisual(content: SlideContent, bounds: Box, width: number, height: number, design: SlideDesign) {
-  const [x, y, w, h] = bounds;
+  const [x, originalY, w, originalH] = bounds;
   const accent = design.accentColor ?? "0F766E";
   const scale = Math.max(.42, Math.min(1, height / 6858000, width / 9144000));
   const pt = (value: number) => Math.round(value * scale * 100);
+  const subtitleSpace = content.subtitle ? originalH * .13 : 0;
+  const subtitle = content.subtitle ? drawingBox(9999, "Subtitle", width, height, [x, originalY, w, subtitleSpace],
+    "", textBody([content.subtitle], design.bodyFontFace, design.textColor, pt(14))) : "";
+  const y = originalY + subtitleSpace;
+  const h = originalH - subtitleSpace;
   if (content.table) {
     const { headers, widths, rows } = content.table;
     const rowHeight = Math.round(height * h / (rows.length + 1));
@@ -159,7 +165,7 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
       }).join("");
       return `<a:tr h="${rowHeight}">${cells}</a:tr>`;
     }).join("");
-    return `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="10000" name="Editable table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
+    return subtitle + `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="10000" name="Editable table"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr>
       <p:xfrm><a:off x="${Math.round(width * x)}" y="${Math.round(height * y)}"/><a:ext cx="${Math.round(width * w)}" cy="${rowHeight * (rows.length + 1)}"/></p:xfrm>
       <a:graphic><a:graphicData uri="${tableGraphicUri}"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${tableRows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
   }
@@ -191,11 +197,13 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
   const magnitude = Math.max(...chart.map(({ value }) => Math.abs(value)));
   if (!Number.isFinite(magnitude) || magnitude <= 0) return "";
   const rowHeight = h / chart.length;
-  const zero = x + w * .60;
+  const split = chart.some(({ value }) => value < 0) && chart.some(({ value }) => value > 0);
+  const negativeOnly = chart.every(({ value }) => value <= 0);
+  const zero = x + w * (split ? .60 : negativeOnly ? .84 : .35);
   const baseline = drawingBox(10000, "Zero line", width, height, [zero - .0006, y, .0012, h], "93A7AB", "");
-  return baseline + chart.map((point, index) => {
+  return subtitle + baseline + chart.map((point, index) => {
     const top = y + rowHeight * (index + .23);
-    const barWidth = w * .23 * Math.abs(point.value) / magnitude;
+    const barWidth = w * (split ? .23 : .47) * Math.abs(point.value) / magnitude;
     const id = 10001 + index * 3;
     const label = textBody([point.label], design.bodyFontFace, design.textColor, pt(15));
     const value = textBody([point.display], design.bodyFontFace, design.textColor, pt(15), true);

@@ -5,7 +5,7 @@ export const freeTemplates = [
     pptx: "joint-business-plan-template.pptx",
     description: "Use this for annual customer planning, growth pillars, investment alignment and measures of success.",
     bestFor: "JBP meetings, account reviews and customer planning",
-    slides: "11",
+    slides: "10",
     includes: "objectives, growth plan, investment plan and success measures",
   },
   {
@@ -90,9 +90,9 @@ export const featuredTemplates = [
     previewAlt: "Joint Business Plan slide with growth pillars, quarterly milestones and owners",
     purpose: "Agree a shared growth plan with a retailer, including the investment, milestones and measures each side will own.",
     sections: [
-      ["Align on a target", "Compare the current business with the next-year ambition. Agree the sales basis and the period before proposing a growth target."],
-      ["Choose growth pillars", "Set out the retailer benefit, supplier commitment and measure for each pillar. Limit the plan to the initiatives both teams can staff."],
-      ["Agree the roadmap", "Set a milestone for each quarter, name an owner and use the final slide to capture the decisions needed at the meeting."],
+      ["Agree what the buyer is approving", "Open with the annual sales ambition, the retailer benefit and the decision you need. Keep the sales baseline and target on the same basis."],
+      ["Reconcile the investment", "Assign each funding line to a shared priority. Check the total against the envelope and name the owner and release condition."],
+      ["Set quarterly decision gates", "Give each milestone an owner and a success measure. Agree when to expand, change or pause each initiative."],
     ],
   },
   {
@@ -114,9 +114,9 @@ export const featuredTemplates = [
     previewAlt: "Promotional Proposal slide comparing downside, expected and upside funding scenarios",
     purpose: "Present a promotion mechanic, forecast the incremental volume and show the funding and break-even assumptions behind the ask.",
     sections: [
-      ["Define the baseline", "Use a comparable non-promoted period and keep the store count and time window consistent across scenarios."],
-      ["Show the funding decision", "Separate additional unit contribution from fixed funding. Divide fixed funding by contribution per incremental unit to estimate break-even volume."],
-      ["Agree how to measure results", "Confirm the mechanic, dates, share of funding and reporting owner before the event, then compare actual incremental volume with break-even."],
+      ["Start with the offer and approval", "State the price mechanic, stores, duration and funding ask. Compare against non-promoted weeks for the same store scope."],
+      ["Show the downside and break-even", "Compare downside, expected and upside contribution after fixed funding. State the incremental units needed to break even."],
+      ["Set release and measurement conditions", "Confirm stock, in-store execution, owners and reporting dates. Use the same baseline and success thresholds after the event."],
     ],
   },
 ];

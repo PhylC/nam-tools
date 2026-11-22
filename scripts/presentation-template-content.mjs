@@ -1,65 +1,32 @@
 import { qbrBenchmark as qbr, qbrColumns, qbrHeadings } from "../src/app/custom-deck/qbrBenchmark.mjs";
+import { commercialConfig, commercialPages } from "../src/app/custom-deck/commercialBenchmarks.mjs";
 
 const table = (title, guidance, headers, rows, keepLabels = true) => ({ title, guidance, headers, rows, keepLabels });
 const notes = (title, guidance, rows) => ({ title, guidance, rows });
 
+function commercialTemplate(kind, file, summary) {
+  const { label, benchmark } = commercialConfig[kind];
+  const { pages, errors } = commercialPages(kind, benchmark);
+  if (errors.length) throw new Error(errors.join(" "));
+  const starterGuidance = {
+    "Investment and release conditions": "Set the envelope, reconcile funding lines and agree the release conditions.",
+    "Unit forecast and uplift": "Use a comparable baseline with the same stores and duration in all three scenarios.",
+    "Funding and break-even": "Compare contribution after fixed funding and show the break-even incremental volume.",
+  };
+  return {
+    file, title: label, customer: benchmark.customer, period: benchmark.period, exampleTitle: benchmark.title, summary,
+    slides: pages.map((page) => ({
+      ...page,
+      guidance: starterGuidance[page.title] ?? page.guidance,
+      exampleGuidance: page.guidance,
+      colW: page.widths?.map((width) => width * 11.9),
+      rowH: page.headers ? .87 : undefined,
+    })),
+  };
+}
+
 export const decks = [
-  {
-    file: "joint-business-plan-template.pptx", title: "Joint Business Plan",
-    customer: "Northstar Retail", exampleTitle: "Joint growth plan for Northstar Retail",
-    summary: "Agree the growth ambition, investment and commitments for the year ahead.",
-    slides: [
-      notes("Executive summary", "Put the proposed decision and its commercial implications up front.", [
-        ["Ambition", "Grow annual supplier net sales from £2.0m to £2.2m."],
-        ["Joint commitment", "Prioritise availability, range productivity and measured promotions."],
-        ["Decision today", "Agree the Q1 baselines, pilot scope and £30k funding envelope."],
-      ]),
-      table("Customer objectives", "Translate the retailer's priorities into measurable commitments.", ["Priority", "Customer benefit", "Measure"], [
-        ["Availability", "Fewer missed purchases", "On-shelf availability at least 97%"],
-        ["Range productivity", "More sales per facing", "Pilot rate of sale up 8%"],
-        ["Promotion value", "Evidence for funding decisions", "Review incremental contribution after each event"],
-      ]),
-      table("Business performance", "Use the same reporting period and sales basis for both columns.", ["Measure", "Current year", "Next-year target", "Change"], [
-        ["Supplier net sales", "£2.0m", "£2.2m", "+10%"],
-        ["On-shelf availability", "94%", "97%", "+3 percentage points"],
-        ["Gross margin rate", "27%", "28%", "+1 percentage point"],
-      ]),
-      notes("Category and shopper trends", "Record the evidence and explain its implication for the retailer.", [
-        ["Shopper need", "Shoppers are trading into smaller packs in the weekly top-up channel."],
-        ["Evidence", "Retailer basket data shows small packs growing faster in the pilot cluster."],
-        ["Implication", "Trial a smaller pack in the 20 stores with the highest top-up mission share."],
-      ]),
-      table("Growth pillars", "Pair each initiative with an owner and an outcome.", ["Pillar", "Supplier commitment", "Retailer commitment", "Outcome"], [
-        ["Availability", "Weekly stock exception report", "Escalate recurring gaps", "97% availability"],
-        ["Range productivity", "Fund test stock", "Provide 20 pilot stores", "+8% pilot rate of sale"],
-        ["Promotion value", "Supply post-event analysis", "Share EPOS for the test", "Pass contribution hurdle"],
-      ]),
-      table("Innovation pipeline", "Agree which opportunities have enough evidence to proceed.", ["Opportunity", "Evidence needed", "Decision gate", "Owner"], [
-        ["Pack-size trial", "Basket data and margin check", "Approve Q2 test after Q1 review", "Category lead"],
-        ["Seasonal multipack", "Forecast and supply readiness", "Commit after pilot results", "Supply lead"],
-      ]),
-      table("Promotional strategy", "Record the offer, test design and criteria for repeating it.", ["Event", "Mechanic", "Measurement", "Repeat if"], [
-        ["Q2 value event", "Two-week price reduction", "Matched stores and baseline weeks", "Positive net contribution"],
-        ["Q4 seasonal event", "Feature display", "Incremental units by store cluster", "Meets agreed volume hurdle"],
-      ]),
-      table("Investment and financial targets", "Reconcile funding lines to the total with finance before committing.", ["Funding line", "Budget", "Release condition", "Owner"], [
-        ["Availability improvements", "£10k", "Weekly stock reporting agreed", "Operations"],
-        ["Range pilot", "£8k", "Pilot stores and shelf dates confirmed", "Category"],
-        ["Promotion tests", "£12k", "Baseline and measurement plan signed off", "Account lead"],
-        ["Total", "£30k", "Quarterly review against milestones", "Finance"],
-      ]),
-      table("Risks and dependencies", "Specify the trigger that requires a decision or escalation.", ["Risk", "Trigger", "Response", "Owner"], [
-        ["Supply interruption", "Availability below 94% for two weeks", "Escalate replenishment exceptions", "Supply lead"],
-        ["Low pilot uptake", "Rate of sale below baseline at week four", "Review visibility and reconsider rollout", "Category lead"],
-      ]),
-      table("Joint roadmap and next steps", "Use the quarterly gates to track commitments from both teams.", ["Quarter", "Priority milestone", "Decision or measure", "Owner"], [
-        ["Q1", "Agree baseline and trial stores", "Sign off £30k funding envelope", "Both account leads"],
-        ["Q2", "Launch range and promotion pilots", "Review pilot rate of sale and funding", "Category lead"],
-        ["Q3", "Extend initiatives that meet the hurdle", "Confirm availability above 97%", "Retail operations"],
-        ["Q4", "Close the year and agree next priorities", "Review £2.2m supplier net sales goal", "Joint steering group"],
-      ]),
-    ],
-  },
+  commercialTemplate("jbp", "joint-business-plan-template.pptx", "Agree the annual growth target, joint commitments and the conditions for releasing investment."),
   {
     file: "quarterly-business-review-template.pptx", title: "Quarterly Business Review",
     customer: qbr.account, period: qbr.period, exampleTitle: "Bridgeway Grocers quarterly review",
@@ -112,56 +79,7 @@ export const decks = [
       ]),
     ],
   },
-  {
-    file: "promotional-proposal-template.pptx", title: "Promotional Proposal",
-    customer: "Westfield Stores", exampleTitle: "Westfield spring promotion proposal",
-    summary: "Present the offer, incremental volume, funding and break-even assumptions behind the ask.",
-    slides: [
-      notes("Proposal summary", "State the offer, the funding request and the decision deadline.", [
-        ["Offer", "Two-week shelf-price reduction across 100 stores."],
-        ["Funding ask", "£5,000 fixed funding at £0.80 contribution per incremental unit before funding."],
-        ["Decision", "Confirm dates, store scope and reporting access before stock is committed."],
-      ]),
-      table("Promotional mechanic", "Record the deal precisely enough for stores to execute it.", ["Item", "Proposal", "Confirm with"], [
-        ["Shelf price", "£3.00 to £2.50", "Buyer"],
-        ["Period", "Two weeks", "Trade marketing"],
-        ["Store scope", "100 stores with comparable baseline data", "Retail operations"],
-        ["Execution", "Shelf-edge label and agreed display space", "Retail operations"],
-      ]),
-      notes("Commercial rationale", "Explain why this event deserves space and funding.", [
-        ["Shopper benefit", "A lower entry price during the spring top-up shopping period."],
-        ["Retailer benefit", "Incremental units on a product with established availability."],
-        ["Evidence to check", "Use comparable non-promoted weeks for the baseline."],
-      ]),
-      table("Unit forecast", "Apply the same store count and time window in every scenario.", ["Measure", "Baseline", "Downside", "Expected", "Upside"], [
-        ["Total units", "20,000", "25,000", "30,000", "34,000"],
-        ["Incremental units", "—", "5,000", "10,000", "14,000"],
-        ["Unit uplift vs baseline", "—", "+25%", "+50%", "+70%"],
-      ]),
-      table("Funding and break-even", "Divide fixed funding by contribution per incremental unit to find the break-even volume.", ["Measure", "Downside", "Expected", "Upside"], [
-        ["Contribution before funding", "£4,000", "£8,000", "£11,200"],
-        ["Fixed funding", "£5,000", "£5,000", "£5,000"],
-        ["Contribution after funding", "−£1,000", "£3,000", "£6,200"],
-        ["Break-even incremental units", "6,250", "6,250", "6,250"],
-        ["Incremental units vs break-even", "−1,250", "+3,750", "+7,750"],
-      ]),
-      notes("Retailer benefit", "State the retailer's benefit and how it will be measured.", [
-        ["Volume", "Expected to sell 10,000 units above the baseline across 100 stores."],
-        ["Shopper value", "Shelf price falls by £0.50 for two weeks."],
-        ["Measurement", "Compare sales and availability with the agreed baseline and monitor related products."],
-      ]),
-      table("Support requested", "Separate the funding commitment from the execution and reporting asks.", ["Support", "Amount or scope", "Owner", "Deadline"], [
-        ["Fixed funding", "£5,000 total", "Commercial finance", "Before booking"],
-        ["Shelf execution", "100 stores", "Retail operations", "First day of event"],
-        ["EPOS and availability", "Event and baseline weeks", "Retail analyst", "Two weeks after event"],
-      ]),
-      notes("Recommendation and approval", "Close with a decision and the conditions attached to it.", [
-        ["Recommendation", "Proceed if the baseline, stock and reporting scope are confirmed."],
-        ["Guardrail", "Review the proposal if expected incremental volume falls below 6,250 units."],
-        ["Next action", "Lock dates and agree who will deliver the post-event review."],
-      ]),
-    ],
-  },
+  commercialTemplate("promo-proposal", "promotional-proposal-template.pptx", "Present the offer, show the downside and break-even, and agree approval and post-event measurement."),
   {
     file: "account-plan-template.pptx", title: "Account Plan",
     summary: "Prioritise growth opportunities, focus resources and agree the next 90 days.",

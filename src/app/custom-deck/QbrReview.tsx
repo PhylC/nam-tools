@@ -4,51 +4,9 @@ import type { QbrScorecard } from "./qbrScorecard";
 import { bridgeMeasures, buildQbrSlides, metricValue, qbrActionRows, qbrBridge, suggestedHeadline, variance } from "./qbrStory";
 import type { QbrApproval, QbrContext, QbrStory } from "./qbrStory";
 import { qbrColumns } from "./qbrBenchmark.mjs";
+import { DeckReviewRows } from "./DeckReviewRows";
 
 type MetricEdit = { actual?: string; plan?: string; prior?: string };
-
-function QbrRows({ kind, labels, rows, onChange, maxRows }: {
-  kind: string;
-  labels: string[];
-  rows: string[][];
-  onChange: (rows: string[][]) => void;
-  maxRows?: number;
-}) {
-  const emptyRow = () => labels.map(() => "");
-  const items = rows.length ? rows : [emptyRow()];
-  return (
-    <div className="qbr-editable-rows">
-      {items.map((row, index) => (
-        <div className="qbr-editable-row" role="group" aria-label={`${kind} ${index + 1}`} key={index}>
-          <div className="qbr-editable-fields">
-            {labels.map((label, column) => (
-              <label className="field" key={label}>
-                <span>{label}</span>
-                <input
-                  aria-label={`${label} for ${kind.toLowerCase()} ${index + 1}`}
-                  value={row[column] ?? ""}
-                  onChange={(event) => onChange(items.map((current, i) => i === index
-                    ? labels.map((_, j) => j === column ? event.target.value : current[j] ?? "")
-                    : current))}
-                />
-              </label>
-            ))}
-          </div>
-          {rows.length ? <button type="button" className="button button-secondary button-small"
-            aria-label={`Remove ${kind.toLowerCase()} ${index + 1}`}
-            onClick={() => onChange(rows.filter((_, i) => index !== i))}>
-            Remove
-          </button> : null}
-        </div>
-      ))}
-      {(!maxRows || items.length < maxRows) ? (
-        <button type="button" className="button button-secondary button-small" onClick={() => onChange([...items, emptyRow()])}>
-          Add {kind.toLowerCase()}
-        </button>
-      ) : null}
-    </div>
-  );
-}
 
 export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, onBack }: {
   scorecard: QbrScorecard;
@@ -172,7 +130,7 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
         <fieldset className="qbr-editor" disabled={busy}>
           <legend>Previous review commitments</legend>
           <p>Optional. Record each commitment, who owned it, and the outcome you can verify.</p>
-          <QbrRows kind="Commitment" labels={qbrColumns.commitments} rows={story.commitments ?? []} onChange={(commitments) => setStory({ ...story, commitments })} />
+          <DeckReviewRows kind="Commitment" labels={qbrColumns.commitments} rows={story.commitments ?? []} onChange={(commitments) => setStory({ ...story, commitments })} />
           {partialCommitment ? <p className="field-error">Complete the owner, status and outcome for each commitment.</p> : null}
         </fieldset>
         {context.includeFinancialSummary && (bridgeChoices.length || story.salesDrivers?.some((row) => row.some(Boolean))) ? (
@@ -187,7 +145,7 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
                 {bridgeChoices.map(({ id, name }) => <option key={id} value={name}>{name}</option>)}
               </select>
             </label>
-            <QbrRows kind="Driver" labels={["Driver", "Signed impact", "Evidence"]} rows={story.salesDrivers ?? []} maxRows={5}
+            <DeckReviewRows kind="Driver" labels={["Driver", "Signed impact", "Evidence"]} rows={story.salesDrivers ?? []} maxRows={5}
               onChange={(salesDrivers) => setStory({ ...story, salesDrivers })} />
             {bridge.error ? <p className="field-error" role="status">{bridge.error}</p> : null}
             {bridge.chart ? <p role="status">Sales drivers reconcile to {bridge.chart.total.display} against plan.</p> : null}
@@ -201,7 +159,7 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
           <fieldset className="qbr-editor" disabled={busy}>
             <legend>Proposed actions and owners</legend>
             <p>Record the starting point and how you’ll measure success at the next review.</p>
-            <QbrRows kind="Action" labels={qbrColumns.actions} rows={actions} onChange={(actionRows) => setStory({ ...story, actionRows })} />
+            <DeckReviewRows kind="Action" labels={qbrColumns.actions} rows={actions} onChange={(actionRows) => setStory({ ...story, actionRows })} />
             {partialAction ? <p className="field-error" role="status">Complete the owner, due date, baseline and success measure for each action.</p> : null}
           </fieldset>
         ) : null}

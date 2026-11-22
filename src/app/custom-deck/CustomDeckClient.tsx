@@ -11,6 +11,10 @@ import type { QbrApproval, QbrContext, QbrStory } from "./qbrStory";
 import { groupMetrics, readQbrScorecards } from "./qbrScorecard";
 import type { QbrMetric, QbrScorecard } from "./qbrScorecard";
 import { qbrBenchmark, qbrBenchmarkCsv } from "./qbrBenchmark.mjs";
+import { CommercialDeckReview } from "./CommercialDeckReview";
+import { buildCommercialSlides, commercialText, getCommercialKind, restoreCommercialApproval } from "./commercialDeck";
+import type { CommercialApproval, CommercialContext } from "./commercialDeck";
+import { commercialConfig } from "./commercialBenchmarks.mjs";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
@@ -46,8 +50,10 @@ const toneOptions = [
   { label: "Executive and polished", value: "executive_polished" },
 ];
 type TemplateSource = "saved" | "one_off" | "apt_default";
-type PendingLayoutReview = LayoutReview & { file: File; savedTemplateId: string; qbr?: QbrApproval };
+type PendingLayoutReview = LayoutReview & { file: File; savedTemplateId: string; qbr?: QbrApproval; commercial?: CommercialApproval };
 type PendingQbrReview = { scorecard: QbrScorecard; context: QbrContext; initialStory: QbrStory };
+type PendingCommercialReview = { initial: CommercialApproval; context: CommercialContext };
+const commercialInputKeys = ["scope", "benefit", "decision", "governance"];
 const qbrQuestions = [
   "Which account and quarter are you reviewing?",
   "What happened this quarter?",
@@ -821,6 +827,7 @@ async function createDeckFile({
   layoutChoices,
   readabilityMode,
   qbr,
+  commercial,
 }: {
   deckLabel: string;
   deckType: string;
@@ -836,6 +843,7 @@ async function createDeckFile({
   layoutChoices?: LayoutChoices;
   readabilityMode: ReadabilityMode;
   qbr?: { context: QbrContext; approval: QbrApproval };
+  commercial?: { context: CommercialContext; approval: CommercialApproval };
 }): Promise<GeneratedDeckResult> {
   const autoTextColor = templateDesign.textColor === "FFFFFF" ? "FFFFFF" : readableTextColor(templateDesign.backgroundColor);
   const design = readabilityMode === "auto"
@@ -845,7 +853,9 @@ async function createDeckFile({
         mutedTextColor: mutedReadableTextColor(autoTextColor),
       }
     : templateDesign;
-  const { outline, contents } = qbr ? buildQbrSlides(qbr.context, qbr.approval, Boolean(layoutChoices?.divider)) : buildDeckContent({
+  const { outline, contents } = commercial
+    ? buildCommercialSlides(commercial.context, commercial.approval, Boolean(layoutChoices?.divider))
+    : qbr ? buildQbrSlides(qbr.context, qbr.approval, Boolean(layoutChoices?.divider)) : buildDeckContent({
     deckLabel, deckType, deckInputs, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles,
     includeSectionDividers: Boolean(layoutChoices?.divider),
   });
@@ -879,18 +889,19 @@ async function createDeckFile({
   };
 
   const cover = pptx.addSlide();
-  if (qbr) {
+  if (qbr || commercial) {
     cover.background = { color: "153B3A" };
     cover.addShape(pptx.ShapeType.rect, { x: 0.75, y: 1.18, w: 0.75, h: 0.08, fill: { color: "60C4AF" }, line: { color: "60C4AF" } });
-    cover.addText(contents[0].lines.at(-1) ?? "Quarterly business review", {
+    cover.addText(contents[0].lines.at(-1) ?? "Commercial presentation", {
       x: 0.75, y: 1.43, w: 11.4, h: 0.36, fontSize: 16, color: "A7E0D3", margin: 0, fontFace: design.bodyFontFace,
     });
     cover.addText(deckLabel, {
       x: 0.75, y: 2.06, w: 11.4, h: 2.15, fontSize: 42, bold: true, color: "FFFFFF", margin: 0,
       fontFace: design.headFontFace, valign: "middle", fit: "shrink",
     });
-    if (qbr.context.period.trim()) {
-      cover.addText(qbr.context.period.trim(), {
+    const period = qbr?.context.period ?? (commercial ? commercialText(commercial.approval.data, "period") : "");
+    if (period.trim()) {
+      cover.addText(period.trim(), {
         x: 0.75, y: 4.6, w: 11.1, h: 0.65, fontSize: 19, color: "D7EFEB", margin: 0, fontFace: design.bodyFontFace, fit: "shrink",
       });
     }
@@ -1076,7 +1087,7 @@ function TemplateLayoutReview({ review, deckName, busy, onChange, onConfirm, onC
       <div className="template-layout-review-actions">
         <button className="button" disabled={busy} type="button" onClick={onConfirm}>{busy ? "Creating deck..." : "Confirm layouts and create deck"}</button>
         <button className="button button-secondary" disabled={busy} type="button" onClick={onCancel}>
-          {review.qbr ? "Back to QBR review" : "Back to deck setup"}
+          {review.qbr ? "Back to QBR review" : review.commercial ? "Back to draft review" : "Back to deck setup"}
         </button>
       </div>
     </section>
@@ -1117,6 +1128,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const [layoutReview, setLayoutReview] = useState<PendingLayoutReview | null>(null);
   const [qbrReview, setQbrReview] = useState<PendingQbrReview | null>(null);
+  const [commercialReview, setCommercialReview] = useState<PendingCommercialReview | null>(null);
+  const [commercialDraft, setCommercialDraft] = useState<CommercialApproval | null>(null);
   const [priorQbr, setPriorQbr] = useState<QbrApproval | null>(null);
   const [isQbrExample, setIsQbrExample] = useState(false);
   const isPro = plan === "pro" || plan === "team";
@@ -1133,6 +1146,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     [deckType],
   );
   const selectedPlaybook = useMemo(() => getDeckPlaybook(deckType), [deckType]);
+  const commercialKind = getCommercialKind(deckType);
   const selectedSavedTemplate = useMemo(
     () => reusableSavedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
     [reusableSavedTemplates, selectedSavedTemplateId],
@@ -1237,6 +1251,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setReadabilityMode(getText(saved.readabilityMode, "auto") === "preserve" ? "preserve" : "auto");
       setGoogleSlidesTemplateUrl(getText(saved.googleSlidesTemplateUrl));
       setPriorQbr(restoreQbrApproval(saved.qbrApproval));
+      setCommercialDraft(restoreCommercialApproval(saved.commercialBrief));
 
       const savedTemplateId = getText(saved.savedTemplateId);
       if (savedTemplateId) {
@@ -1310,8 +1325,17 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     if (isQbrExample) setIsQbrExample(false);
   }
 
-  async function createAndSaveDeck(review?: PendingLayoutReview, qbrApproval?: QbrApproval) {
-    if (isCreatingDeck || (pendingLayoutReview && pendingLayoutReview !== review) || (qbrReview && !qbrApproval && !review)) return;
+  function applyCommercialDraft(draft: CommercialApproval) {
+    setCommercialDraft(draft);
+    setDeckInputs(Object.fromEntries(commercialInputKeys.map((key, index) => [
+      selectedPlaybook.inputPrompts[index], commercialText(draft.data, key),
+    ])));
+    setBrief(commercialText(draft.data, "evidence"));
+  }
+
+  async function createAndSaveDeck(review?: PendingLayoutReview, qbrApproval?: QbrApproval, commercialApproval?: CommercialApproval) {
+    if (isCreatingDeck || (pendingLayoutReview && pendingLayoutReview !== review) || (qbrReview && !qbrApproval && !review)
+      || (commercialReview && !commercialApproval && !review)) return;
     if (isAuthLoading) {
       setRequestMessage("Checking your account before creating the deck...");
       return;
@@ -1346,7 +1370,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       }
       const hasUploadedScorecard = deckType === "qbr" && supportingFiles.some((file) => /\.(csv|xlsx)$/i.test(file.name));
       const hasSavedEvidence = deckType === "qbr" && Boolean(priorQbr?.metrics.length);
-      if (!brief.trim() && normaliseDeckInputs(deckInputs, selectedPlaybook).length === 0 && !hasUploadedScorecard && !hasSavedEvidence) {
+      if (!commercialKind && !brief.trim() && normaliseDeckInputs(deckInputs, selectedPlaybook).length === 0 && !hasUploadedScorecard && !hasSavedEvidence) {
         setRequestMessage(`Add at least one ${selectedDeck.label.toLowerCase()} input before creating the deck.`);
         return;
       }
@@ -1355,6 +1379,22 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setRequestMessage("Checking deck setup...");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
       const approved = qbrApproval ?? review?.qbr;
+      const commercialApproved = commercialApproval ?? review?.commercial;
+      const commercialContext: CommercialContext = {
+        deckLabel: resolvedDeckName, audience, tone, financial: financialSummary === "Yes", next: nextStepsSlide === "Yes",
+      };
+      if (commercialKind && !commercialApproved) {
+        const previous = commercialDraft?.kind === commercialKind ? commercialDraft.data : {};
+        const setup = Object.fromEntries(commercialInputKeys.map((key, index) => [
+          key, activeDeckInputs[selectedPlaybook.inputPrompts[index]] ?? "",
+        ]));
+        setCommercialReview({
+          initial: { kind: commercialKind, data: { ...previous, ...setup, evidence: brief } },
+          context: commercialContext,
+        });
+        setRequestMessage("");
+        return;
+      }
       const qbrContext: QbrContext = {
         deckLabel: resolvedDeckName,
         period: activeDeckInputs[deckPlaybooks.qbr.inputPrompts[0]] ?? "",
@@ -1437,6 +1477,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             file: templateFileForDesign,
             savedTemplateId: templateSource === "saved" ? selectedSavedTemplate?.id ?? "" : "",
             qbr: approved,
+            commercial: commercialApproved,
           });
           setRequestMessage("");
           return;
@@ -1464,6 +1505,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           layoutChoices,
           readabilityMode,
           qbr: deckType === "qbr" && approved ? { context: qbrContext, approval: approved } : undefined,
+          commercial: commercialApproved ? { context: commercialContext, approval: commercialApproved } : undefined,
         }),
         25000,
         "Deck file creation timed out.",
@@ -1473,6 +1515,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       const downloadUrl = URL.createObjectURL(generated.file);
       setLayoutReview(null);
       setQbrReview(null);
+      setCommercialReview(null);
+      if (commercialApproved) applyCommercialDraft(commercialApproved);
       pendingDownloadUrl = downloadUrl;
       pendingDownloadFilename = generated.filename;
       const uploaded = await withTimeout(
@@ -1491,8 +1535,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         oneOffTemplateFileMeta: activeUploadedTemplate ? toFileMeta(activeUploadedTemplate) : null,
         googleSlidesTemplateUrl: googleSlidesTemplateUrl.trim(),
         supportingFilesMeta: supportingFiles.map(toFileMeta),
-        deckInputs: activeDeckInputs,
-        brief,
+        deckInputs: commercialApproved ? Object.fromEntries(commercialInputKeys.map((key, index) => [
+          selectedPlaybook.inputPrompts[index], commercialText(commercialApproved.data, key),
+        ])) : activeDeckInputs,
+        brief: commercialApproved ? commercialText(commercialApproved.data, "evidence") : brief,
         audience,
         tone,
         includeFinancialSummary: financialSummary === "Yes",
@@ -1502,6 +1548,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         generatedOutline: generated.outline,
         generated_outline: generated.outline,
         ...(deckType === "qbr" && approved ? { qbrApproval: approved } : {}),
+        ...(commercialApproved ? { commercialBrief: commercialApproved } : {}),
         templateDesign: {
           applied: generated.templateDesignApplied,
           sourceName: templateDesign.sourceName,
@@ -1563,6 +1610,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setRequestMessage("Remove your current reference files before loading the fictional worked example.");
       return;
     }
+    if (commercialKind && supportingFiles.length) {
+      setRequestMessage("Remove your current reference files before loading the fictional worked example.");
+      return;
+    }
     setIsQbrExample(deckType === "qbr");
     if (deckType === "qbr") {
       setDeckName(`${qbrBenchmark.account} quarterly review`);
@@ -1576,6 +1627,17 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         new File([qbrBenchmarkCsv], qbrSampleFilename, { type: "text/csv" }),
       ]);
       setRequestMessage("The Bridgeway Grocers worked example is ready to review.");
+      return;
+    }
+    if (commercialKind) {
+      const { benchmark, label } = commercialConfig[commercialKind];
+      setDeckName(benchmark.title);
+      applyCommercialDraft({ kind: commercialKind, data: { ...benchmark } });
+      setAudience("Retailer/customer meeting");
+      setTone("executive_polished");
+      setFinancialSummary("Yes");
+      setNextStepsSlide("Yes");
+      setRequestMessage(`The fictional ${label} worked example is ready to review.`);
       return;
     }
     const example = exampleDeckData(deckType, selectedPlaybook, selectedDeck.label);
@@ -1612,7 +1674,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             </div>
           ) : null}
 
-          <fieldset className="settings-fieldset" disabled={!isPro || isCreatingDeck || Boolean(qbrReview)}>
+          <fieldset className="settings-fieldset" disabled={!isPro || isCreatingDeck || Boolean(qbrReview || commercialReview)}>
             <section className="custom-deck-form-section custom-deck-name-section">
               <h2>Deck setup</h2>
               {basedOnDeckMessage ? <p className="settings-message settings-message-success">{basedOnDeckMessage}</p> : null}
@@ -1781,7 +1843,9 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                   Upload an optional Excel (.xlsx) or CSV scorecard with Metric and Actual columns. Add Plan, Prior period and Unit where available. Use one row per measure.
                   {" "}<a download="qbr-scorecard-sample.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(qbrBenchmarkCsv)}`}>Download a sample scorecard</a>.
                 </p>
-              ) : <p className="helper-note">The draft lists attached files by name. Paste the figures, findings and quotes you want to use into the fields below.</p>}
+              ) : <p className="helper-note">{commercialKind
+                ? "Keep reference files with the draft. Enter the figures and findings you want to use in the review."
+                : "The draft lists attached files by name. Paste the figures, findings and quotes you want to use into the fields below."}</p>}
               <DeckFileDropzone
                 accept=".xlsx,.csv,.pdf,.docx,.txt,.pptx,.key,.numbers,.pages"
                 disabled={!isPro}
@@ -1802,21 +1866,21 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
 
             <section className="custom-deck-form-section">
               <h2>Deck-specific inputs</h2>
-              <div className="custom-deck-brief-guide">
+              {commercialKind ? <p className="helper-note">Start with the case you want to make. The review step covers figures, ownership and the planned slides.</p> : <div className="custom-deck-brief-guide">
                 <strong>{selectedDeck.label} inputs</strong>
                 <ul className="compact-list">
                   {selectedPlaybook.inputPrompts.map((prompt) => (
                     <li key={prompt}>{prompt}</li>
                   ))}
                 </ul>
-              </div>
+              </div>}
               <div className="deck-input-grid">
                 {selectedPlaybook.inputPrompts.map((prompt, index) => (
                   <label className="field" key={prompt}>
-                    <span>{deckType === "qbr" ? qbrQuestions[index] : prompt}</span>
+                    <span>{deckType === "qbr" ? qbrQuestions[index] : commercialKind ? commercialConfig[commercialKind].questions[index] : prompt}</span>
                     <textarea
                       className="deck-input-textarea"
-                      placeholder={deckInputPlaceholder(prompt)}
+                      placeholder={commercialKind ? undefined : deckInputPlaceholder(prompt)}
                       value={deckInputs[prompt] ?? ""}
                       onChange={(event) => {
                         const value = event.target.value;
@@ -1907,6 +1971,15 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 onBack={() => { setQbrReview(null); setRequestMessage(""); }}
               />
             </div> : null}
+            {commercialReview ? <div hidden={Boolean(pendingLayoutReview)}>
+              <CommercialDeckReview
+                initial={commercialReview.initial}
+                context={commercialReview.context}
+                busy={isCreatingDeck}
+                onConfirm={(approval) => void createAndSaveDeck(undefined, undefined, approval)}
+                onBack={(draft) => { applyCommercialDraft(draft); setCommercialReview(null); setRequestMessage(""); }}
+              />
+            </div> : null}
             {pendingLayoutReview ? <TemplateLayoutReview
               review={pendingLayoutReview}
               deckName={deckName}
@@ -1914,8 +1987,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               onChange={(purpose, value) => setLayoutReview({ ...pendingLayoutReview, choices: { ...pendingLayoutReview.choices, [purpose]: value } })}
               onConfirm={() => void createAndSaveDeck(pendingLayoutReview)}
               onCancel={() => { setLayoutReview(null); setRequestMessage(""); }}
-            /> : !qbrReview ? <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || isAuthLoading} type="button" onClick={() => void createAndSaveDeck()}>
-              {isCreatingDeck ? "Preparing deck…" : deckType === "qbr" ? "Review QBR draft" : "Create and save deck"}
+            /> : !qbrReview && !commercialReview ? <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || isAuthLoading} type="button" onClick={() => void createAndSaveDeck()}>
+              {isCreatingDeck ? "Preparing deck…" : deckType === "qbr" ? "Review QBR draft" : commercialKind ? `Review ${commercialConfig[commercialKind].short} draft` : "Create and save deck"}
             </button> : null}
             {!canCreateDeck ? (
               <p className="field-error">Upload or choose a PowerPoint template, or select the simple blank template.</p>
