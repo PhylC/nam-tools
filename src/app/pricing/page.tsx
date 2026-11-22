@@ -154,9 +154,8 @@ const upgradeMessages: Record<string, string> = {
   "custom-deck": "Upgrade to Pro to build custom decks from your data.",
   "roi-proposal": "APT Pro creates an editable PowerPoint from your ROI figures. Return to your proposal in this tab when you are ready.",
   "download-template": "Upgrade to Pro to download ROI spreadsheet templates.",
-  "export-excel": "Upgrade to Pro to export Excel workbooks.",
   "export-powerpoint": "Upgrade to Pro to export PowerPoint outputs.",
-  "export-results": "Upgrade to Pro to export ROI results.",
+  "export-results": "Upgrade to Pro to export ROI comparisons as CSV.",
   "pro-actions": "Upgrade to Pro to save, compare and export commercial scenarios.",
   "save-analysis": "Upgrade to Pro to save calculator analyses.",
   "save-plan": "Upgrade to Pro to save ROI plans.",
@@ -167,7 +166,7 @@ const upgradeMessages: Record<string, string> = {
 function getUpgradeMessage(feature?: string | string[]) {
   const key = Array.isArray(feature) ? feature[0] : feature;
   if (!key) return "";
-  return upgradeMessages[key] ?? "Upgrade to Pro to use this feature.";
+  return upgradeMessages[key === "export-excel" ? "export-results" : key] ?? "Upgrade to Pro to use this feature.";
 }
 
 function getCheckoutMessage(checkout?: string | string[]) {

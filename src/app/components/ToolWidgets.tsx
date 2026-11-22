@@ -781,7 +781,7 @@ function LockedProActions() {
     { label: "Add another product", feature: "add-product" },
     { label: "Add another scenario", feature: "add-scenario" },
     { label: "Export to PowerPoint", feature: "export-powerpoint" },
-    { label: "Export Excel workbook", feature: "export-excel" },
+    { label: "Export ROI comparison CSV", feature: "export-results" },
     { label: "Use company template", feature: "company-template" },
   ];
 
@@ -798,7 +798,9 @@ function LockedProActions() {
         <p>Free calculators are designed for quick one-off checks. APT Pro is for saving, comparing and exporting commercial scenarios.</p>
       </div>
       <div className="locked-action-row">
-        {actions.map((action) => (
+        {actions.map((action) => action.feature === "export-results" && isPro ? (
+          <a className="button button-secondary button-small" href="/roi-tool" key={action.feature}>{action.label}</a>
+        ) : (
           <button className="button button-secondary button-small" disabled={isPro} key={action.feature} onClick={() => handleClick(action.feature)} type="button">
             {action.label}
           </button>
@@ -1429,8 +1431,8 @@ function DealProPreview() {
       <h2>Go deeper with Pro deal planning</h2>
       <div className="locked-grid locked-grid-three" aria-label="Pro features">
         <div className="locked-card">
-          <strong>Excel import/export</strong>
-          <span>Paste SKU or customer rows and export the finished deal view.</span>
+          <strong>CSV import and export</strong>
+          <span>Import product lines into the ROI planner and export scenario comparisons as CSV.</span>
         </div>
         <div className="locked-card">
           <strong>Scenario comparison</strong>
