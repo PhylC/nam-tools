@@ -4,7 +4,7 @@ import { CustomDeckClient } from "./CustomDeckClient";
 
 export const metadata = privateMetadata(
   "Build a custom deck",
-  "Build a custom Account Planning Tools deck from a selected PowerPoint template, supporting data and commercial brief.",
+  "Build a custom Account Planning Tools deck from a commercial brief and your choice of PowerPoint design.",
 );
 
 export default async function CustomDeckPage({
@@ -20,8 +20,7 @@ export default async function CustomDeckPage({
     <div className="page-stack">
       <Hero title="Build a custom deck">
         <p>
-          Upload your template, add supporting data and give APT the context it
-          needs to create a stronger first draft.
+          Turn your brief into an editable PowerPoint draft. Use the built-in design or upload your own template.
         </p>
       </Hero>
       <CustomDeckClient basedOnDeckId={deck ?? ""} selectedTemplate={template ?? ""} />

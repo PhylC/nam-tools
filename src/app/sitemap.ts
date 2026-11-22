@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { retailMediaRoasPath } from "../lib/retailMediaRoas";
+import { featuredTemplates } from "./data/presentationTemplates";
 import { quickCalculators } from "./data/quickCalculators";
 import { SITE_LAST_MODIFIED, SITE_URL } from "./seo";
 
@@ -68,7 +69,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "weekly" as const,
   }));
 
-  return [...routes, ...calculatorRoutes].map((route) => ({
+  const templateRoutes = featuredTemplates.map(({ slug }) => ({
+    path: `/presentation-templates/${slug}`,
+    changeFrequency: "monthly" as const,
+    priority: 0.75,
+  }));
+  return [...routes, ...calculatorRoutes, ...templateRoutes].map((route) => ({
     url: `${SITE_URL}${route.path}`,
     lastModified: new Date(routeLastModified[route.path] ?? SITE_LAST_MODIFIED),
     changeFrequency: route.changeFrequency,

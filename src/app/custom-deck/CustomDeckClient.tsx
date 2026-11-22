@@ -37,13 +37,7 @@ const toneOptions = [
   { label: "Detailed and analytical", value: "detailed_analytical" },
   { label: "Executive and polished", value: "executive_polished" },
 ];
-const exportFormatOptions = [
-  { label: "PowerPoint (.pptx)", value: "pptx" },
-  { label: "Google Slides compatible", value: "google_slides_compatible" },
-  { label: "Keynote compatible", value: "keynote_compatible" },
-];
 type TemplateSource = "saved" | "one_off" | "apt_default";
-type ExportFormat = "pptx" | "google_slides_compatible" | "keynote_compatible";
 type ReadabilityMode = "auto" | "preserve";
 type FileMeta = {
   name: string;
@@ -78,7 +72,6 @@ type DeckInputValues = Record<string, string>;
 type DeckPlaybook = {
   proofPrompt: string;
   inputPrompts: string[];
-  uploadPrompt: string;
   briefPlaceholder: string;
   fallbackBrief: string[];
   outline: string[];
@@ -129,10 +122,6 @@ function toFileMeta(file: File): FileMeta {
     type: file.type || "unknown",
     extension: fileExtension(file.name),
   };
-}
-
-function isPowerPointTemplateFile(file: File) {
-  return [".pptx", ".potx"].includes(fileExtension(file.name));
 }
 
 function isReusableSavedTemplate(template: SavedPresentationTemplate): template is ReusableSavedTemplate {
@@ -329,7 +318,7 @@ function exampleDeckData(deckType: string, playbook: DeckPlaybook, deckLabel: st
     inputs: [
       "Retailer/customer meeting to secure a clear commercial decision.",
       "Customer context, commercial risk and the core ask that needs approval.",
-      "Revenue, margin, support and ROI assumptions will be added from supporting files.",
+      "Enter the revenue, margin, support and ROI assumptions to include in the draft.",
       "Finish with owners, actions, timings and the decision needed.",
     ],
     brief: "Create a concise commercial deck with a clear story, evidence, recommendation, risks and next steps.",
@@ -351,9 +340,8 @@ const defaultDeckPlaybook: DeckPlaybook = {
     "Key commercial numbers or where they are uploaded",
     "Any specific slides, story flow or format to follow",
   ],
-  uploadPrompt: "Upload supporting data",
   briefPlaceholder: "Example: Build a QBR for Tesco covering Q3 performance, promo results, risks, next-quarter asks and recommended actions.",
-  fallbackBrief: ["Add the customer context, commercial objective and core ask.", "Attach sales data or prior decks to improve the next draft."],
+  fallbackBrief: ["Add the customer context, commercial objective and core ask.", "Enter sales figures or key points from prior decks."],
   outline: ["Objective and context", "Commercial priorities", "Evidence and assumptions", "Recommended story", "Risks and watchouts"],
   evidenceSlideTitle: "Brief and assumptions",
   recommendationSlide: {
@@ -395,9 +383,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
       "Investment plan, trade-offs, asks and expected return",
       "Success measures, owners, milestones and governance",
     ],
-    uploadPrompt: "Upload sales history, targets, customer scorecards or investment plans",
     briefPlaceholder: "Example: Build a 2027 JBP for Tesco with three growth pillars, trade investment asks, category objectives and quarterly milestones.",
-    fallbackBrief: ["Add the planning period, customer growth ambition and core JBP ask.", "Attach sales history, targets or investment files to sharpen the plan."],
+    fallbackBrief: ["Add the planning period, customer growth ambition and core JBP ask.", "Enter past sales, targets and planned investment."],
     outline: ["Joint ambition", "Customer and category context", "Growth pillars", "Investment plan", "Measures of success", "Governance and next steps"],
     evidenceSlideTitle: "Customer and category context",
     recommendationSlide: {
@@ -425,9 +412,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
       "Commercial objective, investment and support needed",
       "Risks, owners, governance and next commercial actions",
     ],
-    uploadPrompt: "Upload customer scorecards, account trackers, sales data or internal planning files",
     briefPlaceholder: "Example: Build an internal account plan for Tesco covering current performance, growth opportunities, risks, owners, investment and 30/60/90 actions.",
-    fallbackBrief: ["Add the account context, internal objective and current performance.", "Attach sales or customer scorecard data to make the plan evidence-led."],
+    fallbackBrief: ["Add the account context, internal objective and current performance.", "Enter the key sales and customer scorecard figures."],
     outline: ["Account situation", "Performance and evidence", "Growth priorities", "Investment and resource plan", "Risks and governance", "30/60/90 action plan"],
     evidenceSlideTitle: "Account situation and evidence",
     recommendationSlide: {
@@ -450,9 +436,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   qbr: {
     proofPrompt: "Explain performance, what changed, what it means and what should happen next quarter.",
     inputPrompts: ["Review period and customer/account scope", "Sales, margin, distribution and promo performance", "Drivers of over/under-performance", "Actions, risks and asks for the next period"],
-    uploadPrompt: "Upload performance trackers, promo results, EPOS or customer scorecards",
     briefPlaceholder: "Example: Build a Q3 QBR for Sainsbury's showing performance vs target, promo ROI, distribution gaps, risks and Q4 actions.",
-    fallbackBrief: ["Add the review period, performance headlines and actions required.", "Attach scorecards or performance trackers to avoid a generic review."],
+    fallbackBrief: ["Add the review period, performance headlines and actions required.", "Enter scorecard figures and the reasons for any variance."],
     outline: ["Executive summary", "Performance vs plan", "Drivers and insights", "Risks and opportunities", "Recommended actions"],
     evidenceSlideTitle: "Performance and drivers",
     recommendationSlide: {
@@ -475,9 +460,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "promo-proposal": {
     proofPrompt: "Prove why the promotion should run, what support is needed and what payback is expected.",
     inputPrompts: ["Promotion mechanic, timing and customer", "Baseline and expected promo volume", "Invoice, SRP, support, COGS and ROI assumptions", "Customer benefit, negotiation ask and approval guardrails"],
-    uploadPrompt: "Upload ROI scenarios, promo history, rate cards or customer terms",
     briefPlaceholder: "Example: Build a promo proposal for Asda with £1.50 mechanic, expected uplift, support ask, ROI and customer rationale.",
-    fallbackBrief: ["Add the mechanic, support ask and expected uplift.", "Attach ROI scenarios or promo history to build the financial case."],
+    fallbackBrief: ["Add the mechanic, support ask and expected uplift.", "Enter the ROI scenarios and results from comparable promotions."],
     outline: ["Promotion objective", "Mechanic and shopper rationale", "Commercial model", "Customer benefit", "Recommendation and guardrails"],
     evidenceSlideTitle: "Mechanic and assumptions",
     recommendationSlide: {
@@ -500,9 +484,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "range-review": {
     proofPrompt: "Show which products should be kept, added, removed or expanded, and why.",
     inputPrompts: ["Retailer range objective and category role", "SKU performance, ROS, distribution, margin and incrementality", "Competitor/benchmark gaps and shopper need", "Recommended adds, deletes, swaps or space changes"],
-    uploadPrompt: "Upload SKU sales, distribution, margin, rate-of-sale or assortment files",
     briefPlaceholder: "Example: Build a range review for Morrisons recommending two new SKUs, one delist and a fixture-space change using ROS and margin evidence.",
-    fallbackBrief: ["Add the range decision needed and the SKU-level evidence.", "Attach sales, distribution or assortment files to support recommendations."],
+    fallbackBrief: ["Add the range decision needed and the SKU-level evidence.", "Enter the sales, distribution or assortment evidence behind the recommendation."],
     outline: ["Range objective", "Current assortment performance", "Opportunity gaps", "Recommended range changes", "Commercial impact"],
     evidenceSlideTitle: "Current range performance",
     recommendationSlide: {
@@ -525,9 +508,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "product-launch": {
     proofPrompt: "Prove why the new product deserves support, distribution and launch investment.",
     inputPrompts: ["Launch objective, target customer and timing", "Consumer/shopper insight and category gap", "Forecast, distribution ask, margin and support plan", "Launch risks, activation plan and success measures"],
-    uploadPrompt: "Upload forecasts, launch plan, research, product images or customer sell-in data",
     briefPlaceholder: "Example: Build a launch sell-in deck for a new premium SKU with consumer insight, forecast, distribution ask, launch support and risks.",
-    fallbackBrief: ["Add the launch objective, target customer and distribution ask.", "Attach forecasts, product details or launch plans to build the case."],
+    fallbackBrief: ["Add the launch objective, target customer and distribution ask.", "Enter the key forecasts, product details and launch milestones."],
     outline: ["Launch headline", "Consumer and category opportunity", "Product and customer fit", "Forecast and support plan", "Launch recommendation"],
     evidenceSlideTitle: "Consumer and category opportunity",
     recommendationSlide: {
@@ -550,9 +532,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "annual-planning": {
     proofPrompt: "Translate the annual ambition into priorities, investment choices and quarterly actions.",
     inputPrompts: ["Planning year, customer and target ambition", "Last-year performance and key lessons", "Priority initiatives, investment asks and trade-offs", "Quarterly roadmap, owners and measures"],
-    uploadPrompt: "Upload annual targets, prior-year results, planning files or investment trackers",
     briefPlaceholder: "Example: Build a 2027 annual plan for Waitrose with last-year learnings, target ambition, investment priorities and quarterly roadmap.",
-    fallbackBrief: ["Add the planning year, target ambition and priority initiatives.", "Attach prior-year performance or annual targets to anchor the plan."],
+    fallbackBrief: ["Add the planning year, target ambition and priority initiatives.", "Enter prior-year results and next-year targets."],
     outline: ["Annual ambition", "Last-year lessons", "Strategic priorities", "Investment choices", "Quarterly roadmap"],
     evidenceSlideTitle: "Performance context and lessons",
     recommendationSlide: {
@@ -575,7 +556,6 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "buyer-meeting": {
     proofPrompt: "Prepare the buyer conversation: objective, likely objections, commercial ask and meeting close.",
     inputPrompts: ["Buyer, meeting date and desired decision", "Buyer priorities, likely objections and negotiation context", "Your commercial ask, walk-away position and concessions", "Evidence, questions to ask and follow-up actions"],
-    uploadPrompt: "Upload buyer notes, meeting history, account facts, objections or negotiation prep",
     briefPlaceholder: "Example: Build a buyer meeting planner for a Tesco range meeting with the decision needed, buyer objections, key questions, negotiation asks and follow-up plan.",
     fallbackBrief: ["Add the buyer, meeting objective and decision needed.", "Add likely objections, negotiation guardrails and questions to ask."],
     outline: ["Meeting objective", "Buyer context", "Questions and evidence", "Negotiation plan", "Close and follow-up"],
@@ -600,9 +580,8 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
   "category-opportunity": {
     proofPrompt: "Size the category opportunity and show the actions needed to unlock it.",
     inputPrompts: ["Category, customer and opportunity question", "Shopper/category trends and market context", "Benchmark gaps, distribution gaps or competitor evidence", "Recommended actions, value case and customer benefit"],
-    uploadPrompt: "Upload category data, market reports, shopper insights or competitor benchmarks",
     briefPlaceholder: "Example: Build a category opportunity deck for chilled snacks showing shopper trend, distribution gaps, competitor benchmark and recommended growth actions.",
-    fallbackBrief: ["Add the category question, customer and opportunity to prove.", "Attach market, shopper or benchmark data to size the opportunity."],
+    fallbackBrief: ["Add the category question, customer and opportunity to prove.", "Enter the market, shopper or benchmark figures behind the opportunity."],
     outline: ["Opportunity headline", "Shopper and market context", "Customer gap", "Commercial opportunity", "Recommended actions"],
     evidenceSlideTitle: "Shopper and market context",
     recommendationSlide: {
@@ -669,12 +648,12 @@ function buildDeckContent({
   const coverSummary = brief || suppliedInputs.slice(0, 2).map((item) => item.value).join("\n") || "Generated from your custom deck inputs. Add more detail to sharpen the next version.";
   const sourceSummary = supportingFiles.length
     ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
-    : ["No supporting files attached to this draft."];
+    : [];
   const contents: DeckSlideContent[] = [
     { title: deckLabel, lines: [coverSummary] },
     { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`) },
     { title: playbook.evidenceSlideTitle, lines: evidenceLines },
-    { title: "Supporting data used", lines: sourceSummary },
+    ...(sourceSummary.length ? [{ title: "Supporting files attached", lines: sourceSummary }] : []),
     {
       title: playbook.recommendationSlide.title,
       lines: [...playbook.recommendationSlide.lines, ...suppliedInputLines.slice(0, 2)].slice(0, 8),
@@ -945,7 +924,7 @@ function DeckFileDropzone({
           type="file"
           onChange={handleFiles}
         />
-        <strong>{multiple ? "Drag and drop supporting files here, or choose files" : "Drag and drop a deck template here, or choose a file"}</strong>
+        <strong>{multiple ? "Drag and drop reference files here, or choose files" : "Drag and drop a deck template here, or choose a file"}</strong>
         <span>{helper}</span>
       </label>
       {files.length > 0 ? (
@@ -995,7 +974,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [tone, setTone] = useState("concise_commercial");
   const [financialSummary, setFinancialSummary] = useState("Yes");
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
-  const [exportFormat, setExportFormat] = useState<ExportFormat>("pptx");
   const [readabilityMode, setReadabilityMode] = useState<ReadabilityMode>("auto");
   const [requestMessage, setRequestMessage] = useState("");
   const [generatedDeckUrl, setGeneratedDeckUrl] = useState("");
@@ -1019,11 +997,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     () => reusableSavedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
     [reusableSavedTemplates, selectedSavedTemplateId],
   );
-  const supportingTemplateFile = useMemo(
-    () => supportingFiles.find(isPowerPointTemplateFile) ?? null,
-    [supportingFiles],
-  );
-  const activeUploadedTemplate = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? basedOnDeckTemplateFile ?? supportingTemplateFile : null;
+  const activeUploadedTemplate = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? basedOnDeckTemplateFile : null;
   const activeTemplateName = activeUploadedTemplate?.name
     ?? (templateSource === "saved" && selectedSavedTemplate
       ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename
@@ -1034,8 +1008,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     ? "Uploaded deck design template"
     : templateSource === "one_off" && basedOnDeckTemplateFile
       ? "Design from saved deck"
-    : templateSource === "one_off" && supportingTemplateFile
-      ? "PowerPoint template found in supporting data"
     : templateSource === "saved" && selectedSavedTemplate
       ? "Saved template"
       : templateSource === "apt_default"
@@ -1080,7 +1052,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setTone(getText(draft.tone, "detailed_analytical"));
         setFinancialSummary("Yes");
         setNextStepsSlide("Yes");
-        setBasedOnDeckMessage("Account plan details copied in. Choose a template option, then create and save the internal account plan deck.");
+        setBasedOnDeckMessage("Planning details copied into your brief. Choose a template, then create and save the deck.");
       }, 0);
     } catch {
       window.localStorage.removeItem(CUSTOM_DECK_DRAFT_STORAGE_KEY);
@@ -1118,7 +1090,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setTone(getText(saved.tone, "concise_commercial"));
       setFinancialSummary(saved.includeFinancialSummary === false ? "No" : "Yes");
       setNextStepsSlide(saved.includeNextStepsSlide === false ? "No" : "Yes");
-      setExportFormat(getText(saved.exportFormat, "pptx") as ExportFormat);
       setReadabilityMode(getText(saved.readabilityMode, "auto") === "preserve" ? "preserve" : "auto");
       setGoogleSlidesTemplateUrl(getText(saved.googleSlidesTemplateUrl));
 
@@ -1189,10 +1160,6 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       return;
     }
     setSupportingFiles(next);
-    if (next.some(isPowerPointTemplateFile) && !oneOffTemplateFiles.length) {
-      setTemplateSource("one_off");
-      setTemplateError("");
-    }
   }
 
   async function createAndSaveDeck() {
@@ -1315,7 +1282,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         tone,
         includeFinancialSummary: financialSummary === "Yes",
         includeNextStepsSlide: nextStepsSlide === "Yes",
-        exportFormat,
+        exportFormat: "pptx",
         readabilityMode,
         generatedOutline: generated.outline,
         generated_outline: generated.outline,
@@ -1396,8 +1363,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               <div>
                 <strong>Custom deck building is included with APT Pro.</strong>
                 <span>
-                  Free users can download editable templates. APT Pro lets you build custom decks from your data,
-                  brief and presentation template.
+                  Download editable templates for free. APT Pro builds a draft from your brief and uses your chosen template for the design.
                 </span>
               </div>
               <div className="summary-actions">
@@ -1564,20 +1530,14 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     setGoogleSlidesError("");
                   }}
                 />
-                <small>Optional reference only. Use a PowerPoint template above when you want the generated deck to follow a design.</small>
+                <small>APT saves this link with the brief. Choose a PowerPoint file above to supply the design.</small>
                 {googleSlidesError ? <small className="field-error">{googleSlidesError}</small> : null}
               </label>
             </section>
 
             <section className="custom-deck-form-section">
-              <h2>Supporting data</h2>
-              <p className="helper-note">{selectedPlaybook.uploadPrompt}.</p>
-              {supportingTemplateFile ? (
-                <p className="helper-note">
-                  PowerPoint design detected: {supportingTemplateFile.name}. This file will be used as the deck design template unless you upload a different
-                  template above.
-                </p>
-              ) : null}
+              <h2>Supporting files</h2>
+              <p className="helper-note">The draft lists attached files by name. Paste the figures, findings and quotes you want to use into the fields below.</p>
               <DeckFileDropzone
                 accept=".xlsx,.csv,.pdf,.docx,.txt,.pptx,.key,.numbers,.pages"
                 disabled={!isPro}
@@ -1585,7 +1545,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 files={supportingFiles}
                 helper=".xlsx, .csv, .pdf, .docx, .txt, .pptx, .key, .numbers or .pages, up to 10MB each."
                 id="supporting-data-files"
-                label={selectedPlaybook.uploadPrompt}
+                label="Attach reference files"
                 multiple
                 onFilesSelected={validateSupportingFiles}
                 onRemoveFile={(index) => {
@@ -1635,7 +1595,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
 
             <section className="custom-deck-form-section">
               <h2>Output preferences</h2>
-              <p className="helper-note">Choose the audience, tone, slides and output format you want included.</p>
+              <p className="helper-note">Choose the audience, tone and slides for your draft.</p>
               <div className="output-preferences-grid">
                 <div className="form-field">
                   <label htmlFor="custom-deck-audience">Audience</label>
@@ -1685,17 +1645,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               </div>
               <p className="helper-note">Choose the audience and the level of detail you want in the first draft.</p>
               <div className="output-format-field">
-                <div className="form-field">
-                  <label htmlFor="custom-deck-export-format">Export format</label>
-                  <select id="custom-deck-export-format" value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)}>
-                    {exportFormatOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="field-help">PowerPoint is the standard export. Google Slides and Keynote options create files intended to open cleanly in those tools.</p>
-                </div>
+                <strong>PowerPoint export (.pptx)</strong>
+                <p className="field-help">Download the file, then import it into Google Slides or open it in Keynote. Review the formatting after import.</p>
               </div>
             </section>
           </fieldset>

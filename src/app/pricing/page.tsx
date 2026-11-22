@@ -249,7 +249,7 @@ export default async function PricingPage({
               </article>
               <article className="pricing-decision-card">
                 <h3>Build a deck</h3>
-                <p>Create a custom deck from a brief, data and your presentation template.</p>
+                <p>Create an editable PowerPoint draft from your brief and presentation template.</p>
                 <Link className="text-link" href="/custom-deck">Create custom deck</Link>
               </article>
               <article className="pricing-decision-card">

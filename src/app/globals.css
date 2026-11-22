@@ -7109,7 +7109,7 @@ p {
   min-width: 0;
 }
 
-.presentation-template-primary h2 {
+.presentation-template-primary h3 {
   font-size: 1rem;
   line-height: 1.2;
   margin: 0;
@@ -10001,4 +10001,79 @@ p {
   .footer-bottom {
     flex-direction: column;
   }
+}
+
+.deck-featured {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.deck-featured-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.deck-featured-card img,
+.deck-template-guide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #f0f6f4;
+}
+
+.deck-featured-card > div {
+  padding: 1rem;
+}
+
+.deck-featured-card h2 {
+  font-size: 1.1rem;
+  margin: 0 0 0.65rem;
+}
+
+.deck-example-link,
+.template-guide-link {
+  display: block;
+  width: fit-content;
+  margin-top: 0.5rem;
+  color: var(--accent-dark);
+  font-size: 0.85rem;
+  text-decoration: underline;
+}
+
+.deck-template-guide {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(1rem, 5vw, 3rem);
+}
+
+.deck-template-guide figure {
+  margin: 0;
+}
+
+.deck-template-guide img {
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+}
+
+.deck-template-guide figcaption {
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+
+.deck-template-guide h2 {
+  margin-top: 0;
+}
+
+.deck-template-guide li p {
+  margin: 0.25rem 0 0.9rem;
+}
+
+@media (max-width: 720px) {
+  .deck-featured,
+  .deck-template-guide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
 }

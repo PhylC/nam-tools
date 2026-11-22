@@ -34,11 +34,6 @@ const cogsOptions = [
   { label: "Usually include COGS", value: "usually_include_cogs" },
   { label: "Hide unless I turn it on", value: "hide_unless_enabled" },
 ] as const;
-const exportFormats = [
-  { label: "PowerPoint (.pptx)", value: "pptx" },
-  { label: "Google Slides compatible", value: "google_slides_compatible" },
-  { label: "Keynote compatible", value: "keynote_compatible" },
-] as const;
 const templateLibraryExtensions = [".pptx", ".potx"];
 
 type Message = { tone: "success" | "error" | "info"; text: string } | null;
@@ -467,25 +462,10 @@ export function SettingsClient() {
                   <input accept="image/png,image/jpeg,image/svg+xml" type="file" onChange={handleLogoFile} />
                   <small>{exportDefaults.companyLogoFilename || "No logo selected"}</small>
                 </label>
-                <label className="field">
-                  <span>Default export format</span>
-                  <select
-                    value={exportDefaults.defaultExportFormat}
-                    onChange={(event) =>
-                      updateExportDefaults({
-                        ...exportDefaults,
-                        defaultExportFormat: event.target.value as ExportDefaults["defaultExportFormat"],
-                      })
-                    }
-                  >
-                    {exportFormats.map((format) => (
-                      <option key={format.value} value={format.value}>
-                        {format.label}
-                      </option>
-                    ))}
-                  </select>
-                  <small>Choose the default format you prefer for deck and export outputs.</small>
-                </label>
+                <div className="field">
+                  <span>Deck export format</span>
+                  <small>Editable PowerPoint (.pptx). Import the file into Google Slides or open it in Keynote.</small>
+                </div>
               </div>
               <label className="field">
                 <span>Default disclaimer</span>
