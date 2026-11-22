@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import PptxGenJS from "pptxgenjs";
+import JSZip from "jszip";
 import { decks } from "./presentation-template-content.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -17,8 +18,8 @@ const theme = {
   mint: "E6F3ED",
   paper: "F7FBF8",
 };
-const titleFont = "Aptos Display";
-const bodyFont = "Aptos";
+const titleFont = "Arial";
+const bodyFont = "Arial";
 
 function addText(slide, value, options) {
   slide.addText(value, {
@@ -76,7 +77,7 @@ function addTable(slide, content, example) {
   slide.addTable([header, ...body], {
     x: 0.72, y: 2.05, w: 11.9, rowH: 0.66,
     autoPage: false, fontFace: bodyFont, fontSize: headers.length > 4 ? 15 : 16,
-    margin: [0.10, 0.15, 0.10, 0.15], valign: "mid",
+    margin: [0.10, 0.15, 0.10, 0.15], valign: "middle",
     border: { type: "solid", color: theme.line, pt: 0.65 },
   });
 }
@@ -100,6 +101,33 @@ function addContentSlide(pptx, deck, content, example, index) {
   });
 }
 
+async function writeTemplate(pptx, filename) {
+  const zip = await JSZip.loadAsync(await pptx.write({ outputType: "nodebuffer" }));
+  const manifestPath = "[Content_Types].xml";
+  const manifest = await zip.file(manifestPath).async("string");
+  // PptxGenJS 4.0.1 lists slide masters it did not write.
+  zip.file(manifestPath, manifest.replace(/<Override\b[^>]*PartName="\/([^"]+)"[^>]*\/>/g, (entry, part) =>
+    zip.file(part) ? entry : "",
+  ));
+
+  // Its tables and shapes also draw from separate ID sequences on the same slide.
+  for (const part of zip.file(/^ppt\/slides\/slide\d+\.xml$/)) {
+    const xml = await part.async("string");
+    const shapeId = /(<p:cNvPr\s+id=")(\d+)"/g;
+    let nextId = Math.max(0, ...Array.from(xml.matchAll(shapeId), (match) => Number(match[2])));
+    const seen = new Set();
+    zip.file(part.name, xml.replace(shapeId, (match, prefix, rawId) => {
+      const id = Number(rawId);
+      if (seen.has(id)) return `${prefix}${++nextId}"`;
+      seen.add(id);
+      return match;
+    }));
+  }
+
+  const output = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  await fs.promises.writeFile(path.join(outDir, filename), output);
+}
+
 async function generateDeck(deck, example = false) {
   const pptx = new PptxGenJS();
   const filename = example ? deck.file.replace("-template.pptx", "-example.pptx") : deck.file;
@@ -121,7 +149,7 @@ async function generateDeck(deck, example = false) {
   addCover(pptx, deck, example);
   deck.slides.forEach((content, index) => addContentSlide(pptx, deck, content, example, index));
 
-  await pptx.writeFile({ fileName: path.join(outDir, filename), compression: true });
+  await writeTemplate(pptx, filename);
   console.log(`Generated ${filename}`);
 }
 
