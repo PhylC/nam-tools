@@ -7,6 +7,7 @@ import { trackCalculatorCompleted, trackCalculatorOpened, trackEvent, trackUpgra
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildRoiProposalDraft, roiProposalPath, roiProposalStorageKey, roiWorkedExample } from "../../lib/roiProposalDraft";
 import { EXPORT_PLANNING_CAVEAT } from "../../lib/commercialCaveats";
+import { LoadExampleButton } from "../components/LoadExampleButton";
 import { CalculatorCaveat } from "../components/CalculatorCaveat";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import {
@@ -909,7 +910,7 @@ function RoiFreeLineForm({
     <div className="roi-free-line-form">
       <div className="roi-free-form-heading">
         <h3>Calculate promotion ROI</h3>
-        <button className="button button-secondary button-small" onClick={onLoadExample} type="button">Load example</button>
+        <LoadExampleButton onLoad={onLoadExample} />
       </div>
 
       <div className="roi-free-input-grid roi-primary-field-grid">

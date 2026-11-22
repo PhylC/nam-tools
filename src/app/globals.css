@@ -6678,7 +6678,8 @@ p {
 .workspace-deck-viewer-header,
 .workspace-deck-viewer-footer,
 .workspace-deck-viewer-actions,
-.workspace-deck-viewer-controls {
+.workspace-deck-viewer-controls,
+.workspace-deck-viewer-zoom {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -6718,6 +6719,47 @@ p {
   max-width: 100%;
   max-height: min(62dvh, 680px);
   object-fit: contain;
+}
+
+.workspace-deck-viewer-stage-ready {
+  min-height: 0;
+}
+
+.workspace-deck-viewer-stage-zoomed {
+  display: block;
+  min-width: 0;
+  height: clamp(11rem, 47dvh, 30rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.workspace-deck-viewer-stage-zoomed img {
+  max-width: none;
+  max-height: none;
+  height: auto;
+}
+
+.workspace-deck-viewer-zoom > button {
+  width: auto;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 720px) {
+  .workspace-deck-viewer-controls {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .workspace-deck-viewer-controls > button,
+  .workspace-deck-viewer-header > button {
+    width: auto;
+  }
+
+  .workspace-deck-viewer-controls span {
+    min-width: 0;
+  }
 }
 
 .workspace-deck-viewer-stage p {

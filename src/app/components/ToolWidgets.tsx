@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LoadExampleButton } from "./LoadExampleButton";
 import { Field, ResultGrid } from "./Shell";
 import { useAptMode } from "./AptMode";
 import { buildUpgradeHref, useProAction } from "./ProActionGuard";
@@ -1975,9 +1976,7 @@ Fixed supplier support: ${currency.format(result.fixed)}`,
           </p>
         </div>
         <div className="summary-actions">
-          <button className="button button-secondary button-small" onClick={loadDealExample} type="button">
-            Load example
-          </button>
+          <LoadExampleButton onLoad={loadDealExample} />
         </div>
         {exampleMessage ? <p className="settings-message settings-message-success">{exampleMessage}</p> : null}
         <ContextualCalculatorSettings
@@ -2446,9 +2445,7 @@ function QuickCalculatorCard({
           <p>{question}</p>
         </div>
         {onLoadExample ? (
-          <button className="button button-secondary button-small" onClick={onLoadExample} type="button">
-            Load example
-          </button>
+          <LoadExampleButton onLoad={onLoadExample} />
         ) : null}
       </div>
       {exampleMessage ? <p className="settings-message settings-message-success">{exampleMessage}</p> : null}

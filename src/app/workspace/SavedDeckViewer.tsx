@@ -47,10 +47,13 @@ export function SavedDeckViewer({ title, file, draftHref, isDownloading, onDownl
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const stage = useRef<HTMLDivElement>(null);
   const headingId = useId();
+  const stageId = useId();
   const [preview, setPreview] = useState<Preview | null>(null);
   const [page, setPage] = useState<SlideImage | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [zoom, setZoom] = useState(1);
   const [error, setError] = useState("");
   const storagePath = file?.storagePath;
   const filename = file?.filename;
@@ -84,6 +87,7 @@ export function SavedDeckViewer({ title, file, draftHref, isDownloading, onDownl
     const index = slideIndex + offset;
     if (index < 0 || index >= preview.count) return;
     setSlideIndex(index);
+    stage.current?.scrollTo(0, 0);
     try {
       setPage(preview.render(index));
       setError("");
@@ -93,6 +97,8 @@ export function SavedDeckViewer({ title, file, draftHref, isDownloading, onDownl
     }
   }
 
+  const zoomed = Boolean(page && zoom > 1);
+
   return (
     <dialog ref={dialog} className="workspace-deck-viewer" aria-labelledby={headingId} onClose={onClose}>
       <div className="workspace-deck-viewer-inner">
@@ -101,17 +107,33 @@ export function SavedDeckViewer({ title, file, draftHref, isDownloading, onDownl
           <button className="button button-secondary button-small" type="button" onClick={() => dialog.current?.close()}>Close</button>
         </header>
         {file ? (
-          <div className="workspace-deck-viewer-stage" aria-busy={!page && !error}>
+          <>
             {page ? (
-              /* eslint-disable-next-line @next/next/no-img-element -- The slide is a temporary browser-generated image. */
-              <img
-                src={page.url}
-                alt={page.description ? `Slide ${slideIndex + 1}. ${page.description}` : `Slide ${slideIndex + 1}`}
-                onError={() => setError("This slide could not be displayed. You can download the original PowerPoint.")}
-              />
-            ) : !error ? <p role="status">Loading saved presentation…</p> : null}
-            {error ? <p role="alert">{error}</p> : null}
-          </div>
+              <div className="workspace-deck-viewer-zoom" role="group" aria-label="Slide zoom">
+                <button className="button button-secondary button-small" type="button" aria-label="Zoom out" aria-controls={stageId}
+                  disabled={zoom === 1} onClick={() => setZoom(zoom - 1)}>−</button>
+                <button className="button button-secondary button-small" type="button" aria-label="Fit slide to window" aria-controls={stageId}
+                  aria-pressed={!zoomed} onClick={() => setZoom(1)}>Fit</button>
+                <button className="button button-secondary button-small" type="button" aria-label="Zoom in" aria-controls={stageId}
+                  disabled={zoom === 3} onClick={() => setZoom(zoom + 1)}>+</button>
+                <span role="status">{zoomed ? `${zoom}× · Scroll to pan` : "Fit to window"}</span>
+              </div>
+            ) : null}
+            <div ref={stage} id={stageId} role={zoomed ? "region" : undefined} aria-label={zoomed ? "Zoomed slide preview" : undefined}
+              tabIndex={zoomed ? 0 : undefined} aria-busy={!page && !error}
+              className={`workspace-deck-viewer-stage${page ? " workspace-deck-viewer-stage-ready" : ""}${zoomed ? " workspace-deck-viewer-stage-zoomed" : ""}`}>
+              {page ? (
+                /* eslint-disable-next-line @next/next/no-img-element -- The slide is a temporary browser-generated image. */
+                <img
+                  src={page.url}
+                  style={zoomed ? { width: `${zoom * 100}%` } : undefined}
+                  alt={page.description ? `Slide ${slideIndex + 1}. ${page.description}` : `Slide ${slideIndex + 1}`}
+                  onError={() => setError("This slide could not be displayed. You can download the original PowerPoint.")}
+                />
+              ) : !error ? <p role="status">Loading saved presentation…</p> : null}
+              {error ? <p role="alert">{error}</p> : null}
+            </div>
+          </>
         ) : <p>Only the brief is saved. Use “Create new from this” to generate a PowerPoint file.</p>}
         <footer className="workspace-deck-viewer-footer">
           {preview ? (

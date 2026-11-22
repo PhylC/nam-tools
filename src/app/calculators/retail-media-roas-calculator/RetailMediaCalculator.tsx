@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { isAnalyticsEnabled, trackCalculatorCompleted, trackCalculatorOpened } from "../../../lib/analytics";
 import { calculateRetailMediaReturn, retailMediaRoasName, retailMediaRoasSlug } from "../../../lib/retailMediaRoas";
+import { LoadExampleButton } from "../../components/LoadExampleButton";
 import styles from "./calculator.module.css";
 
 type Mode = "direct" | "scenario";
@@ -118,7 +119,7 @@ export function RetailMediaCalculator() {
           </div>
           <div className={styles.actions}>
             <button className="button" type="submit">Calculate return</button>
-            <button className="button button-secondary" type="button" onClick={loadExample}>Load worked example</button>
+            <LoadExampleButton compact={false} label="Load worked example" onLoad={loadExample} />
           </div>
         </form>
         <div aria-live="polite">
