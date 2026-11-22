@@ -295,6 +295,19 @@ function restoreSavedScenario(value: unknown, fallbackName = "ROI scenario"): Ro
   };
 }
 
+function restoreStandaloneGroup(saved: SavedScenarioRecord, scenario: RoiScenario): RoiGroup {
+  const group = blankGroup(getRecordText(saved.title, scenario.name));
+  const inputs = isRecord(saved.inputs) ? saved.inputs : {};
+  const lineCurrency = scenario.lines.find((line) => line.currency)?.currency ?? group.currency;
+  const lineVatRate = scenario.lines.find((line) => line.vatRate)?.vatRate ?? group.vatRate;
+  return {
+    ...group,
+    currency: normalizeRoiCurrency(getRecordText(inputs.currency, lineCurrency)),
+    vatRate: getRecordText(inputs.vatRate, lineVatRate),
+    scenarios: [scenario],
+  };
+}
+
 function restoreSavedGroup(value: unknown): SavedRoiGroup {
   const group = isRecord(value) ? value : {};
   const rawScenarios = Array.isArray(group.scenarios) ? group.scenarios : [];
@@ -1804,8 +1817,7 @@ export function RoiPlanner() {
       }
       const scenario = restoreSavedScenario(saved.scenarioData, String(saved.title ?? "ROI scenario"));
       if (!scenario) return;
-      const group = blankGroup(String(saved.title ?? "Saved ROI scenario"));
-      const nextGroup = { ...group, scenarios: [scenario] };
+      const nextGroup = restoreStandaloneGroup(saved, scenario);
       autoSaveSignature.current = JSON.stringify(nextGroup);
       setPlannerState({
         groups: [nextGroup],
@@ -2009,8 +2021,7 @@ export function RoiPlanner() {
     }
     const scenario = restoreSavedScenario(saved.scenarioData, String(saved.title ?? "ROI scenario"));
     if (!scenario) return;
-    const group = blankGroup(String(saved.title ?? "Saved ROI scenario"));
-    const nextGroup = { ...group, scenarios: [scenario] };
+    const nextGroup = restoreStandaloneGroup(saved, scenario);
     const savedTitle = String(saved.title ?? saved.name ?? scenario.name ?? "ROI scenario");
     autoSaveSignature.current = JSON.stringify(nextGroup);
     setPlannerState({
