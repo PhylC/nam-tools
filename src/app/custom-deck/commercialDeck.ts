@@ -1,4 +1,5 @@
 import { commercialConfig, commercialPages } from "./commercialBenchmarks.mjs";
+import { planningConfig } from "./planningBenchmarks.mjs";
 import type { SlideContent } from "./powerPointTemplate";
 
 export type CommercialKind = keyof typeof commercialConfig;
@@ -18,10 +19,11 @@ type CommercialPage = {
   headers?: string[];
   widths?: number[];
   chart?: SlideContent["chart"];
+  execution?: boolean;
 };
 
 export function getCommercialKind(value: unknown): CommercialKind | null {
-  return value === "jbp" || value === "promo-proposal" ? value : null;
+  return typeof value === "string" && Object.hasOwn(commercialConfig, value) ? value as CommercialKind : null;
 }
 
 export function commercialText(data: CommercialData, key: string) {
@@ -52,6 +54,7 @@ export function restoreCommercialApproval(value: unknown): CommercialApproval | 
 export function buildCommercialSlides(context: CommercialContext, { kind, data }: CommercialApproval, dividers: boolean) {
   const { pages, errors, notes } = commercialPages(kind, data, context) as { pages: CommercialPage[]; errors: string[]; notes: string[] };
   const mainTitle = commercialConfig[kind].label;
+  const planning = kind !== "jbp" && kind !== "promo-proposal" ? planningConfig[kind] : null;
   const contents: SlideContent[] = [{
     title: context.deckLabel,
     purpose: "title",
@@ -61,17 +64,18 @@ export function buildCommercialSlides(context: CommercialContext, { kind, data }
   const nextGate = kind === "jbp" ? "Quarterly milestones and governance" : "Post-event measurement";
   let executionDivider = false;
   for (const [index, page] of pages.entries()) {
-    if (dividers && index === 1 && !page.title.startsWith(executionGate) && !page.title.startsWith(nextGate)) {
-      contents.push({ title: kind === "jbp" ? "Growth and investment" : "Offer and economics", lines: [], purpose: "divider" });
+    const isExecution = planning ? page.execution : page.title.startsWith(executionGate) || page.title.startsWith(nextGate);
+    if (dividers && index === 1 && !isExecution) {
+      contents.push({ title: planning ? "Evidence and recommendations" : kind === "jbp" ? "Growth and investment" : "Offer and economics", lines: [], purpose: "divider" });
     }
-    if (dividers && !executionDivider && (page.title.startsWith(executionGate) || page.title.startsWith(nextGate))) {
-      contents.push({ title: kind === "jbp" ? "Delivery and governance" : "Execution and measurement", lines: [], purpose: "divider" });
+    if (dividers && !executionDivider && isExecution) {
+      contents.push({ title: planning?.execution ?? (kind === "jbp" ? "Delivery and governance" : "Execution and measurement"), lines: [], purpose: "divider" });
       executionDivider = true;
     }
     const slide: SlideContent = { title: page.title, purpose: "content", lines: [] };
     if (page.headers && page.widths && page.rows) {
       slide.table = { headers: page.headers, widths: page.widths, rows: page.rows };
-      if (["Investment and release conditions", "Unit forecast and uplift", "Funding and break-even"].some((title) => page.title.startsWith(title))) {
+      if (planning || ["Investment and release conditions", "Unit forecast and uplift", "Funding and break-even"].some((title) => page.title.startsWith(title))) {
         slide.subtitle = page.guidance;
       }
     } else if (page.chart) {

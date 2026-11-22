@@ -13,7 +13,7 @@ export const metadata = seoMetadata({
 });
 
 export default function PresentationTemplatesPage() {
-  const featured = featuredTemplates.flatMap(({ slug }) => {
+  const featured = featuredTemplates.slice(0, 3).flatMap(({ slug }) => {
     const guide = getTemplateGuide(slug);
     return guide ? [guide] : [];
   });

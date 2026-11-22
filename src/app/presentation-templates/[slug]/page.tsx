@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { JsonLd } from "../../components/JsonLd";
 import { Hero } from "../../components/Shell";
-import { featuredTemplates, getTemplateGuide } from "../../data/presentationTemplates";
+import { buyerMeetingProposal, featuredTemplates, getTemplateGuide } from "../../data/presentationTemplates";
 import { breadcrumbJsonLd, seoMetadata } from "../../seo";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -60,9 +60,23 @@ export default async function TemplateGuide({ params }: Props) {
             ))}
           </ol>
           <p>Adapt the templates for your own internal planning or customer presentations. <Link href="/terms">Template usage terms</Link></p>
-          <Link href="/presentation-templates">Browse all PowerPoint templates</Link>
+          <div className="template-layout-review-actions">
+            <Link className="button button-secondary button-small" href={`/custom-deck?template=${guide.templateSlug}`}>Open builder</Link>
+            <Link href="/presentation-templates">Browse all PowerPoint templates</Link>
+          </div>
         </div>
       </section>
+      {guide.slug === "buyer-meeting" ? (
+        <section className="shell section">
+          <h2>Buyer-facing proposal</h2>
+          <p>Use these six slides to share the commercial ask, retailer benefit, supporting evidence and joint next steps.</p>
+          <div className="template-layout-review-actions">
+            <a className="button button-small" download href={`/templates/${buyerMeetingProposal.starter}`}>Download buyer-facing starter</a>
+            <a className="button button-secondary button-small" download href={`/templates/${buyerMeetingProposal.example}`}>Download buyer-facing worked example</a>
+            <Link className="button button-secondary button-small" href={buyerMeetingProposal.builder}>Open buyer-facing builder</Link>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

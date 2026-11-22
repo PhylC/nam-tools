@@ -1,7 +1,6 @@
-const currency = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", maximumFractionDigits: 2, minimumFractionDigits: 0 });
-const unitCurrency = new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP", minimumFractionDigits: 2 });
-const signed = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 1, signDisplay: "exceptZero" });
-const units = new Intl.NumberFormat("en-GB");
+import { at, money, normalizedRows, readNumber, signed, signedMoney, unitCurrency, units } from "./deckBenchmarkFormat.mjs";
+import { planningConfig } from "./planningBenchmarks.mjs";
+import { planningPages } from "./planningPages.mjs";
 
 export const jbpGroups = [
   { key: "targets", title: "Additional performance targets", item: "Target", labels: ["Measure", "Baseline", "Target", "Source or basis"], widths: [.29, .16, .16, .39] },
@@ -74,6 +73,7 @@ export const promoBenchmark = {
 };
 
 export const commercialConfig = {
+  ...planningConfig,
   jbp: {
     label: "Joint Business Plan", short: "JBP", benchmark: jbpBenchmark, groups: jbpGroups,
     questions: [
@@ -106,23 +106,6 @@ export const commercialConfig = {
     ],
   },
 };
-
-const trim = (value) => typeof value === "string" ? value.trim() : "";
-const signedMoney = (value) => value > 0 ? "+" + currency.format(value) : currency.format(value);
-const money = (value) => value === null ? "—" : currency.format(value);
-const at = (data, key) => trim(data[key]);
-const normalizedRows = (data, key, count) => (Array.isArray(data[key]) ? data[key] : [])
-  .map((row) => Array.from({ length: count }, (_, index) => trim(row[index])))
-  .filter((row) => row.some(Boolean));
-
-function readNumber(value, whole = false) {
-  const input = trim(value).replace(/^£\s*/, "");
-  if (!input) return null;
-  const pattern = whole ? /^(?:\d{1,3}(?:,\d{3})+|\d+)$/ : /^-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?$/;
-  if (!pattern.test(input)) return NaN;
-  const result = Number(input.replaceAll(",", ""));
-  return Number.isSafeInteger(Math.round(result * (whole ? 1 : 100))) ? result : NaN;
-}
 
 export function commercialCalculations(kind, data, { financial = true, next = true } = {}) {
   const errors = [];
@@ -187,11 +170,12 @@ export function commercialCalculations(kind, data, { financial = true, next = tr
 }
 
 /**
- * @param {"jbp" | "promo-proposal"} kind
+ * @param {keyof typeof commercialConfig} kind
  * @param {Record<string, any>} data
  * @param {{financial?: boolean, next?: boolean}} options
  */
 export function commercialPages(kind, data, options = {}) {
+  if (kind !== "jbp" && kind !== "promo-proposal") return planningPages(kind, data, options);
   const model = commercialCalculations(kind, data, options);
   const decision = at(data, "decision");
   const benefit = at(data, "benefit");

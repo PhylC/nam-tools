@@ -12,6 +12,7 @@ import { groupMetrics, readQbrScorecards } from "./qbrScorecard";
 import type { QbrMetric, QbrScorecard } from "./qbrScorecard";
 import { qbrBenchmark, qbrBenchmarkCsv } from "./qbrBenchmark.mjs";
 import { CommercialDeckReview } from "./CommercialDeckReview";
+import { planningConfig } from "./planningBenchmarks.mjs";
 import { buildCommercialSlides, commercialText, getCommercialKind, restoreCommercialApproval } from "./commercialDeck";
 import type { CommercialApproval, CommercialContext } from "./commercialDeck";
 import { commercialConfig } from "./commercialBenchmarks.mjs";
@@ -41,6 +42,7 @@ const deckTypes = [
   { label: "New Product Launch", value: "product-launch" },
   { label: "Annual Planning", value: "annual-planning" },
   { label: "Buyer Meeting Planner", value: "buyer-meeting" },
+  { label: "Buyer Meeting Proposal (buyer-facing)", value: "buyer-meeting-external" },
   { label: "Category Opportunity", value: "category-opportunity" },
 ];
 
@@ -147,6 +149,7 @@ function normaliseTemplate(value: string) {
     "account-plan": "account-plan",
     "qbr-template": "qbr",
     "promotional-proposal": "promo-proposal",
+    "new-product-launch": "product-launch",
     "promo-proposal": "promo-proposal",
   };
   return aliases[value] ?? value;
@@ -651,6 +654,14 @@ const deckPlaybooks: Record<string, DeckPlaybook> = {
 };
 
 function getDeckPlaybook(deckType: string) {
+  if (deckType === "buyer-meeting-external") {
+    return {
+      ...defaultDeckPlaybook,
+      proofPrompt: "Prepare the proposal and evidence you intend to share with the buyer.",
+      inputPrompts: planningConfig["buyer-meeting-external"].questions,
+      briefPlaceholder: "Add evidence approved for the buyer.",
+    };
+  }
   return deckPlaybooks[deckType] ?? defaultDeckPlaybook;
 }
 
@@ -1099,13 +1110,16 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
   const initialTemplate = normaliseTemplate(selectedTemplate);
   const initialDeckType = deckTypes.some((item) => item.value === initialTemplate) ? initialTemplate : "jbp";
+  const initialKind = getCommercialKind(initialDeckType);
+  const initialPlanning = initialKind && initialKind !== "jbp" && initialKind !== "promo-proposal" ? planningConfig[initialKind] : null;
   const initialDeckLabel = deckTypes.find((item) => item.value === initialDeckType)?.label ?? deckTypes[0].label;
   const [deckType, setDeckType] = useState(initialDeckType);
   const [deckName, setDeckName] = useState(`${initialDeckLabel} deck`);
   const [savedTemplates, setSavedTemplates] = useState<SavedPresentationTemplate[]>([]);
   const defaultSavedTemplate = savedTemplates.find((template) => template.isDefault) ?? savedTemplates[0] ?? null;
   const [templateSource, setTemplateSource] = useState<TemplateSource>(defaultSavedTemplate ? "saved" : "apt_default");
-  const choseBlankTemplate = useRef(false);
+  const choseBlankTemplate = useRef(initialDeckType === "buyer-meeting-external");
+  const buyerModeRevision = useRef(0);
   const [selectedSavedTemplateId, setSelectedSavedTemplateId] = useState(defaultSavedTemplate?.id ?? "");
   const [oneOffTemplateFiles, setOneOffTemplateFiles] = useState<File[]>([]);
   const [googleSlidesTemplateUrl, setGoogleSlidesTemplateUrl] = useState("");
@@ -1117,7 +1131,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [supportingError, setSupportingError] = useState("");
   const [deckInputs, setDeckInputs] = useState<DeckInputValues>({});
   const [brief, setBrief] = useState("");
-  const [audience, setAudience] = useState("Retailer/customer meeting");
+  const [audience, setAudience] = useState(initialPlanning?.audience ?? "Retailer/customer meeting");
   const [tone, setTone] = useState("concise_commercial");
   const [financialSummary, setFinancialSummary] = useState("Yes");
   const [nextStepsSlide, setNextStepsSlide] = useState("Yes");
@@ -1147,6 +1161,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   );
   const selectedPlaybook = useMemo(() => getDeckPlaybook(deckType), [deckType]);
   const commercialKind = getCommercialKind(deckType);
+  const planning = commercialKind && commercialKind !== "jbp" && commercialKind !== "promo-proposal" ? planningConfig[commercialKind] : null;
+  const meetingMode = deckType === "buyer-meeting" || deckType === "buyer-meeting-external";
   const selectedSavedTemplate = useMemo(
     () => reusableSavedTemplates.find((template) => template.id === selectedSavedTemplateId) ?? null,
     [reusableSavedTemplates, selectedSavedTemplateId],
@@ -1262,8 +1278,9 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       }
 
       if (generatedDeckPath) {
+        const startRevision = buyerModeRevision.current;
         const downloaded = await downloadGeneratedDeck(generatedDeckPath, generatedDeckFilename);
-        if (!isMounted) return;
+        if (!isMounted || buyerModeRevision.current !== startRevision) return;
         if (downloaded.file) {
           setBasedOnDeckTemplateFile(downloaded.file);
           setTemplateSource("one_off");
@@ -1325,6 +1342,34 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     if (isQbrExample) setIsQbrExample(false);
   }
 
+  function changeDeckType(value: string) {
+    const enteringBuyerVersion = value === "buyer-meeting-external";
+    const leavingBuyerVersion = deckType === "buyer-meeting-external";
+    if (enteringBuyerVersion || leavingBuyerVersion) {
+      buyerModeRevision.current++;
+      if (generatedDeckUrl) URL.revokeObjectURL(generatedDeckUrl);
+      setGeneratedDeckUrl("");
+      setGeneratedDeckFilename("");
+      setCommercialDraft(null);
+      setDeckInputs({});
+      setBrief("");
+      setSupportingFiles([]);
+      setGoogleSlidesTemplateUrl("");
+      setOneOffTemplateFiles([]);
+      setBasedOnDeckTemplateFile(null);
+      setBasedOnDeckMessage("");
+      setLayoutReview(null);
+      choseBlankTemplate.current = true;
+      setTemplateSource("apt_default");
+      const label = deckTypes.find((item) => item.value === value)?.label ?? deckTypes[0].label;
+      setDeckName(label);
+      setRequestMessage(enteringBuyerVersion ? "The buyer-facing proposal starts with fields for information you can share." : "");
+    }
+    const kind = getCommercialKind(value);
+    setAudience(kind && kind !== "jbp" && kind !== "promo-proposal" ? planningConfig[kind].audience : "Retailer/customer meeting");
+    setDeckType(value);
+  }
+
   function applyCommercialDraft(draft: CommercialApproval) {
     setCommercialDraft(draft);
     setDeckInputs(Object.fromEntries(commercialInputKeys.map((key, index) => [
@@ -1381,7 +1426,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       const approved = qbrApproval ?? review?.qbr;
       const commercialApproved = commercialApproval ?? review?.commercial;
       const commercialContext: CommercialContext = {
-        deckLabel: resolvedDeckName, audience, tone, financial: financialSummary === "Yes", next: nextStepsSlide === "Yes",
+        deckLabel: resolvedDeckName, audience: meetingMode ? planning?.audience ?? audience : audience, tone, financial: financialSummary === "Yes", next: nextStepsSlide === "Yes",
       };
       if (commercialKind && !commercialApproved) {
         const previous = commercialDraft?.kind === commercialKind ? commercialDraft.data : {};
@@ -1539,7 +1584,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           selectedPlaybook.inputPrompts[index], commercialText(commercialApproved.data, key),
         ])) : activeDeckInputs,
         brief: commercialApproved ? commercialText(commercialApproved.data, "evidence") : brief,
-        audience,
+        audience: commercialContext.audience,
         tone,
         includeFinancialSummary: financialSummary === "Yes",
         includeNextStepsSlide: nextStepsSlide === "Yes",
@@ -1619,7 +1664,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setDeckName(`${qbrBenchmark.account} quarterly review`);
       setDeckInputs({ [deckPlaybooks.qbr.inputPrompts[0]]: `${qbrBenchmark.account} · ${qbrBenchmark.period}` });
       setBrief("");
-      setAudience("Retailer/customer meeting");
+      setAudience(planning?.audience ?? "Retailer/customer meeting");
       setTone("executive_polished");
       setFinancialSummary("Yes");
       setNextStepsSlide("Yes");
@@ -1633,7 +1678,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       const { benchmark, label } = commercialConfig[commercialKind];
       setDeckName(benchmark.title);
       applyCommercialDraft({ kind: commercialKind, data: { ...benchmark } });
-      setAudience("Retailer/customer meeting");
+      setAudience(planning?.audience ?? "Retailer/customer meeting");
       setTone("executive_polished");
       setFinancialSummary("Yes");
       setNextStepsSlide("Yes");
@@ -1696,14 +1741,14 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 </label>
                 <label className="field">
                   <span>Deck type</span>
-                  <select value={deckType} onChange={(event) => setDeckType(event.target.value)}>
+                  <select value={deckType} onChange={(event) => changeDeckType(event.target.value)}>
                     {deckTypes.map((type) => (
                       <option key={type.value} value={type.value}>
                         {type.label}
                       </option>
                     ))}
                   </select>
-                  <small>{selectedPlaybook.proofPrompt}</small>
+                  <small>{meetingMode && deckType === "buyer-meeting" ? "Internal preparation, including negotiation limits. Select Buyer Meeting Proposal for the version to share." : selectedPlaybook.proofPrompt}</small>
                 </label>
               </div>
             </section>
@@ -1891,10 +1936,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                 ))}
               </div>
               <label className="field">
-                <span>Extra brief or story notes</span>
+                <span>{planning?.evidenceQuestion ?? "Extra brief or story notes"}</span>
                 <textarea
                   className="deck-brief-textarea"
-                  placeholder={selectedPlaybook.briefPlaceholder}
+                  placeholder={planning ? undefined : selectedPlaybook.briefPlaceholder}
                   value={brief}
                   onChange={(event) => setBrief(event.target.value)}
                 />
@@ -1908,7 +1953,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               <div className="output-preferences-grid">
                 <div className="form-field">
                   <label htmlFor="custom-deck-audience">Audience</label>
-                  <select id="custom-deck-audience" value={audience} onChange={(event) => setAudience(event.target.value)}>
+                  <select id="custom-deck-audience" disabled={meetingMode} value={meetingMode ? planning?.audience ?? audience : audience} onChange={(event) => setAudience(event.target.value)}>
                     <option>Internal review</option>
                     <option>Retailer/customer meeting</option>
                     <option>Leadership review</option>
