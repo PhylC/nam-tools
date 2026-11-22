@@ -1,3 +1,5 @@
+import { qbrBenchmark as qbr, qbrColumns, qbrHeadings } from "../src/app/custom-deck/qbrBenchmark.mjs";
+
 const table = (title, guidance, headers, rows, keepLabels = true) => ({ title, guidance, headers, rows, keepLabels });
 const notes = (title, guidance, rows) => ({ title, guidance, rows });
 
@@ -60,26 +62,32 @@ export const decks = [
   },
   {
     file: "quarterly-business-review-template.pptx", title: "Quarterly Business Review",
-    customer: "Bridgeway Grocers", exampleTitle: "Bridgeway Grocers quarterly review",
+    customer: qbr.account, period: qbr.period, exampleTitle: "Bridgeway Grocers quarterly review",
     summary: "Review the quarter against plan, explain the variance and agree actions for the next quarter.",
     slides: [
-      notes("Quarter summary", "Share the result, the main driver and the decision needed.", [
-        ["Result", "Supplier net sales were £410k, £10k ahead of plan."],
-        ["Driver", "Range gains and the summer event outweighed missed sales from availability."],
-        ["Decision", "Fix availability in the top 15 stores before repeating the event."],
-      ]),
-      table("Quarterly performance against plan", "Use comparable periods and label margin and distribution changes in percentage points.", ["Measure", "Plan", "Actual", "Variance"], [
-        ["Supplier net sales", "£400k", "£410k", "+£10k / +2.5%"],
-        ["Units sold", "100k", "104k", "+4k / +4.0%"],
-        ["Gross margin rate", "28.0%", "27.5%", "−0.5 percentage points"],
-        ["Weighted distribution", "78%", "80%", "+2 percentage points"],
-      ]),
-      table("Net sales variance by driver", "Check that the contributions add up to the scorecard gap.", ["Driver", "Impact vs plan", "Evidence"], [
-        ["Range expansion", "+£9k", "Sales from newly listed stores"],
-        ["Summer event", "+£7k", "Incremental sales versus comparable baseline weeks"],
-        ["Availability gaps", "−£6k", "Estimated missed sales in top stores"],
-        ["Total variance", "+£10k", "Reconciles to supplier net sales"],
-      ]),
+      {
+        ...notes(qbrHeadings.decisions, "State the headline and what you need the buyer to agree today.", [
+          ["Result", qbr.result], ["Why it matters", qbr.implication], ["Decision today", qbr.decision],
+        ]),
+        exampleTitle: qbr.headline,
+        exampleGuidance: "Q3 FY26 · Decision for the buyer",
+      },
+      {
+        ...table(qbrHeadings.commitments, "Bring forward the last review’s commitments and show what happened.", qbrColumns.commitments, qbr.commitments, false),
+        colW: [3.35, 1.65, 1.55, 5.35], rowH: .78,
+      },
+      {
+        ...table(qbrHeadings.scorecard, "Compare the same commercial measures against plan and a comparable prior period.", qbrColumns.scorecard, qbr.scorecard.map(([name, , , , , ...display]) => [name, ...display])),
+        colW: [3.35, 1.85, 1.85, 1.85, 3], rowH: .69,
+        exampleGuidance: "Q3 FY26 vs Q2 FY26 · Supplier net sales after discounts · Rate variances in percentage points",
+      },
+      {
+        title: qbrHeadings.bridge,
+        guidance: "Replace the sample bars and labels. Signed impacts must add up to actual less plan.",
+        exampleGuidance: "£400k plan to £410k actual · Contributions shown as movements against plan",
+        waterfall: qbr.drivers,
+        total: { label: "Actual vs plan", value: 10000, display: "+£10k" },
+      },
       table("Promotion performance", "Record the baseline, incremental result and funding consistently.", ["Measure", "Plan", "Actual", "Implication"], [
         ["Incremental units", "10,000", "11,000", "Exceeded assumption"],
         ["Funding", "£8.0k", "£8.0k", "On budget"],
@@ -89,20 +97,14 @@ export const decks = [
         ["Core listing expansion", "25 additional stores", "Weighted distribution reached 80%", "Check rate of sale after eight weeks"],
         ["Availability gaps", "Top 15 stores", "Missed sales concentrated in two SKUs", "Agree daily stock exception reporting"],
       ]),
-      notes("Wins and challenges", "Record what should be repeated and what needs action.", [
-        ["Repeat", "Use matched baseline weeks for the summer event evaluation."],
-        ["Resolve", "Identify whether lost sales came from forecasting or shelf replenishment."],
-        ["Escalate", "Review the 0.5 percentage point margin shortfall with finance."],
-      ]),
       table("Competitor activity", "Record the evidence rather than relying on informal reports.", ["Observation", "Source", "Potential implication"], [
         ["Competitor added a value pack", "Shelf checks in eight stores", "Test sensitivity to pack size before changing price"],
         ["Competitor feature activity rose", "Retailer period calendar", "Watch feature overlap before booking dates"],
       ], false),
-      table("Next-quarter priorities", "Assign an owner and set a measure for each action.", ["Priority", "Owner", "Timing", "Measure"], [
-        ["Improve availability", "Retail operations", "First four weeks", "Top 15 stores reach 97%"],
-        ["Review range extension", "Category lead", "Week eight", "Rate of sale vs existing stores"],
-        ["Repeat promotion selectively", "Account lead", "Next booking window", "Positive net contribution"],
-      ], false),
+      {
+        ...table(qbrHeadings.actions, "Agree who will act, by when, and how the next QBR will judge progress.", qbrColumns.actions, qbr.actions, false),
+        colW: [2.85, 1.65, 1.45, 2.2, 3.75], rowH: .9,
+      },
       notes("Commercial asks", "Close with the decisions you need and when they must be made.", [
         ["Ask", "Approve a daily stock exception report for the top 15 stores."],
         ["Owner", "Retail operations and the supplier account team."],

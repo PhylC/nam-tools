@@ -10,6 +10,7 @@ import { buildQbrSlides } from "./qbrStory";
 import type { QbrApproval, QbrContext, QbrStory } from "./qbrStory";
 import { groupMetrics, readQbrScorecards } from "./qbrScorecard";
 import type { QbrMetric, QbrScorecard } from "./qbrScorecard";
+import { qbrBenchmark, qbrBenchmarkCsv } from "./qbrBenchmark.mjs";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
@@ -119,8 +120,17 @@ function restoreQbrApproval(value: unknown): QbrApproval | null {
     if (actual === null || !id || !name || !source) return [];
     return [{ id, name, source, actual, unit: getText(metric.unit), plan: optionalNumber(metric.plan), prior: optionalNumber(metric.prior) }];
   });
-  const { headline, drivers, decision, actions } = value.story;
-  return { metrics, story: { headline: getText(headline), drivers: getText(drivers), decision: getText(decision), actions: getText(actions) } };
+  const { headline, drivers, decision, actions, implication, commitments, salesDrivers, bridgeMeasure, actionRows } = value.story;
+  const asRows = (input: unknown) => Array.isArray(input)
+    ? input.filter(Array.isArray).map((row) => row.map((cell: unknown) => getText(cell)))
+    : undefined;
+  return {
+    metrics, story: {
+      headline: getText(headline), drivers: getText(drivers), decision: getText(decision), actions: getText(actions),
+      implication: getText(implication), commitments: asRows(commitments), salesDrivers: asRows(salesDrivers),
+      bridgeMeasure: getText(bridgeMeasure), actionRows: asRows(actionRows),
+    },
+  };
 }
 
 function normaliseTemplate(value: string) {
@@ -1107,6 +1117,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [layoutReview, setLayoutReview] = useState<PendingLayoutReview | null>(null);
   const [qbrReview, setQbrReview] = useState<PendingQbrReview | null>(null);
   const [priorQbr, setPriorQbr] = useState<QbrApproval | null>(null);
+  const [isQbrExample, setIsQbrExample] = useState(false);
   const isPro = plan === "pro" || plan === "team";
   const reusableSavedTemplates = useMemo(
     () => savedTemplates.filter(isReusableSavedTemplate),
@@ -1355,7 +1366,17 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setQbrReview({
           context: qbrContext,
           scorecard,
-          initialStory: priorQbr?.story ?? {
+          initialStory: isQbrExample ? {
+            headline: qbrBenchmark.headline,
+            decision: qbrBenchmark.decision,
+            implication: qbrBenchmark.implication,
+            drivers: "",
+            actions: "",
+            commitments: qbrBenchmark.commitments,
+            salesDrivers: qbrBenchmark.drivers.map(({ label, value, evidence }) => [label, String(value), evidence]),
+            bridgeMeasure: "Supplier net sales",
+            actionRows: qbrBenchmark.actions,
+          } : priorQbr?.story ?? {
             headline: "",
             decision: "",
             drivers: activeDeckInputs[deckPlaybooks.qbr.inputPrompts[2]] ?? "",
@@ -1534,6 +1555,21 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   }
 
   function populateExampleData() {
+    setIsQbrExample(deckType === "qbr");
+    if (deckType === "qbr") {
+      setDeckName(`${qbrBenchmark.account} quarterly review`);
+      setDeckInputs({ [deckPlaybooks.qbr.inputPrompts[0]]: `${qbrBenchmark.account} · ${qbrBenchmark.period}` });
+      setBrief("");
+      setAudience("Retailer/customer meeting");
+      setTone("executive_polished");
+      setFinancialSummary("Yes");
+      setNextStepsSlide("Yes");
+      setSupportingFiles((current) => current.length ? current : [
+        new File([qbrBenchmarkCsv], "bridgeway-qbr-worked-scorecard.csv", { type: "text/csv" }),
+      ]);
+      setRequestMessage("The Bridgeway Grocers worked example is ready to review.");
+      return;
+    }
     const example = exampleDeckData(deckType, selectedPlaybook, selectedDeck.label);
     setDeckName(example.name);
     setDeckInputs(example.inputs);
@@ -1735,7 +1771,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
               {deckType === "qbr" ? (
                 <p className="helper-note">
                   Upload an optional Excel (.xlsx) or CSV scorecard with Metric and Actual columns. Add Plan, Prior period and Unit where available. Use one row per measure.
-                  {" "}<a download="qbr-scorecard-sample.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent("Metric,Actual,Plan,Prior period,Unit\r\nNet sales,410000,400000,390000,GBP\r\nGross margin,27.5%,28%,27%,%\r\nUnits sold,104000,100000,101000,units\r\n")}`}>Download a sample scorecard</a>.
+                  {" "}<a download="qbr-scorecard-sample.csv" href={`data:text/csv;charset=utf-8,${encodeURIComponent(qbrBenchmarkCsv)}`}>Download a sample scorecard</a>.
                 </p>
               ) : <p className="helper-note">The draft lists attached files by name. Paste the figures, findings and quotes you want to use into the fields below.</p>}
               <DeckFileDropzone

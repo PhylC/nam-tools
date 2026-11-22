@@ -102,9 +102,9 @@ export const featuredTemplates = [
     previewAlt: "Quarterly Business Review slide showing actual results, plan and variances",
     purpose: "Review performance against plan, explain what drove the gap and agree what to change next quarter.",
     sections: [
-      ["Show the variance", "Compare actuals with plan for sales, units, margin and distribution. Keep pounds, percentages and percentage points distinct."],
-      ["Explain the drivers", "Separate drivers such as range, availability and promotion. Keep their contributions reconciled to the gap in the scorecard."],
-      ["Agree next-quarter actions", "Assign an owner and a due date to each decision, and state how you will measure whether it worked."],
+      ["Lead with the decision", "Open with the result, why it matters to the buyer and the decision needed. Show what happened to commitments from the previous review."],
+      ["Reconcile the sales waterfall", "Compare actuals with plan and the prior period. Show how range, promotion and availability explain the sales gap, using values that add up to the scorecard variance."],
+      ["Make the next review measurable", "Record an owner, deadline, baseline and success measure for every action you propose."],
     ],
   },
   {

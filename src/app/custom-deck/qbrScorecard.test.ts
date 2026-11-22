@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import JSZip from "jszip";
 import { addDeckVisuals } from "./powerPointTemplate";
 import { readQbrScorecards } from "./qbrScorecard";
-import { buildQbrSlides, comparison, suggestedHeadline, variance } from "./qbrStory";
+import { buildQbrSlides, comparison, qbrBridge, suggestedHeadline, variance } from "./qbrStory";
+import { qbrBenchmark, qbrBenchmarkCsv, qbrHeadings } from "./qbrBenchmark.mjs";
 import type { QbrContext, QbrStory } from "./qbrStory";
 
 const scorecard = (filename: string, text: string) => new File([text], filename, { type: "text/csv" });
@@ -29,7 +30,7 @@ describe("QBR scorecards and slide plan", () => {
     expect(outline).toEqual(contents.map(({ title }) => title));
     expect(contents.find(({ title }) => title === "Commercial scorecard")?.table?.rows[0]).toEqual(["Net sales [1]", "£410,000", "£400,000", "£390,000", "+£10,000 (+2.5%)"]);
     expect(contents.find(({ chart }) => chart)?.chart?.map(({ value }) => value)).toEqual([4, 2.5]);
-    expect(contents.find(({ title }) => title === "Agreed actions and owners")?.table?.rows).toEqual([["Confirm the store list", "Alex", "10 January"]]);
+    expect(contents.find(({ title }) => title === qbrHeadings.actions)?.table?.rows).toEqual([["Confirm the store list", "Alex", "10 January", "To agree", "To agree"]]);
   });
 
   it("keeps conflicting observations for explicit selection", async () => {
@@ -72,5 +73,29 @@ describe("QBR scorecards and slide plan", () => {
     const slide = await exported.file(path)?.async("text");
     expect(slide).toContain('uri="http://schemas.openxmlformats.org/drawingml/2006/table"');
     expect(slide).toContain("£410,000");
+  });
+
+  it("uses the shared worked example to tell the decision, show follow-through and reconcile the bridge", async () => {
+    const result = await readQbrScorecards([scorecard("Bridgeway.csv", qbrBenchmarkCsv)]);
+    const metrics = result.groups.map(([row]) => row);
+    const benchmarkStory = {
+      ...story,
+      headline: qbrBenchmark.headline,
+      implication: qbrBenchmark.implication,
+      decision: qbrBenchmark.decision,
+      commitments: qbrBenchmark.commitments,
+      actionRows: qbrBenchmark.actions,
+      salesDrivers: qbrBenchmark.drivers.map(({ label, value, evidence }) => [label, String(value), evidence]),
+    };
+    const { contents } = buildQbrSlides(context, { metrics, story: benchmarkStory }, false);
+    expect(contents[1].lines.slice(0, 2)).toEqual([
+      `Decision today · ${qbrBenchmark.decision}`, `Why it matters · ${qbrBenchmark.implication}`,
+    ]);
+    expect(contents[2].table?.rows).toEqual(qbrBenchmark.commitments);
+    expect(contents[3].table?.headers).toContain("Prior period");
+    expect(contents[4].waterfall?.changes.map(({ value }) => value)).toEqual([9000, 7000, -6000]);
+    expect(contents[4].waterfall?.total.value).toBe(10000);
+    expect(contents.find(({ title }) => title === qbrHeadings.actions)?.table?.rows).toEqual(qbrBenchmark.actions);
+    expect(qbrBridge(metrics, { ...benchmarkStory, salesDrivers: benchmarkStory.salesDrivers.slice(0, 2) }).error).toContain("reconcile");
   });
 });

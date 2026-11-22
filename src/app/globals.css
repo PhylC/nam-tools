@@ -7944,6 +7944,48 @@ p {
   font-weight: 700;
 }
 
+.qbr-editor {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.qbr-editor legend {
+  padding-inline: 0.25rem;
+  font-weight: 750;
+}
+
+.qbr-editable-rows,
+.qbr-editable-row {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.qbr-editable-row {
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.qbr-editable-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.55rem;
+}
+
+.qbr-editable-fields input {
+  width: 100%;
+}
+
+.qbr-editable-rows > .button,
+.qbr-editable-row > .button {
+  justify-self: start;
+}
+
 .saved-list {
   display: grid;
   gap: 0.65rem;

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import PptxGenJS from "pptxgenjs";
 import JSZip from "jszip";
 import { decks } from "./presentation-template-content.mjs";
+import { waterfallPlot } from "../src/app/custom-deck/qbrBenchmark.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const outDir = path.join(root, "public", "templates");
@@ -43,7 +44,7 @@ function addCover(pptx, deck, example) {
   addText(slide, deck.summary, {
     x: 0.73, y: 3.65, w: 8.8, h: 0.9, fontSize: 23, color: theme.muted, valign: "top",
   });
-  addText(slide, example ? `${deck.customer} · Fictional illustrative data` : "[Company or customer]   ·   [Reporting period]", {
+  addText(slide, example ? [deck.customer, deck.period, "Fictional illustrative data"].filter(Boolean).join(" · ") : "[Company or customer]   ·   [Reporting period]", {
     x: 0.73, y: 5.57, w: 10.8, h: 0.4, fontSize: 17, bold: true,
   });
 }
@@ -75,22 +76,55 @@ function addTable(slide, content, example) {
     };
   }));
   slide.addTable([header, ...body], {
-    x: 0.72, y: 2.05, w: 11.9, rowH: 0.66,
+    x: 0.72, y: 2.05, w: 11.9, rowH: content.rowH ?? 0.66, colW: content.colW,
     autoPage: false, fontFace: bodyFont, fontSize: headers.length > 4 ? 15 : 16,
     margin: [0.10, 0.15, 0.10, 0.15], valign: "middle",
     border: { type: "solid", color: theme.line, pt: 0.65 },
   });
 }
 
+function addWaterfall(pptx, slide, content, example) {
+  const x = 0.73;
+  const y = 2.06;
+  const w = 11.9;
+  const h = 4.28;
+  const plot = waterfallPlot(content.waterfall, content.total);
+  const line = (left, top, width) => slide.addShape(pptx.ShapeType.line, {
+    x: x + w * left, y: y + h * top, w: w * width, h: 0, line: { color: theme.muted, width: .65 },
+  });
+  line(0, plot.zero, 1);
+  plot.bars.forEach((bar, index) => {
+    const color = example ? bar.total ? theme.dark : bar.value < 0 ? "A74D35" : theme.accent : "8CA9A1";
+    slide.addShape(pptx.ShapeType.rect, {
+      x: x + w * bar.left, y: y + h * bar.top, w: w * bar.width, h: h * bar.height,
+      line: { color }, fill: { color },
+    });
+    if (!bar.total) line(bar.left + bar.width, bar.endLine, bar.slot - bar.width);
+    const labelX = x + w * index * bar.slot;
+    addText(slide, example ? bar.display : bar.total ? "[Net change]" : "[+/−]", {
+      x: labelX, y: y + h * (bar.top - .10), w: w * bar.slot, h: h * .08,
+      fontSize: 19, align: "center", bold: true,
+    });
+    addText(slide, example || bar.total ? bar.label : `[Driver ${index + 1}]`, {
+      x: labelX, y: y + h * .83, w: w * bar.slot, h: h * .14, fontSize: 16, align: "center", fit: "shrink",
+    });
+  });
+  addText(slide, example ? "Evidence: new-store listings, matched promotion weeks and top-15 stock exceptions." : "Record the source and method for each estimate.", {
+    x, y: 6.37, w, h: .32, fontSize: 13, color: theme.muted,
+  });
+}
+
 function addContentSlide(pptx, deck, content, example, index) {
   const slide = pptx.addSlide({ masterName: "APT" });
-  addText(slide, content.title, {
+  addText(slide, example ? content.exampleTitle ?? content.title : content.title, {
     x: 0.7, y: 0.9, w: 11.9, h: 0.6, fontFace: titleFont, fontSize: 32, bold: true,
+    ...(content.exampleTitle ? { fit: "shrink" } : {}),
   });
-  addText(slide, content.guidance, {
+  addText(slide, example ? content.exampleGuidance ?? content.guidance : content.guidance, {
     x: 0.73, y: 1.57, w: 11.88, h: 0.33, fontSize: 16, color: theme.muted,
   });
-  if (content.headers) addTable(slide, content, example);
+  if (content.waterfall) addWaterfall(pptx, slide, content, example);
+  else if (content.headers) addTable(slide, content, example);
   else addNotes(slide, content.rows, example);
 
   addText(slide, example ? `${deck.customer} · Fictional worked example` : deck.title, {

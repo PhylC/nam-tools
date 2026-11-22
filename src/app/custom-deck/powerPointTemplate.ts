@@ -1,4 +1,5 @@
 import type JSZip from "jszip";
+import { waterfallPlot } from "./qbrBenchmark.mjs";
 
 const presentationNamespace = "http://schemas.openxmlformats.org/presentationml/2006/main";
 const drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
@@ -18,6 +19,11 @@ export type SlideContent = {
   purpose: SlidePurpose;
   table?: { headers: string[]; widths: number[]; rows: string[][] };
   chart?: { label: string; value: number; display: string }[];
+  waterfall?: {
+    changes: { label: string; value: number; display: string; evidence: string }[];
+    total: { label: string; value: number; display: string };
+    caption: string;
+  };
 };
 export type LayoutChoices = Record<SlidePurpose, string>;
 type SlideDesign = {
@@ -104,9 +110,9 @@ function drawingBox(id: number, name: string, width: number, height: number, bou
     <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>${fill ? `<a:solidFill><a:srgbClr val="${fill}"/></a:solidFill>` : "<a:noFill/>"}</p:spPr>${text}</p:sp>`;
 }
 
-function textBody(lines: string[], font: string, color: string, size: number, bold = false) {
+function textBody(lines: string[], font: string, color: string, size: number, bold = false, centered = false) {
   const paragraphs = lines.flatMap((line) => line.split(/\r?\n/)).map((line) =>
-    `<a:p><a:pPr><a:spcAft><a:spcPts val="${bold ? 0 : 450}"/></a:spcAft></a:pPr><a:r>
+    `<a:p><a:pPr${centered ? ' algn="ctr"' : ""}><a:spcAft><a:spcPts val="${bold ? 0 : 450}"/></a:spcAft></a:pPr><a:r>
     <a:rPr lang="en-GB" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xml(font)}"/></a:rPr>
     <a:t xml:space="preserve">${xml(line)}</a:t></a:r></a:p>`,
   );
@@ -157,6 +163,29 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
       <p:xfrm><a:off x="${Math.round(width * x)}" y="${Math.round(height * y)}"/><a:ext cx="${Math.round(width * w)}" cy="${rowHeight * (rows.length + 1)}"/></p:xfrm>
       <a:graphic><a:graphicData uri="${tableGraphicUri}"><a:tbl><a:tblPr/><a:tblGrid>${grid}</a:tblGrid>${tableRows}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
   }
+  if (content.waterfall) {
+    const { changes, total, caption } = content.waterfall;
+    const plot = waterfallPlot(changes, total);
+    const plotTop = y + h * .13;
+    const plotHeight = h * .87;
+    const label = (id: number, text: string, box: Box, font: number, bold = false, centered = false) => drawingBox(
+      id, "Waterfall label", width, height, box, "", textBody([text], design.bodyFontFace, design.textColor, pt(font), bold, centered),
+    );
+    const line = (id: number, left: number, top: number, span: number) => drawingBox(
+      id, "Waterfall connector", width, height, [x + w * left, plotTop + plotHeight * top, w * span, .0012], "829891", "",
+    );
+    return label(10000, caption, [x, y, w, h * .11], 16, true) + line(10001, 0, plot.zero, 1)
+      + plot.bars.map((bar, index) => {
+        const id = 10002 + index * 4;
+        const left = x + w * index * bar.slot;
+        return drawingBox(id, "Editable waterfall bar", width, height, [
+          x + w * bar.left, plotTop + plotHeight * bar.top, w * bar.width, plotHeight * bar.height,
+        ], bar.total ? "1C4540" : bar.value < 0 ? "AC5235" : accent, "")
+          + (bar.total ? "" : line(id + 1, bar.left + bar.width, bar.endLine, bar.slot - bar.width))
+          + label(id + 2, bar.display, [left, plotTop + plotHeight * (bar.top - .11), w * bar.slot, plotHeight * .105], 17, true, true)
+          + label(id + 3, bar.label, [left, plotTop + plotHeight * .83, w * bar.slot, plotHeight * .17], 15, false, true);
+      }).join("");
+  }
   if (!content.chart?.length) return "";
   const chart = content.chart;
   const magnitude = Math.max(...chart.map(({ value }) => Math.abs(value)));
@@ -177,11 +206,11 @@ function slideVisual(content: SlideContent, bounds: Box, width: number, height: 
 }
 
 export async function addDeckVisuals(output: Blob, contents: SlideContent[], design: SlideDesign) {
-  if (!contents.some(({ table, chart }) => table || chart)) return output;
+  if (!contents.some(({ table, chart, waterfall }) => table || chart || waterfall)) return output;
   const { default: JSZip } = await import("jszip");
   const zip = await JSZip.loadAsync(await output.arrayBuffer());
   for (const [index, content] of contents.entries()) {
-    if (!content.table && !content.chart) continue;
+    if (!content.table && !content.chart && !content.waterfall) continue;
     const path = `ppt/slides/slide${index + 1}.xml`;
     const slide = await zip.file(path)?.async("string");
     if (!slide) throw new Error("Could not add editable visuals to the deck.");
@@ -492,7 +521,7 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
     const title = textBody([content.title], design.headFontFace, textColor, Math.round(2900 * textScale), true);
     const body = textBody(content.lines, design.bodyFontFace, textColor, Math.round(1800 * textScale));
     const naturalBoxes = slideBoxes(candidate, content.purpose, width, height);
-    const hasVisual = Boolean(content.table || content.chart);
+    const hasVisual = Boolean(content.table || content.chart || content.waterfall);
     const boxes = hasVisual && (!naturalBoxes.body || naturalBoxes.body[3] < .40)
       ? { title: [.07, .13, .86, .13] as Box, body: [.07, .32, .86, .55] as Box, panel: false }
       : naturalBoxes;

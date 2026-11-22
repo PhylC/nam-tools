@@ -1,10 +1,54 @@
 import { useEffect, useRef, useState } from "react";
 import { readMetricNumber } from "./qbrScorecard";
 import type { QbrScorecard } from "./qbrScorecard";
-import { buildQbrSlides, metricValue, suggestedHeadline, variance } from "./qbrStory";
+import { bridgeMeasures, buildQbrSlides, metricValue, qbrActionRows, qbrBridge, suggestedHeadline, variance } from "./qbrStory";
 import type { QbrApproval, QbrContext, QbrStory } from "./qbrStory";
+import { qbrColumns } from "./qbrBenchmark.mjs";
 
 type MetricEdit = { actual?: string; plan?: string; prior?: string };
+
+function QbrRows({ kind, labels, rows, onChange, maxRows }: {
+  kind: string;
+  labels: string[];
+  rows: string[][];
+  onChange: (rows: string[][]) => void;
+  maxRows?: number;
+}) {
+  const emptyRow = () => labels.map(() => "");
+  const items = rows.length ? rows : [emptyRow()];
+  return (
+    <div className="qbr-editable-rows">
+      {items.map((row, index) => (
+        <div className="qbr-editable-row" role="group" aria-label={`${kind} ${index + 1}`} key={index}>
+          <div className="qbr-editable-fields">
+            {labels.map((label, column) => (
+              <label className="field" key={label}>
+                <span>{label}</span>
+                <input
+                  aria-label={`${label} for ${kind.toLowerCase()} ${index + 1}`}
+                  value={row[column] ?? ""}
+                  onChange={(event) => onChange(items.map((current, i) => i === index
+                    ? labels.map((_, j) => j === column ? event.target.value : current[j] ?? "")
+                    : current))}
+                />
+              </label>
+            ))}
+          </div>
+          {rows.length ? <button type="button" className="button button-secondary button-small"
+            aria-label={`Remove ${kind.toLowerCase()} ${index + 1}`}
+            onClick={() => onChange(rows.filter((_, i) => index !== i))}>
+            Remove
+          </button> : null}
+        </div>
+      ))}
+      {(!maxRows || items.length < maxRows) ? (
+        <button type="button" className="button button-secondary button-small" onClick={() => onChange([...items, emptyRow()])}>
+          Add {kind.toLowerCase()}
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, onBack }: {
   scorecard: QbrScorecard;
@@ -45,9 +89,17 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
   const metrics = confirmed.filter((metric) => metric !== null);
   const unresolved = confirmed.length - metrics.length;
   const headline = suggestedHeadline(metrics);
+  const bridgeChoices = bridgeMeasures(metrics);
+  const bridge = context.includeFinancialSummary ? qbrBridge(metrics, story) : {};
+  const actions = qbrActionRows(story);
+  const partial = (rows: string[][], columns: number) => rows.some((row) => row.some((cell) => cell.trim()) &&
+    Array.from({ length: columns }, (_, index) => row[index]?.trim()).some((cell) => !cell));
+  const partialAction = context.includeNextStepsSlide && partial(actions, qbrColumns.actions.length);
+  const partialCommitment = partial(story.commitments ?? [], qbrColumns.commitments.length);
   const approval = { metrics, story: { ...story, headline: story.headline.trim() || headline } };
   const outline = buildQbrSlides(context, approval, false).outline;
-  const hasContent = metrics.length > 0 || [context.brief, context.performance, story.headline, story.decision, story.drivers, story.actions].some((text) => text.trim());
+  const hasContent = metrics.length > 0 || [context.brief, context.performance, story.headline, story.decision, story.drivers, story.implication].some((text) => text?.trim())
+    || actions.some(([action]) => action) || (story.commitments ?? []).some(([commitment]) => commitment?.trim());
 
   return (
     <section className="qbr-review" aria-labelledby="qbr-review-heading">
@@ -113,15 +165,45 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
           <textarea disabled={busy} rows={2} value={story.decision} onChange={(event) => setStory({ ...story, decision: event.target.value })} placeholder="For example, agree which stores to prioritise next quarter." />
         </label>
         <label className="field">
+          <span>Why does this result matter to the buyer?</span>
+          <textarea disabled={busy} rows={2} value={story.implication ?? ""} onChange={(event) => setStory({ ...story, implication: event.target.value })}
+            placeholder="Explain the consequence for the customer or next quarter." />
+        </label>
+        <fieldset className="qbr-editor" disabled={busy}>
+          <legend>Previous review commitments</legend>
+          <p>Optional. Record each commitment, who owned it, and the outcome you can verify.</p>
+          <QbrRows kind="Commitment" labels={qbrColumns.commitments} rows={story.commitments ?? []} onChange={(commitments) => setStory({ ...story, commitments })} />
+          {partialCommitment ? <p className="field-error">Complete the owner, status and outcome for each commitment.</p> : null}
+        </fieldset>
+        {context.includeFinancialSummary && (bridgeChoices.length || story.salesDrivers?.some((row) => row.some(Boolean))) ? (
+          <fieldset className="qbr-editor" disabled={busy}>
+            <legend>Sales waterfall</legend>
+            <p>Optional. Add up to five signed movements that explain the gap between actual sales and plan.</p>
+            <label className="field">
+              <span>Sales measure for the waterfall</span>
+              <select value={bridgeChoices.some(({ name }) => name === story.bridgeMeasure) ? story.bridgeMeasure : bridgeChoices.length === 1 ? bridgeChoices[0].name : ""}
+                onChange={(event) => setStory({ ...story, bridgeMeasure: event.target.value })}>
+                <option value="">Choose a measure</option>
+                {bridgeChoices.map(({ id, name }) => <option key={id} value={name}>{name}</option>)}
+              </select>
+            </label>
+            <QbrRows kind="Driver" labels={["Driver", "Signed impact", "Evidence"]} rows={story.salesDrivers ?? []} maxRows={5}
+              onChange={(salesDrivers) => setStory({ ...story, salesDrivers })} />
+            {bridge.error ? <p className="field-error" role="status">{bridge.error}</p> : null}
+            {bridge.chart ? <p role="status">Sales drivers reconcile to {bridge.chart.total.display} against plan.</p> : null}
+          </fieldset>
+        ) : null}
+        <label className="field">
           <span>What explains the result?</span>
           <textarea disabled={busy} rows={3} value={story.drivers} onChange={(event) => setStory({ ...story, drivers: event.target.value })} placeholder="Add confirmed drivers or observations, one per line." />
         </label>
         {context.includeNextStepsSlide ? (
-          <label className="field">
-            <span>What happens next?</span>
-            <textarea disabled={busy} rows={3} value={story.actions} onChange={(event) => setStory({ ...story, actions: event.target.value })} />
-            <small>One action per line. Add an owner and due date as Action | Owner | Due.</small>
-          </label>
+          <fieldset className="qbr-editor" disabled={busy}>
+            <legend>Proposed actions and owners</legend>
+            <p>Record the starting point and how you’ll measure success at the next review.</p>
+            <QbrRows kind="Action" labels={qbrColumns.actions} rows={actions} onChange={(actionRows) => setStory({ ...story, actionRows })} />
+            {partialAction ? <p className="field-error" role="status">Complete the owner, due date, baseline and success measure for each action.</p> : null}
+          </fieldset>
         ) : null}
       </div>
       <details className="qbr-notes" open>
@@ -131,7 +213,7 @@ export function QbrReview({ scorecard, context, initialStory, busy, onConfirm, o
       {unresolved ? <p role="status" className="field-error">Resolve {unresolved} {unresolved === 1 ? "metric" : "metrics"} to continue.</p> : null}
       {!hasContent ? <p role="status" className="field-error">Add a takeaway, observation or decision to continue.</p> : null}
       <div className="template-layout-review-actions">
-        <button className="button" type="button" disabled={busy || Boolean(unresolved) || !hasContent} onClick={() => onConfirm(approval)}>
+        <button className="button" type="button" disabled={busy || Boolean(unresolved) || !hasContent || partialAction || partialCommitment || Boolean(bridge.error)} onClick={() => onConfirm(approval)}>
           {busy ? "Preparing PowerPoint…" : "Confirm QBR and continue"}
         </button>
         <button className="button button-secondary" type="button" disabled={busy} onClick={onBack}>Back to deck setup</button>

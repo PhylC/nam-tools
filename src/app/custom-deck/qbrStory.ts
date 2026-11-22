@@ -1,11 +1,18 @@
 import type { SlideContent } from "./powerPointTemplate";
 import type { QbrMetric } from "./qbrScorecard";
+import { readMetricNumber } from "./qbrScorecard";
+import { qbrColumns, qbrHeadings } from "./qbrBenchmark.mjs";
 
 export type QbrStory = {
   headline: string;
   drivers: string;
   decision: string;
   actions: string;
+  implication?: string;
+  commitments?: string[][];
+  salesDrivers?: string[][];
+  bridgeMeasure?: string;
+  actionRows?: string[][];
 };
 export type QbrApproval = { metrics: QbrMetric[]; story: QbrStory };
 export type QbrContext = {
@@ -62,6 +69,42 @@ export function suggestedHeadline(metrics: QbrMetric[]) {
   return `${lead.name} finished ${move} ${delta > 0 ? "above" : "below"} ${baseline}`;
 }
 
+export function bridgeMeasures(metrics: QbrMetric[]) {
+  return metrics.filter((metric) => metric.plan !== null && metric.unit !== "%" && /\b(?:sales|revenue|turnover)\b/i.test(metric.name));
+}
+
+export function qbrBridge(metrics: QbrMetric[], story: QbrStory): { chart?: NonNullable<SlideContent["waterfall"]>; error?: string } {
+  const rows = (story.salesDrivers ?? []).filter((row) => row.some((cell) => cell.trim()));
+  if (!rows.length) return {};
+  const available = bridgeMeasures(metrics);
+  const metric = available.find(({ name }) => name === story.bridgeMeasure) ?? (available.length === 1 ? available[0] : undefined);
+  if (!metric || metric.plan === null) return { error: "Choose a sales measure with both Actual and Plan before adding a sales waterfall." };
+  const total = metric.actual - metric.plan;
+  const changes = [];
+  for (const [label, amount, source] of rows) {
+    const number = readMetricNumber(amount ?? "");
+    if (!label?.trim() || !number || (number.unit && number.unit !== metric.unit) || !source?.trim()) {
+      return { error: "Enter a driver, a signed impact in the sales measure’s unit, and an evidence note for each row." };
+    }
+    changes.push({ label: label.trim(), value: number.value, display: metricValue(number.value, metric.unit, true), evidence: source.trim() });
+  }
+  const explained = changes.reduce((sum, { value }) => sum + value, 0);
+  if (Math.abs(total - explained) > .005) {
+    return { error: `Drivers total ${metricValue(explained, metric.unit, true)}. Add ${metricValue(total - explained, metric.unit, true)} to reconcile to the scorecard’s ${metricValue(total, metric.unit, true)} variance.` };
+  }
+  return {
+    chart: {
+      changes, total: { label: "Actual vs plan", value: total, display: metricValue(total, metric.unit, true) },
+      caption: `${metricValue(metric.plan, metric.unit)} plan to ${metricValue(metric.actual, metric.unit)} actual`,
+    },
+  };
+}
+
+export function qbrActionRows(story: QbrStory) {
+  return (story.actionRows ?? lines(story.actions).map((line) => line.split("|")))
+    .map((row) => Array.from({ length: qbrColumns.actions.length }, (_, index) => row[index]?.trim() ?? ""));
+}
+
 function lines(text: string) {
   return text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
 }
@@ -73,6 +116,7 @@ function chunks<T>(items: T[], size: number): T[][] {
 export function buildQbrSlides(context: QbrContext, approval: QbrApproval, includeDividers: boolean) {
   const { metrics, story } = approval;
   const showScorecard = metrics.length > 0 && context.includeFinancialSummary;
+  const chart = showScorecard ? qbrBridge(metrics, story).chart : undefined;
   const priorOnly = !metrics.some((metric) => metric.plan !== null) && metrics.some((metric) => metric.prior !== null);
   const baseline = priorOnly ? "prior period" : "plan";
   const evidence = metrics.map((metric, index) => {
@@ -85,25 +129,35 @@ export function buildQbrSlides(context: QbrContext, approval: QbrApproval, inclu
     "Retailer/customer meeting": "Customer performance review",
   };
   const audience = audienceBriefs[context.audience] ?? "Performance review";
-  const actionsHeading = context.audience === "Retailer/customer meeting" ? "Agreed actions and owners" : "Next actions and owners";
+  const actionsHeading = qbrHeadings.actions;
   const briefLines = lines(context.brief);
   const detailLimit = context.tone === "detailed_analytical" ? 4 : 2;
   const highlights = evidence.filter(({ reference }) => reference !== null).slice(0, detailLimit).map(({ metric, sourceNumber, reference }) =>
     `${metric.name} · ${metricValue(metric.actual, metric.unit)} actual · ${variance(metric, reference)} vs ${baseline} [${sourceNumber}]`);
-  const summary = [story.decision.trim(), ...highlights, ...(!highlights.length ? lines(context.performance).slice(0, detailLimit) : [])].filter(Boolean);
+  const summary = [
+    story.decision.trim() ? `Decision today · ${story.decision.trim()}` : "",
+    story.implication?.trim() ? `Why it matters · ${story.implication.trim()}` : "",
+    ...highlights,
+    ...(!highlights.length ? lines(context.performance).slice(0, detailLimit) : []),
+  ].filter(Boolean);
   const contents: SlideContent[] = [
     { purpose: "title", title: context.deckLabel, lines: [context.period.trim(), audience].filter(Boolean) },
     { purpose: "content", title: story.headline.trim() || suggestedHeadline(metrics), lines: summary.length ? summary : briefLines.slice(0, detailLimit) },
   ];
+  const commitments = (story.commitments ?? []).filter((row) => row[0]?.trim());
+  chunks(commitments, 4).forEach((rows, index) => contents.push({
+    purpose: "content", title: index ? `${qbrHeadings.commitments} (${index + 1})` : qbrHeadings.commitments,
+    lines: [], table: { headers: qbrColumns.commitments, widths: [.30, .17, .12, .41], rows },
+  }));
   if (showScorecard) {
     if (includeDividers) contents.push({ purpose: "divider", title: "Performance and evidence", lines: [] });
     const partitions = chunks(evidence, 5);
     partitions.forEach((page, index) => {
       contents.push({
-        purpose: "content", title: partitions.length > 1 ? `Commercial scorecard ${index + 1} of ${partitions.length}` : "Commercial scorecard",
+        purpose: "content", title: partitions.length > 1 ? `${qbrHeadings.scorecard} ${index + 1} of ${partitions.length}` : qbrHeadings.scorecard,
         lines: [],
         table: {
-          headers: ["Measure", "Actual", "Plan", "Prior period", `Vs ${baseline}`],
+          headers: priorOnly ? [...qbrColumns.scorecard.slice(0, -1), "Vs prior period"] : qbrColumns.scorecard,
           widths: [.32, .16, .16, .16, .20],
           rows: page.map(({ metric, sourceNumber, reference }) => [
             `${metric.name} [${sourceNumber}]`, metricValue(metric.actual, metric.unit), metricValue(metric.plan, metric.unit),
@@ -112,7 +166,8 @@ export function buildQbrSlides(context: QbrContext, approval: QbrApproval, inclu
         },
       });
     });
-    for (const unit of ["%", "pp"]) {
+    if (chart) contents.push({ purpose: "content", title: qbrHeadings.bridge, lines: [], waterfall: chart });
+    for (const unit of chart && context.tone !== "detailed_analytical" ? [] : ["%", "pp"]) {
       const ranked = evidence.filter(({ delta }) => delta?.unit === unit)
         .sort((a, b) => Math.abs(b.delta!.value) - Math.abs(a.delta!.value)).slice(0, 5);
       if (ranked.length < 2 || ranked.every(({ delta }) => !delta?.value)) continue;
@@ -126,19 +181,19 @@ export function buildQbrSlides(context: QbrContext, approval: QbrApproval, inclu
   }
   const contextLines = lines(story.drivers || context.performance || context.brief)
     .filter((line) => !(summary.length ? summary : briefLines.slice(0, detailLimit)).includes(line));
+  if (chart) {
+    contextLines.push(...chart.changes.map(({ label, evidence }) => `${label} · ${evidence}`));
+  }
   chunks(contextLines, 4).forEach((page, index) => contents.push({
     purpose: "content", title: index ? `What changed (${index + 1})` : "What changed", lines: page,
   }));
-  const actions = lines(story.actions).map((line) => {
-    const [action, owner, timing] = line.split("|").map((value) => value.trim());
-    return [action, owner || "To agree", timing || "To agree"];
-  }).filter(([action]) => action);
+  const actions = qbrActionRows(story).filter(([action]) => action).map((row) => row.map((value) => value || "To agree"));
   if (context.includeNextStepsSlide && actions.length) {
     if (includeDividers) contents.push({ purpose: "divider", title: "Decisions and follow-up", lines: [] });
-    const partitions = chunks(actions, 5);
+    const partitions = chunks(actions, 4);
     partitions.forEach((rows, index) => contents.push({
       purpose: "content", title: partitions.length > 1 ? `${actionsHeading} ${index + 1} of ${partitions.length}` : actionsHeading,
-      lines: [], table: { headers: ["Action", "Owner", "Due"], widths: [.58, .22, .20], rows },
+      lines: [], table: { headers: qbrColumns.actions, widths: [.26, .14, .12, .19, .29], rows },
     }));
   }
   if (showScorecard || highlights.length) {
