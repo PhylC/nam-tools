@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ResourceMethodology } from "../../components/ResourceMethodology";
 import { JsonLd } from "../../components/JsonLd";
 import { Hero } from "../../components/Shell";
-import { buyerMeetingProposal, featuredTemplates, getTemplateGuide } from "../../data/presentationTemplates";
+import { buyerMeetingProposal, featuredTemplates, getTemplateGuide, getWorkedExampleSlides } from "../../data/presentationTemplates";
 import { breadcrumbJsonLd, seoMetadata } from "../../seo";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,7 +22,26 @@ export async function generateMetadata({ params }: Props) {
     title: `Free ${guide.label} PowerPoint Template`,
     description: guide.purpose,
     path: `/presentation-templates/${guide.slug}`,
+    socialImage: {
+      url: `/templates/previews/${guide.slug}-share.jpg`,
+      alt: `Free ${guide.label} PowerPoint template with a worked example`,
+    },
   });
+}
+
+function SlidePreviews({ slides }: { slides: ReturnType<typeof getWorkedExampleSlides> }) {
+  return (
+    <ul className="deck-slide-previews">
+      {slides.map(({ number, title, src }) => (
+        <li key={number}>
+          <a href={src} aria-label={`View full-size slide ${number}, ${title}`}>
+            <Image alt="" width={1440} height={810} sizes="(max-width: 720px) 94vw, (max-width: 1100px) 30vw, 360px" src={src} />
+            <span>{title}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export default async function TemplateGuide({ params }: Props) {
@@ -48,23 +67,22 @@ export default async function TemplateGuide({ params }: Props) {
       >
         <p>{guide.purpose} Both files contain {guide.template.slides} editable slides and are free to download.</p>
       </Hero>
+      <section className="shell section" aria-labelledby="worked-example-heading">
+        <h2 id="worked-example-heading">Inside the worked example</h2>
+        <p>Select any slide to see it full size. Names and commercial figures are fictional.</p>
+        <SlidePreviews slides={getWorkedExampleSlides(guide.slug)} />
+      </section>
       <section className="shell section deck-template-guide">
-        <figure>
-          <Image alt={guide.previewAlt} height={540} sizes="(max-width: 720px) 94vw, 620px" src={guide.preview} width={960} />
-          <figcaption>Slide from the worked example. Names and commercial figures are fictional.</figcaption>
-        </figure>
-        <div>
-          <h2>How to use this template</h2>
-          <ol>
-            {guide.sections.map(([title, detail]) => (
-              <li key={title}><strong>{title}</strong><p>{detail}</p></li>
-            ))}
-          </ol>
-          <p>Adapt the templates for your own internal planning or customer presentations. <Link href="/terms">Template usage terms</Link></p>
-          <div className="template-layout-review-actions">
-            <Link className="button button-secondary button-small" href={`/custom-deck?template=${guide.templateSlug}`}>Open builder</Link>
-            <Link href="/presentation-templates">Browse all PowerPoint templates</Link>
-          </div>
+        <h2>How to use this template</h2>
+        <ol>
+          {guide.sections.map(([title, detail]) => (
+            <li key={title}><strong>{title}</strong><p>{detail}</p></li>
+          ))}
+        </ol>
+        <p>Adapt the templates for your own internal planning or customer presentations. <Link href="/terms">Template usage terms</Link></p>
+        <div className="template-layout-review-actions">
+          <Link className="button button-secondary button-small" href={`/custom-deck?template=${guide.templateSlug}`}>Open builder</Link>
+          <Link href="/presentation-templates">Browse all PowerPoint templates</Link>
         </div>
       </section>
       <section className="shell">
@@ -79,6 +97,7 @@ export default async function TemplateGuide({ params }: Props) {
             <a className="button button-secondary button-small" download href={`/templates/${buyerMeetingProposal.example}`}>Download buyer-facing worked example</a>
             <Link className="button button-secondary button-small" href={buyerMeetingProposal.builder}>Open buyer-facing builder</Link>
           </div>
+          <SlidePreviews slides={getWorkedExampleSlides("buyer-meeting-proposal")} />
         </section>
       ) : null}
     </div>

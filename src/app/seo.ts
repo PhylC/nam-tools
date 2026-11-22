@@ -21,6 +21,7 @@ type SeoMetadataInput = {
   description: string;
   path: string;
   keywords?: string[];
+  socialImage?: { url: string; alt: string };
 };
 
 export const INTERNATIONAL_KEYWORD_TARGETS = [
@@ -34,8 +35,9 @@ export const INTERNATIONAL_KEYWORD_TARGETS = [
   "CPG commercial planning tools",
 ];
 
-export function seoMetadata({ title, absoluteTitle, description, path, keywords }: SeoMetadataInput): Metadata {
+export function seoMetadata({ title, absoluteTitle, description, path, keywords, socialImage }: SeoMetadataInput): Metadata {
   const socialTitle = absoluteTitle ?? `${title} | ${SITE_NAME}`;
+  const image = socialImage ?? { url: OG_IMAGE, alt: "Account Planning Tools social preview" };
 
   return {
     title: absoluteTitle ? { absolute: absoluteTitle } : title,
@@ -53,10 +55,9 @@ export function seoMetadata({ title, absoluteTitle, description, path, keywords 
       url: path,
       images: [
         {
-          url: OG_IMAGE,
+          ...image,
           width: 1200,
           height: 630,
-          alt: "Account Planning Tools social preview",
         },
       ],
     },
@@ -64,12 +65,7 @@ export function seoMetadata({ title, absoluteTitle, description, path, keywords 
       card: "summary_large_image",
       title: socialTitle,
       description,
-      images: [
-        {
-          url: OG_IMAGE,
-          alt: "Account Planning Tools social preview",
-        },
-      ],
+      images: [image],
     },
   };
 }

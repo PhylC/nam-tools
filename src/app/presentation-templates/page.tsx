@@ -10,6 +10,10 @@ export const metadata = seoMetadata({
   title: "Free PowerPoint Templates for Account Planning",
   description: "Download nine free, editable PowerPoint templates for joint business plans, quarterly business reviews, promotional proposals and other commercial meetings.",
   path: "/presentation-templates",
+  socialImage: {
+    url: "/templates/previews/library-share.jpg",
+    alt: "Free editable PowerPoint starters and worked examples from Account Planning Tools",
+  },
 });
 
 export default function PresentationTemplatesPage() {

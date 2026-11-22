@@ -88,6 +88,27 @@ export const buyerMeetingProposal = {
   builder: "/custom-deck?template=buyer-meeting-external",
 };
 
+const workedExampleSlides = {
+  "joint-business-plan": [[5, "Joint growth commitments"], [6, "Investment and release conditions"], [9, "Quarterly milestones and governance"]],
+  "quarterly-business-review": [[4, "Commercial scorecard"], [5, "What moved net sales"], [9, "Proposed actions and owners"]],
+  "promotional-proposal": [[2, "Offer and approval requested"], [5, "Funding and break-even"], [8, "Post-event measurement"]],
+  "range-review": [[4, "Range change and displacement"], [5, "Comparable SKU performance and decisions"], [6, "Pilot and rollout decision"]],
+  "new-product-launch": [[2, "Listing decision and shopper proposition"], [4, "Launch forecast by scenario"], [7, "Stock readiness and launch milestones"]],
+  "category-opportunity": [[5, "Retailer opportunity scenarios"], [7, "Benchmark evidence"], [8, "Pilot and scale threshold"]],
+  "account-plan": [[4, "Ranked opportunities"], [5, "Resources and decisions"], [6, "30-, 60- and 90-day action plan"]],
+  "annual-planning": [[4, "Prior-year performance and new target"], [5, "Growth drivers behind the new target"], [6, "Funding decisions and release gates"]],
+  "buyer-meeting": [[2, "Meeting objective and desired outcome"], [4, "Buyer objections and evidence-led responses"], [5, "Internal negotiation limits"]],
+  "buyer-meeting-proposal": [[2, "Proposal and decision requested"], [4, "Evidence supporting the proposal"], [5, "Joint next steps"]],
+} as const;
+
+export function getWorkedExampleSlides(slug: keyof typeof workedExampleSlides) {
+  return workedExampleSlides[slug].map(([number, title]) => ({
+    number,
+    title,
+    src: `/templates/previews/${slug}-${number}.webp`,
+  }));
+}
+
 export const featuredTemplates = [
   {
     slug: "joint-business-plan",
@@ -197,7 +218,14 @@ export const featuredTemplates = [
       ["Close with a dated next step", "Confirm what was agreed, who owns each action and when you will follow up."],
     ],
   },
-];
+] satisfies Array<{
+  slug: Exclude<keyof typeof workedExampleSlides, "buyer-meeting-proposal">;
+  templateSlug: string;
+  label: string;
+  previewAlt: string;
+  purpose: string;
+  sections: Array<[string, string]>;
+}>;
 
 export function getTemplateGuide(slug: string) {
   const guide = featuredTemplates.find((item) => item.slug === slug);
