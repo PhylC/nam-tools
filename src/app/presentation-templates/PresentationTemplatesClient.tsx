@@ -44,7 +44,7 @@ const freeTemplates: FreeTemplate[] = [
   {
     title: "Account Plan",
     slug: "account-plan",
-    pptx: "annual-planning-template.pptx",
+    pptx: "account-plan-template.pptx",
     deckType: "Account Plan",
     description: "Create an internal account plan deck covering customer context, priorities, risks, growth levers and actions.",
     bestFor: "Internal account planning, account reviews and sales leadership updates",
@@ -72,7 +72,7 @@ const freeTemplates: FreeTemplate[] = [
     deckType: "Promotional Proposal",
     description: "Use this to frame a promotion mechanic, support ask, ROI logic and retailer benefit.",
     bestFor: "Promo proposals, trade marketing and buyer sign-off",
-    slides: "8",
+    slides: "9",
     includes: "mechanic, support, financial impact and recommendation",
     previewSrc: "/images/apt/apt-template-promo-proposal-preview.webp",
     previewAlt: "Preview of the APT Promotional Proposal PowerPoint template",

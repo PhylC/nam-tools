@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import type PptxGenJS from "pptxgenjs";
+import { powerPointMimeType } from "./powerPointTemplate";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
@@ -57,13 +58,6 @@ type GeneratedDeckResult = {
   templateDesignApplied: boolean;
 };
 
-type ZipLike = {
-  file: {
-    (path: string): { async: (type: "text") => Promise<string> } | null;
-    (path: string, data: string): unknown;
-  };
-  remove: (path: string) => void;
-};
 type TemplateDesign = {
   sourceName: string;
   backgroundColor: string;
@@ -739,496 +733,6 @@ function extractTypeface(xml: string, fontGroup: "majorFont" | "minorFont", fall
   return /<a:latin[^>]+typeface="([^"]+)"/.exec(block)?.[1] || fallback;
 }
 
-function xmlEscape(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
-function emu(inches: number) {
-  return Math.round(inches * 914400);
-}
-
-function maxShapeId(slideXml: string) {
-  const ids = [...slideXml.matchAll(/<p:cNvPr[^>]+id="(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-  return ids.length ? Math.max(...ids) : 1000;
-}
-
-function maxSlideId(presentationXml: string) {
-  const ids = [...presentationXml.matchAll(/<p:sldId[^>]+id="(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-  return ids.length ? Math.max(...ids) : 255;
-}
-
-function maxRelationshipId(relsXml: string) {
-  const ids = [...relsXml.matchAll(/\bId="rId(\d+)"/g)].map((match) => Number(match[1])).filter(Number.isFinite);
-  return ids.length ? Math.max(...ids) : 0;
-}
-
-function textParagraph(text: string, fontFace: string, color: string, size: number, bold = false) {
-  return `<a:p><a:r><a:rPr lang="en-US" sz="${size}"${bold ? ' b="1"' : ""}><a:solidFill><a:srgbClr val="${color}"/></a:solidFill><a:latin typeface="${xmlEscape(fontFace)}"/></a:rPr><a:t xml:space="preserve">${xmlEscape(text)}</a:t></a:r><a:endParaRPr lang="en-US" sz="${size}"/></a:p>`;
-}
-
-function templateTextBodyXml(paragraphs: string[], design: TemplateDesign, options?: { title?: boolean; combined?: boolean }) {
-  const text = paragraphs
-    .filter(Boolean)
-    .map((paragraph, index) => {
-      const isTitle = Boolean(options?.title || (options?.combined && index === 0));
-      const bodyText = isTitle || options?.combined ? paragraph : `- ${paragraph}`;
-      return textParagraph(
-        bodyText,
-        isTitle ? design.headFontFace : design.bodyFontFace,
-        isTitle ? design.textColor : design.mutedTextColor,
-        isTitle ? 2600 : 1550,
-        isTitle || index === 0,
-      );
-    })
-    .join("");
-
-  return `<p:txBody><a:bodyPr wrap="square" rtlCol="0"><a:spAutoFit/></a:bodyPr><a:lstStyle/>${text}</p:txBody>`;
-}
-
-function designForSlideReadability(slideXml: string, design: TemplateDesign) {
-  const backgroundColor =
-    /<p:bg[\s\S]*?<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1] ??
-    /<p:spPr[\s\S]*?<a:solidFill>\s*<a:srgbClr[^>]+val="([^"]+)"/.exec(slideXml)?.[1] ??
-    design.backgroundColor;
-  const hasImageFill = /<p:bg[\s\S]*?<a:blipFill[\s\S]*?<\/p:bg>/.test(slideXml);
-  const hasLargePicture = /<p:pic\b/.test(slideXml) && /<a:off x="0" y="0"\/>/.test(slideXml);
-  const hasDarkInheritedBackground = /<p:bgRef\b[\s\S]*?<a:schemeClr val="bg2"/.test(slideXml) || /<a:gradFill\b[\s\S]*?<a:schemeClr val="bg2"/.test(slideXml);
-  const needsLightText = hasImageFill || hasLargePicture || hasDarkInheritedBackground || colorLuminance(backgroundColor) < 0.38;
-  if (!needsLightText) return design;
-  return {
-    ...design,
-    textColor: "FFFFFF",
-    mutedTextColor: "EAF3F2",
-  };
-}
-
-function forceReadableTextColors(slideXml: string, design: TemplateDesign, readabilityXml = slideXml) {
-  const readable = designForSlideReadability(readabilityXml, design);
-  if (readable.textColor === design.textColor && readable.mutedTextColor === design.mutedTextColor) return slideXml;
-  return slideXml.replace(/<a:srgbClr val="(?:16202A|4B5966|000000|1F2937|334155|475569)"\/>/g, (match) => {
-    const color = match.includes("16202A") || match.includes("000000") || match.includes("1F2937") ? readable.textColor : readable.mutedTextColor;
-    return `<a:srgbClr val="${color}"/>`;
-  });
-}
-
-function templateTextBoxXml(id: number, name: string, x: number, y: number, w: number, h: number, paragraphs: string[], design: TemplateDesign, options?: { title?: boolean }) {
-  return `
-    <p:sp>
-      <p:nvSpPr>
-        <p:cNvPr id="${id}" name="${xmlEscape(name)}"/>
-        <p:cNvSpPr txBox="1"/>
-        <p:nvPr/>
-      </p:nvSpPr>
-      <p:spPr>
-        <a:xfrm><a:off x="${emu(x)}" y="${emu(y)}"/><a:ext cx="${emu(w)}" cy="${emu(h)}"/></a:xfrm>
-        <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
-        <a:noFill/>
-        <a:ln><a:noFill/></a:ln>
-      </p:spPr>
-      ${templateTextBodyXml(paragraphs, design, options)}
-    </p:sp>`;
-}
-
-function replaceTemplateTextPlaceholders(slideXml: string, content: DeckSlideContent, design: TemplateDesign) {
-  const shapeRegex = /<p:sp\b[\s\S]*?<\/p:sp>/g;
-  const textShapes = [...slideXml.matchAll(shapeRegex)].filter((match) => match[0].includes("<p:txBody"));
-  if (!textShapes.length) return { xml: slideXml, replacementCount: 0 };
-
-  const replacementBodies =
-    textShapes.length === 1
-      ? [templateTextBodyXml([content.title, ...content.lines.slice(0, 9)], design, { combined: true })]
-      : [
-          templateTextBodyXml([content.title], design, { title: true }),
-          templateTextBodyXml(content.lines.slice(0, 9), design),
-          ...textShapes.slice(2).map(() => templateTextBodyXml([], design)),
-        ];
-  let replacementIndex = 0;
-  const xml = slideXml.replace(shapeRegex, (shape) => {
-    if (replacementIndex >= replacementBodies.length || !shape.includes("<p:txBody")) return shape;
-    const nextBody = replacementBodies[replacementIndex];
-    replacementIndex += 1;
-    return shape.replace(/<p:txBody\b[\s\S]*?<\/p:txBody>/, nextBody);
-  });
-
-  return { xml, replacementCount: replacementIndex };
-}
-
-function populateTemplateSlide(slideXml: string, content: DeckSlideContent, design: TemplateDesign, readabilityXml = slideXml) {
-  const slideDesign = designForSlideReadability(readabilityXml, design);
-  const replaced = replaceTemplateTextPlaceholders(slideXml, content, slideDesign);
-  if (replaced.replacementCount > 0) return removeDuplicatedPowerPointCreationIds(forceReadableTextColors(replaced.xml, design, readabilityXml));
-
-  if (!slideXml.includes("</p:spTree>")) return removeDuplicatedPowerPointCreationIds(slideXml);
-  const baseId = maxShapeId(slideXml) + 1;
-  const injected = [
-    templateTextBoxXml(baseId, "APT generated title", 0.65, 0.55, 6.7, 0.8, [content.title], slideDesign, { title: true }),
-    templateTextBoxXml(baseId + 1, "APT generated body", 0.75, 1.55, 6.55, 4.65, content.lines.slice(0, 9), slideDesign),
-  ].join("");
-  return removeDuplicatedPowerPointCreationIds(forceReadableTextColors(slideXml.replace("</p:spTree>", `${injected}</p:spTree>`), design, readabilityXml));
-}
-
-function removeDuplicatedPowerPointCreationIds(slideXml: string) {
-  return slideXml
-    .replace(/<p14:creationId\b[^>]*\/>/g, "")
-    .replace(/<a16:creationId\b[^>]*\/>/g, "")
-    .replace(/<a:ext uri="\{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236\}">[\s\S]*?<\/a:ext>/g, "")
-    .replace(/<p:ext uri="\{BB962C8B-B14F-4D97-AF65-F5344CB8AC3E\}">[\s\S]*?<\/p:ext>/g, "")
-    .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
-    .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
-}
-
-function ensurePresentationSlideReferences(zipFileNames: string[], presentationXml: string, presentationRelsXml: string, targetSlideCount: number) {
-  const existingSlideNumbers = zipFileNames
-    .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
-    .map((path) => Number(path.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
-    .filter(Number.isFinite);
-  const nextSlideNumber = Math.max(0, ...existingSlideNumbers) + 1;
-  const nextSlideId = maxSlideId(presentationXml) + 1;
-  const nextRelId = maxRelationshipId(presentationRelsXml) + 1;
-  const additions = Array.from({ length: targetSlideCount - existingSlideNumbers.length }, (_, index) => ({
-    slideNumber: nextSlideNumber + index,
-    slideId: nextSlideId + index,
-    relId: `rId${nextRelId + index}`,
-  }));
-
-  if (!additions.length) return { additions, presentationXml, presentationRelsXml };
-
-  const slideIdXml = additions.map((item) => `<p:sldId id="${item.slideId}" r:id="${item.relId}"/>`).join("");
-  const relsXml = additions
-    .map(
-      (item) =>
-        `<Relationship Id="${item.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide${item.slideNumber}.xml"/>`,
-    )
-    .join("");
-
-  return {
-    additions,
-    presentationXml: presentationXml.replace("</p:sldIdLst>", `${slideIdXml}</p:sldIdLst>`),
-    presentationRelsXml: presentationRelsXml.replace("</Relationships>", `${relsXml}</Relationships>`),
-  };
-}
-
-function ensureSlideContentTypes(contentTypesXml: string, slideNumbers: number[]) {
-  let nextXml = contentTypesXml.replace(
-    "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml",
-  );
-  const overrideType = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
-  slideNumbers.forEach((slideNumber) => {
-    const partName = `/ppt/slides/slide${slideNumber}.xml`;
-    if (nextXml.includes(`PartName="${partName}"`)) return;
-    nextXml = nextXml.replace("</Types>", `<Override PartName="${partName}" ContentType="${overrideType}"/></Types>`);
-  });
-  return nextXml;
-}
-
-function relationshipPathFor(partPath: string) {
-  const segments = partPath.split("/");
-  const filename = segments.pop();
-  return `${segments.join("/")}/_rels/${filename}.rels`;
-}
-
-function resolveZipTarget(sourcePartPath: string, target: string) {
-  if (target.startsWith("/")) return target.slice(1);
-  const base = sourcePartPath.split("/").slice(0, -1);
-  target.split("/").forEach((segment) => {
-    if (!segment || segment === ".") return;
-    if (segment === "..") {
-      base.pop();
-      return;
-    }
-    base.push(segment);
-  });
-  return base.join("/");
-}
-
-function relationshipAttribute(xml: string, attribute: string) {
-  return new RegExp(`\\b${attribute}="([^"]+)"`).exec(xml)?.[1] ?? "";
-}
-
-async function findRelationshipTarget(zip: ZipLike, sourcePartPath: string, relationshipType: string) {
-  const relsXml = await zip.file(relationshipPathFor(sourcePartPath))?.async("text");
-  if (!relsXml) return "";
-  const relationship = [...relsXml.matchAll(/<Relationship\b[^>]*\/>/g)]
-    .map((match) => match[0])
-    .find((xml) => relationshipAttribute(xml, "Type").endsWith(relationshipType));
-  const target = relationship ? relationshipAttribute(relationship, "Target") : "";
-  return target ? resolveZipTarget(sourcePartPath, target) : "";
-}
-
-async function loadSlideReadabilityXml(zip: ZipLike, slidePath: string, slideXml: string) {
-  const layoutPath = await findRelationshipTarget(zip, slidePath, "/slideLayout");
-  const layoutXml = layoutPath ? (await zip.file(layoutPath)?.async("text")) ?? "" : "";
-  const masterPath = layoutPath ? await findRelationshipTarget(zip, layoutPath, "/slideMaster") : "";
-  const masterXml = masterPath ? (await zip.file(masterPath)?.async("text")) ?? "" : "";
-  return [slideXml, layoutXml, masterXml].join("\n");
-}
-
-async function trimPresentationToSlideCount(zip: ZipLike, targetSlideCount: number) {
-  const presentationXml = await zip.file("ppt/presentation.xml")?.async("text");
-  const presentationRelsXml = await zip.file("ppt/_rels/presentation.xml.rels")?.async("text");
-  const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
-  if (!presentationXml || !presentationRelsXml || targetSlideCount < 1) return;
-
-  const slideRefs = [...presentationXml.matchAll(/<p:sldId\b[^>]*\br:id="([^"]+)"[^>]*\/>/g)].map((match) => ({
-    xml: match[0],
-    relId: match[1],
-  }));
-  if (slideRefs.length <= targetSlideCount) return;
-
-  const relTargets = new Map(
-    [...presentationRelsXml.matchAll(/<Relationship\b[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"[^>]*\/>/g)].map((match) => [match[1], match[2]]),
-  );
-  const removedRefs = slideRefs.slice(targetSlideCount);
-  let nextPresentationXml = presentationXml;
-  let nextPresentationRelsXml = presentationRelsXml;
-  let nextContentTypesXml = contentTypesXml ?? "";
-
-  removedRefs.forEach((ref) => {
-    nextPresentationXml = nextPresentationXml.replace(ref.xml, "");
-    const target = relTargets.get(ref.relId);
-    nextPresentationRelsXml = nextPresentationRelsXml.replace(new RegExp(`<Relationship\\b[^>]*Id="${ref.relId}"[^>]*\\/>`), "");
-    if (!target) return;
-    const slidePath = target.startsWith("/") ? target.slice(1) : `ppt/${target.replace(/^\.\.\//, "")}`;
-    const normalizedSlidePath = slidePath.replace("ppt/slides/", "ppt/slides/");
-    const slideNumber = Number(normalizedSlidePath.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
-    zip.remove(normalizedSlidePath);
-    zip.remove(normalizedSlidePath.replace("ppt/slides/", "ppt/slides/_rels/") + ".rels");
-    if (nextContentTypesXml && slideNumber) {
-      nextContentTypesXml = nextContentTypesXml.replace(new RegExp(`<Override\\b[^>]*PartName="/ppt/slides/slide${slideNumber}\\.xml"[^>]*\\/>`), "");
-    }
-  });
-
-  zip.file("ppt/presentation.xml", nextPresentationXml);
-  zip.file("ppt/_rels/presentation.xml.rels", nextPresentationRelsXml);
-  if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
-}
-
-async function trimUnusedTemplateLayouts(zip: ZipLike, packagePaths: string[]) {
-  const slidePaths = packagePaths.filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path));
-  const usedLayouts = new Set<string>();
-  await Promise.all(
-    slidePaths.map(async (slidePath) => {
-      const layoutPath = await findRelationshipTarget(zip, slidePath, "/slideLayout");
-      if (layoutPath) usedLayouts.add(layoutPath);
-    }),
-  );
-  if (!usedLayouts.size) return;
-
-  const masterRelPath = "ppt/slideMasters/_rels/slideMaster1.xml.rels";
-  const masterRelsXml = await zip.file(masterRelPath)?.async("text");
-  const masterXml = await zip.file("ppt/slideMasters/slideMaster1.xml")?.async("text");
-  const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
-  let nextMasterRelsXml = masterRelsXml ?? "";
-  let nextMasterXml = masterXml ?? "";
-  let nextContentTypesXml = contentTypesXml ?? "";
-
-  const layoutRelIdsToRemove = new Set<string>();
-  if (masterRelsXml) {
-    [...masterRelsXml.matchAll(/<Relationship\b[^>]*\/>/g)].forEach((match) => {
-      const relXml = match[0];
-      if (!relationshipAttribute(relXml, "Type").endsWith("/slideLayout")) return;
-      const relId = relationshipAttribute(relXml, "Id");
-      const target = relationshipAttribute(relXml, "Target");
-      const resolved = target ? resolveZipTarget("ppt/slideMasters/slideMaster1.xml", target) : "";
-      if (usedLayouts.has(resolved)) return;
-      layoutRelIdsToRemove.add(relId);
-      nextMasterRelsXml = nextMasterRelsXml.replace(relXml, "");
-      zip.remove(resolved);
-      zip.remove(relationshipPathFor(resolved));
-      const slideLayoutNumber = Number(resolved.match(/slideLayout(\d+)\.xml$/)?.[1] ?? 0);
-      if (slideLayoutNumber && nextContentTypesXml) {
-        nextContentTypesXml = nextContentTypesXml.replace(
-          new RegExp(`<Override\\b[^>]*PartName="/ppt/slideLayouts/slideLayout${slideLayoutNumber}\\.xml"[^>]*\\/>`),
-          "",
-        );
-      }
-    });
-  }
-
-  if (nextMasterXml && layoutRelIdsToRemove.size) {
-    layoutRelIdsToRemove.forEach((relId) => {
-      nextMasterXml = nextMasterXml.replace(new RegExp(`<p:sldLayoutId\\b[^>]*r:id="${relId}"[^>]*\\/>`, "g"), "");
-    });
-  }
-
-  if (masterRelsXml) zip.file(masterRelPath, nextMasterRelsXml);
-  if (masterXml) zip.file("ppt/slideMasters/slideMaster1.xml", nextMasterXml);
-  if (contentTypesXml) zip.file("[Content_Types].xml", nextContentTypesXml);
-}
-
-function sanitizePowerPointXml(xml: string) {
-  return xml
-    .replace(/<a:ext uri="\{28A0092B-C50C-407E-A947-70E740481C1C\}">[\s\S]*?<\/a:ext>/g, "")
-    .replace(/<a:ext uri="\{C183D7F6-B498-43B3-948B-1728B52AA6E4\}">[\s\S]*?<\/a:ext>/g, "")
-    .replace(/<a:ext uri="\{05A4C25C-085E-4340-85A3-A5531E510DB2\}">[\s\S]*?<\/a:ext>/g, "")
-    .replace(/<p:ext uri="\{386F3935-93C4-4BCD-93E2-E3B085C9AB24\}">[\s\S]*?<\/p:ext>/g, "")
-    .replace(/<p:ext uri="\{E76CE94A-603C-4142-B9EB-6D1370010A27\}">[\s\S]*?<\/p:ext>/g, "")
-    .replace(/<p:ext uri="\{D31A062A-798A-4329-ABDD-BBA856620510\}">[\s\S]*?<\/p:ext>/g, "")
-    .replace(/<p:ext uri="\{FD5EFAAD-0ECE-453E-9831-46B23BE46B34\}">[\s\S]*?<\/p:ext>/g, "")
-    .replace(/<a:extLst>\s*<\/a:extLst>/g, "")
-    .replace(/<p:extLst>\s*<\/p:extLst>/g, "");
-}
-
-function removeUnsupportedTemplateShapes(xml: string) {
-  return xml.replace(/<p:sp\b[\s\S]*?<\/p:sp>/g, (shape) => {
-    if (!shape.includes("<a:custGeom")) return shape;
-    if (/<p:txBody\b[\s\S]*?<a:t(?:\s|>)/.test(shape)) return shape;
-    return "";
-  });
-}
-
-async function sanitizePowerPointPackage(zip: ZipLike, xmlPaths: string[]) {
-  const presPropsXml = await zip.file("ppt/presProps.xml")?.async("text");
-  if (presPropsXml) {
-    zip.file("ppt/presProps.xml", sanitizePowerPointXml(presPropsXml));
-  }
-  await Promise.all(
-    xmlPaths
-      .filter((path) => path.startsWith("ppt/") && path.endsWith(".xml") && path !== "ppt/presProps.xml")
-      .map(async (path) => {
-        const xml = await zip.file(path)?.async("text");
-        if (!xml) return;
-        const sanitized = path.startsWith("ppt/slideMasters/")
-          ? removeUnsupportedTemplateShapes(sanitizePowerPointXml(xml).replace(/<p:pic\b[\s\S]*?<\/p:pic>/g, ""))
-          : removeUnsupportedTemplateShapes(sanitizePowerPointXml(xml));
-        zip.file(path, sanitized);
-      }),
-  );
-}
-
-async function removeUnusedMasterImageRelationships(zip: ZipLike) {
-  const masterRelPath = "ppt/slideMasters/_rels/slideMaster1.xml.rels";
-  const masterRelsXml = await zip.file(masterRelPath)?.async("text");
-  if (!masterRelsXml) return;
-  const nextMasterRelsXml = masterRelsXml.replace(/<Relationship\b(?=[^>]*Type="[^"]*\/image")[^>]*\/>/g, "");
-  zip.file(masterRelPath, nextMasterRelsXml);
-}
-
-function replaceOrInsertBeforeClosing(xml: string, tagName: string, replacement: string, closingTag: string) {
-  const elementPattern = new RegExp(`<${tagName}>[\\s\\S]*?<\\/${tagName}>`);
-  if (elementPattern.test(xml)) return xml.replace(elementPattern, replacement);
-  return xml.replace(closingTag, `${replacement}${closingTag}`);
-}
-
-function updateExtendedPresentationProperties(appXml: string, contents: DeckSlideContent[]) {
-  const slideTitles = contents.map((content, index) => content.title || `Slide ${index + 1}`);
-  const headingPairs =
-    '<HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Slide Titles</vt:lpstr></vt:variant><vt:variant><vt:i4>' +
-    slideTitles.length +
-    "</vt:i4></vt:variant></vt:vector></HeadingPairs>";
-  const titlesOfParts =
-    `<TitlesOfParts><vt:vector size="${slideTitles.length}" baseType="lpstr">` +
-    slideTitles.map((title) => `<vt:lpstr>${xmlEscape(title)}</vt:lpstr>`).join("") +
-    "</vt:vector></TitlesOfParts>";
-
-  let nextXml = replaceOrInsertBeforeClosing(appXml, "Slides", `<Slides>${slideTitles.length}</Slides>`, "</Properties>");
-  nextXml = replaceOrInsertBeforeClosing(nextXml, "HeadingPairs", headingPairs, "</Properties>");
-  nextXml = replaceOrInsertBeforeClosing(nextXml, "TitlesOfParts", titlesOfParts, "</Properties>");
-  return nextXml;
-}
-
-function contentForTemplateSlide(contents: DeckSlideContent[], index: number, slideCount: number) {
-  if (slideCount >= contents.length) return contents[index] ?? contents[contents.length - 1];
-  if (index < slideCount - 1) return contents[index] ?? contents[contents.length - 1];
-  const remaining = contents.slice(index);
-  return {
-    title: remaining[0]?.title ?? "Additional content",
-    lines: remaining.flatMap((item) => [item.title, ...item.lines]).slice(0, 12),
-  };
-}
-
-async function createDeckFromUploadedTemplate({
-  deckLabel,
-  templateFile,
-  templateDesign,
-  outline,
-  contents,
-}: {
-  deckLabel: string;
-  templateFile: File;
-  templateDesign: TemplateDesign;
-  outline: string[];
-  contents: DeckSlideContent[];
-}): Promise<GeneratedDeckResult | null> {
-  if (![".pptx", ".potx"].includes(fileExtension(templateFile.name))) return null;
-
-  try {
-    const { default: JSZip } = await import("jszip");
-    const zip = await JSZip.loadAsync(await templateFile.arrayBuffer());
-    const slidePaths = Object.keys(zip.files)
-      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
-      .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0));
-    if (!slidePaths.length) return null;
-
-    const presentationXml = await zip.file("ppt/presentation.xml")?.async("text");
-    const presentationRelsXml = await zip.file("ppt/_rels/presentation.xml.rels")?.async("text");
-    if (presentationXml && presentationRelsXml && contents.length > slidePaths.length) {
-      const expanded = ensurePresentationSlideReferences(Object.keys(zip.files), presentationXml, presentationRelsXml, contents.length);
-      zip.file("ppt/presentation.xml", expanded.presentationXml);
-      zip.file("ppt/_rels/presentation.xml.rels", expanded.presentationRelsXml);
-      const contentTemplatePath = slidePaths[1] ?? slidePaths[0];
-      await Promise.all(
-        expanded.additions.map(async (item) => {
-          const sourcePath = contentTemplatePath;
-          const sourceXml = await zip.file(sourcePath)?.async("text");
-          if (sourceXml) zip.file(`ppt/slides/slide${item.slideNumber}.xml`, sourceXml);
-          const sourceRelPath = sourcePath.replace("ppt/slides/", "ppt/slides/_rels/") + ".rels";
-          const sourceRelXml = await zip.file(sourceRelPath)?.async("text");
-          if (sourceRelXml) zip.file(`ppt/slides/_rels/slide${item.slideNumber}.xml.rels`, sourceRelXml);
-        }),
-      );
-      const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
-      if (contentTypesXml) {
-        zip.file("[Content_Types].xml", ensureSlideContentTypes(contentTypesXml, expanded.additions.map((item) => item.slideNumber)));
-      }
-    } else {
-      const contentTypesXml = await zip.file("[Content_Types].xml")?.async("text");
-      if (contentTypesXml) zip.file("[Content_Types].xml", ensureSlideContentTypes(contentTypesXml, []));
-    }
-
-    await trimPresentationToSlideCount(zip, contents.length);
-
-    const generatedSlidePaths = Object.keys(zip.files)
-      .filter((path) => /^ppt\/slides\/slide\d+\.xml$/.test(path))
-      .toSorted((left, right) => Number(left.match(/slide(\d+)\.xml$/)?.[1] ?? 0) - Number(right.match(/slide(\d+)\.xml$/)?.[1] ?? 0))
-      .slice(0, contents.length);
-
-    await Promise.all(
-      generatedSlidePaths.map(async (path, index) => {
-        const slideXml = await zip.file(path)?.async("text");
-        if (!slideXml) return;
-        const content = contentForTemplateSlide(contents, index, generatedSlidePaths.length);
-        const readabilityXml = await loadSlideReadabilityXml(zip, path, slideXml);
-        zip.file(path, populateTemplateSlide(slideXml, content, templateDesign, readabilityXml));
-      }),
-    );
-
-    const appXml = await zip.file("docProps/app.xml")?.async("text");
-    if (appXml) zip.file("docProps/app.xml", updateExtendedPresentationProperties(appXml, contents));
-    const packagePaths = Object.keys(zip.files);
-    await sanitizePowerPointPackage(zip, packagePaths);
-    await trimUnusedTemplateLayouts(zip, Object.keys(zip.files));
-    await removeUnusedMasterImageRelationships(zip);
-
-    const blob = await zip.generateAsync({ type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
-    const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
-    return {
-      file: new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
-      filename,
-      outline,
-      templateDesignApplied: true,
-    };
-  } catch {
-    return null;
-  }
-}
-
 async function extractTemplateDesign(file: File | null): Promise<TemplateDesign> {
   if (!file || ![".pptx", ".potx"].includes(fileExtension(file.name))) return defaultTemplateDesign;
 
@@ -1299,7 +803,6 @@ async function createDeckFile({
   templateFile: File | null;
   readabilityMode: ReadabilityMode;
 }): Promise<GeneratedDeckResult> {
-  const { default: PptxGenJS } = await import("pptxgenjs");
   const autoTextColor = templateDesign.textColor === "FFFFFF" ? "FFFFFF" : readableTextColor(templateDesign.backgroundColor);
   const design = readabilityMode === "auto"
     ? {
@@ -1309,15 +812,23 @@ async function createDeckFile({
       }
     : templateDesign;
   const { outline, contents } = buildDeckContent({ deckLabel, deckType, deckInputs, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
-  if (templateFile && [".pptx", ".potx"].includes(fileExtension(templateFile.name))) {
-    const templatedDeck = await withTimeout(
-      createDeckFromUploadedTemplate({ deckLabel, templateFile, templateDesign: design, outline, contents }),
-      15000,
-      "The uploaded template took too long to transform.",
-    ).catch(() => null);
-    if (templatedDeck) return templatedDeck;
+  const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
+  if (templateFile) {
+    try {
+      const { applyPowerPointTemplate } = await import("./powerPointTemplate");
+      const blob = await applyPowerPointTemplate(templateFile, contents, design);
+      return {
+        file: new File([blob], filename, { type: powerPointMimeType }),
+        filename,
+        outline,
+        templateDesignApplied: true,
+      };
+    } catch {
+      throw new Error("Could not apply this PowerPoint template. Try opening and resaving it in PowerPoint, or choose the simple blank template.");
+    }
   }
 
+  const { default: PptxGenJS } = await import("pptxgenjs");
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
   pptx.author = "APT Account Planning Tools";
@@ -1364,12 +875,11 @@ async function createDeckFile({
 
   const output = await pptx.write({ outputType: "blob" });
   const blob = output as Blob;
-  const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
   return {
-    file: new File([blob], filename, { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" }),
+    file: new File([blob], filename, { type: powerPointMimeType }),
     filename,
     outline,
-    templateDesignApplied: design.sourceName !== defaultTemplateDesign.sourceName,
+    templateDesignApplied: false,
   };
 }
 
@@ -1835,10 +1345,9 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         "Workspace save timed out. The deck file was created, but the saved record did not complete.",
       );
       if (!result.data) {
-        URL.revokeObjectURL(downloadUrl);
-        pendingDownloadUrl = "";
-        pendingDownloadFilename = "";
-        setRequestMessage(result.message ?? "Could not save deck brief.");
+        setGeneratedDeckUrl(downloadUrl);
+        setGeneratedDeckFilename(generated.filename);
+        setRequestMessage(`${result.message ?? "Could not save deck brief."} Use the download link to keep your PowerPoint file.`);
         return;
       }
       setGeneratedDeckUrl(downloadUrl);
@@ -1990,7 +1499,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     disabled={!isPro}
                     error={templateError}
                     files={oneOffTemplateFiles}
-                    helper="Best supported: PowerPoint .pptx or .potx. The generated deck is created inside this uploaded file's slide design."
+                    helper="Upload a .pptx or .potx under 20 MB. The draft uses its slide design and adds new editable text."
                     id="one-off-template-deck"
                     label="Upload one-off deck template"
                     onFilesSelected={validateOneOffTemplateFiles}
