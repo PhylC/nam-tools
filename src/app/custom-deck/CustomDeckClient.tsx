@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type PptxGenJS from "pptxgenjs";
-import { powerPointMimeType } from "./powerPointTemplate";
+import { powerPointMimeType, slidePurposes } from "./powerPointTemplate";
+import type { LayoutChoices, LayoutReview, SlideContent, SlidePurpose } from "./powerPointTemplate";
 import { useSupabaseAuth } from "../../lib/useSupabaseAuth";
 import { buildUpgradeHref, useProAction } from "../components/ProActionGuard";
 import { loadAccountSettings, SavedPresentationTemplate } from "../../lib/proSettings";
@@ -38,6 +39,7 @@ const toneOptions = [
   { label: "Executive and polished", value: "executive_polished" },
 ];
 type TemplateSource = "saved" | "one_off" | "apt_default";
+type PendingLayoutReview = LayoutReview & { file: File; savedTemplateId: string };
 type ReadabilityMode = "auto" | "preserve";
 type FileMeta = {
   name: string;
@@ -626,6 +628,7 @@ function buildDeckContent({
   includeFinancialSummary,
   includeNextStepsSlide,
   supportingFiles,
+  includeSectionDividers,
 }: {
   deckLabel: string;
   deckType: string;
@@ -634,6 +637,7 @@ function buildDeckContent({
   includeFinancialSummary: boolean;
   includeNextStepsSlide: boolean;
   supportingFiles: File[];
+  includeSectionDividers: boolean;
 }) {
   const playbook = getDeckPlaybook(deckType);
   const outline = deckOutline(deckLabel, deckType, includeFinancialSummary, includeNextStepsSlide);
@@ -649,23 +653,31 @@ function buildDeckContent({
   const sourceSummary = supportingFiles.length
     ? supportingFiles.map((file) => `${file.name} (${formatFileSize(file.size)})`)
     : [];
-  const contents: DeckSlideContent[] = [
-    { title: deckLabel, lines: [coverSummary] },
-    { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`) },
-    { title: playbook.evidenceSlideTitle, lines: evidenceLines },
-    ...(sourceSummary.length ? [{ title: "Supporting files attached", lines: sourceSummary }] : []),
-    {
-      title: playbook.recommendationSlide.title,
-      lines: [...playbook.recommendationSlide.lines, ...suppliedInputLines.slice(0, 2)].slice(0, 8),
-    },
-    ...(includeFinancialSummary && playbook.financialSlide
-      ? [{ title: playbook.financialSlide.title, lines: [...playbook.financialSlide.lines, ...suppliedInputLines.filter((line) => /sales|margin|forecast|roi|investment|support|commercial/i.test(line)).slice(0, 2)].slice(0, 8) }]
-      : []),
-    {
-      title: playbook.risksSlide.title,
-      lines: [...playbook.risksSlide.lines, ...suppliedInputLines.filter((line) => /risk|objection|guardrail|dependency|watchout/i.test(line)).slice(0, 2)].slice(0, 8),
-    },
-    ...(includeNextStepsSlide ? [playbook.nextStepsSlide] : []),
+  const contentSection = (title: string, slides: DeckSlideContent[]): SlideContent[] => [
+    ...(includeSectionDividers ? [{ title, lines: [], purpose: "divider" as const }] : []),
+    ...slides.map((slide) => ({ ...slide, purpose: "content" as const })),
+  ];
+  const contents: SlideContent[] = [
+    { title: deckLabel, lines: [coverSummary], purpose: "title" },
+    { title: "Draft story flow", lines: outline.map((item, index) => `${index + 1}. ${item}`), purpose: "content" },
+    ...contentSection("Context and evidence", [
+      { title: playbook.evidenceSlideTitle, lines: evidenceLines },
+      ...(sourceSummary.length ? [{ title: "Supporting files attached", lines: sourceSummary }] : []),
+    ]),
+    ...contentSection("Recommendations and actions", [
+      {
+        title: playbook.recommendationSlide.title,
+        lines: [...playbook.recommendationSlide.lines, ...suppliedInputLines.slice(0, 2)].slice(0, 8),
+      },
+      ...(includeFinancialSummary && playbook.financialSlide
+        ? [{ title: playbook.financialSlide.title, lines: [...playbook.financialSlide.lines, ...suppliedInputLines.filter((line) => /sales|margin|forecast|roi|investment|support|commercial/i.test(line)).slice(0, 2)].slice(0, 8) }]
+        : []),
+      {
+        title: playbook.risksSlide.title,
+        lines: [...playbook.risksSlide.lines, ...suppliedInputLines.filter((line) => /risk|objection|guardrail|dependency|watchout/i.test(line)).slice(0, 2)].slice(0, 8),
+      },
+      ...(includeNextStepsSlide ? [playbook.nextStepsSlide] : []),
+    ]),
   ];
   return { outline, contents };
 }
@@ -767,6 +779,7 @@ async function createDeckFile({
   supportingFiles,
   templateDesign,
   templateFile,
+  layoutChoices,
   readabilityMode,
 }: {
   deckLabel: string;
@@ -780,6 +793,7 @@ async function createDeckFile({
   supportingFiles: File[];
   templateDesign: TemplateDesign;
   templateFile: File | null;
+  layoutChoices?: LayoutChoices;
   readabilityMode: ReadabilityMode;
 }): Promise<GeneratedDeckResult> {
   const autoTextColor = templateDesign.textColor === "FFFFFF" ? "FFFFFF" : readableTextColor(templateDesign.backgroundColor);
@@ -790,12 +804,16 @@ async function createDeckFile({
         mutedTextColor: mutedReadableTextColor(autoTextColor),
       }
     : templateDesign;
-  const { outline, contents } = buildDeckContent({ deckLabel, deckType, deckInputs, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles });
+  const { outline, contents } = buildDeckContent({
+    deckLabel, deckType, deckInputs, brief, includeFinancialSummary, includeNextStepsSlide, supportingFiles,
+    includeSectionDividers: Boolean(layoutChoices?.divider),
+  });
   const filename = `${safeFilename(deckLabel)}-${Date.now()}.pptx`;
   if (templateFile) {
+    if (!layoutChoices) throw new Error("Choose the PowerPoint layouts before creating the deck.");
     try {
       const { applyPowerPointTemplate } = await import("./powerPointTemplate");
-      const blob = await applyPowerPointTemplate(templateFile, contents, design);
+      const blob = await applyPowerPointTemplate(templateFile, contents, design, layoutChoices);
       return {
         file: new File([blob], filename, { type: powerPointMimeType }),
         filename,
@@ -948,6 +966,63 @@ function DeckFileDropzone({
   );
 }
 
+const purposeLabels: Record<SlidePurpose, string> = {
+  title: "Title slide",
+  divider: "Section divider",
+  content: "Content slide",
+};
+
+function TemplateLayoutReview({ review, deckName, busy, onChange, onConfirm, onCancel }: {
+  review: PendingLayoutReview;
+  deckName: string;
+  busy: boolean;
+  onChange: (purpose: SlidePurpose, value: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => heading.current?.focus(), []);
+  return (
+    <section className="template-layout-review" aria-labelledby="template-layout-review-heading">
+      <h2 id="template-layout-review-heading" tabIndex={-1} ref={heading}>Review template layouts</h2>
+      <p>Confirm which layouts to use from {review.file.name}. The preview shows where the draft text will go.</p>
+      <div className="template-layout-review-grid">
+        {slidePurposes.map((purpose) => {
+          const layout = review.options[purpose].find((option) => option.id === review.choices[purpose]);
+          const sample = purpose === "title" ? deckName : purpose === "divider" ? "Context and evidence" : "Draft story flow";
+          return (
+            <div className="template-layout-review-item" key={purpose}>
+              <label className="field">
+                <span>{purposeLabels[purpose]}</span>
+                <select disabled={busy} value={review.choices[purpose]} onChange={(event) => onChange(purpose, event.target.value)}>
+                  {purpose === "divider" ? <option value="">Skip section dividers</option> : null}
+                  {review.options[purpose].map(({ id, label }) => <option key={id} value={id}>{label}</option>)}
+                </select>
+              </label>
+              {review.uncertain.includes(purpose) ? <small>Check this match</small> : null}
+              <div
+                className="template-layout-schematic"
+                style={{ aspectRatio: review.aspectRatio, backgroundColor: layout?.background ? `#${layout.background}` : undefined }}
+                aria-hidden="true"
+              >
+                {layout ? (
+                  [[layout.title, sample] as const, ...(layout.body ? [[layout.body, "Editable text"] as const] : [])].map(([box, text]) => (
+                    <span key={text} style={{ left: `${box[0] * 100}%`, top: `${box[1] * 100}%`, width: `${box[2] * 100}%`, height: `${box[3] * 100}%` }}>{text}</span>
+                  ))
+                ) : <em>No divider slides</em>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="template-layout-review-actions">
+        <button className="button" disabled={busy} type="button" onClick={onConfirm}>{busy ? "Creating deck..." : "Confirm layouts and create deck"}</button>
+        <button className="button button-secondary" disabled={busy} type="button" onClick={onCancel}>Back to deck setup</button>
+      </div>
+    </section>
+  );
+}
+
 export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnDeckId: string; selectedTemplate: string }) {
   const { isLoading: isAuthLoading, plan, user } = useSupabaseAuth();
   const { requirePro } = useProAction({ from: "custom-deck", feature: "custom-deck" });
@@ -979,6 +1054,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
   const [generatedDeckUrl, setGeneratedDeckUrl] = useState("");
   const [generatedDeckFilename, setGeneratedDeckFilename] = useState("");
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [layoutReview, setLayoutReview] = useState<PendingLayoutReview | null>(null);
   const isPro = plan === "pro" || plan === "team";
   const reusableSavedTemplates = useMemo(
     () => savedTemplates.filter(isReusableSavedTemplate),
@@ -998,6 +1074,10 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     [reusableSavedTemplates, selectedSavedTemplateId],
   );
   const activeUploadedTemplate = templateSource === "one_off" ? oneOffTemplateFiles[0] ?? basedOnDeckTemplateFile : null;
+  const pendingLayoutReview = layoutReview && (
+    (templateSource === "one_off" && layoutReview.file === activeUploadedTemplate)
+    || (templateSource === "saved" && layoutReview.savedTemplateId === selectedSavedTemplate?.id)
+  ) ? layoutReview : null;
   const activeTemplateName = activeUploadedTemplate?.name
     ?? (templateSource === "saved" && selectedSavedTemplate
       ? selectedSavedTemplate.displayName || selectedSavedTemplate.filename
@@ -1162,7 +1242,8 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
     setSupportingFiles(next);
   }
 
-  async function createAndSaveDeck() {
+  async function createAndSaveDeck(review?: PendingLayoutReview) {
+    if (isCreatingDeck || (pendingLayoutReview && pendingLayoutReview !== review)) return;
     if (isAuthLoading) {
       setRequestMessage("Checking your account before creating the deck...");
       return;
@@ -1206,7 +1287,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setGeneratedDeckUrl("");
       setGeneratedDeckFilename("");
       const resolvedDeckName = deckName.trim() || `${selectedDeck.label} generated deck`;
-      let templateFileForDesign = activeUploadedTemplate ?? null;
+      let templateFileForDesign = review?.file ?? activeUploadedTemplate ?? null;
       if (!templateFileForDesign && templateSource === "saved" && selectedSavedTemplate) {
         setRequestMessage("Downloading saved template...");
         await waitForBrowserPaint();
@@ -1232,6 +1313,29 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
         setRequestMessage("A reusable PowerPoint template is required so the generated deck uses your design instead of the APT default.");
         return;
       }
+      let layoutChoices = review?.choices;
+      if (templateFileForDesign && !layoutChoices) {
+        setRequestMessage("Reading PowerPoint layouts...");
+        await waitForBrowserPaint();
+        const { inspectPowerPointTemplate } = await import("./powerPointTemplate");
+        const analysis = await withTimeout(
+          inspectPowerPointTemplate(templateFileForDesign).catch(() => {
+            throw new Error("Could not read the layouts in this PowerPoint template. Try resaving it in PowerPoint or choosing a different template.");
+          }),
+          10000,
+          "PowerPoint layout reading timed out.",
+        );
+        if (analysis.uncertain.length) {
+          setLayoutReview({
+            ...analysis,
+            file: templateFileForDesign,
+            savedTemplateId: templateSource === "saved" ? selectedSavedTemplate?.id ?? "" : "",
+          });
+          setRequestMessage("");
+          return;
+        }
+        layoutChoices = analysis.choices;
+      }
       setRequestMessage("Reading template design...");
       await waitForBrowserPaint();
       const templateDesign = await withTimeout(extractTemplateDesign(templateFileForDesign), 10000, "Template design reading timed out.");
@@ -1250,6 +1354,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           supportingFiles,
           templateDesign,
           templateFile: templateFileForDesign,
+          layoutChoices,
           readabilityMode,
         }),
         25000,
@@ -1258,6 +1363,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
       setRequestMessage("Saving generated deck...");
       await waitForBrowserPaint();
       const downloadUrl = URL.createObjectURL(generated.file);
+      setLayoutReview(null);
       pendingDownloadUrl = downloadUrl;
       pendingDownloadFilename = generated.filename;
       const uploaded = await withTimeout(
@@ -1377,7 +1483,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
             </div>
           ) : null}
 
-          <fieldset className="settings-fieldset" disabled={!isPro}>
+          <fieldset className="settings-fieldset" disabled={!isPro || isCreatingDeck}>
             <section className="custom-deck-form-section custom-deck-name-section">
               <h2>Deck setup</h2>
               {basedOnDeckMessage ? <p className="settings-message settings-message-success">{basedOnDeckMessage}</p> : null}
@@ -1465,7 +1571,7 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
                     disabled={!isPro}
                     error={templateError}
                     files={oneOffTemplateFiles}
-                    helper="Upload a .pptx or .potx under 20 MB. The draft uses its slide design and adds new editable text."
+                    helper="Upload a .pptx or .potx under 20 MB. The builder matches layouts to slide purposes and asks you to review unclear matches."
                     id="one-off-template-deck"
                     label="Upload one-off deck template"
                     onFilesSelected={validateOneOffTemplateFiles}
@@ -1652,16 +1758,23 @@ export function CustomDeckClient({ basedOnDeckId, selectedTemplate }: { basedOnD
           </fieldset>
 
           <div className="custom-deck-action-area">
-            <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || isAuthLoading} type="button" onClick={() => void createAndSaveDeck()}>
+            {pendingLayoutReview ? <TemplateLayoutReview
+              review={pendingLayoutReview}
+              deckName={deckName}
+              busy={isCreatingDeck}
+              onChange={(purpose, value) => setLayoutReview({ ...pendingLayoutReview, choices: { ...pendingLayoutReview.choices, [purpose]: value } })}
+              onConfirm={() => void createAndSaveDeck(pendingLayoutReview)}
+              onCancel={() => { setLayoutReview(null); setRequestMessage(""); }}
+            /> : <button className={isPro ? "button" : "button pro-only-button"} disabled={isCreatingDeck || isAuthLoading} type="button" onClick={() => void createAndSaveDeck()}>
               {isCreatingDeck ? "Creating deck..." : "Create and save deck"}
-            </button>
+            </button>}
             {!canCreateDeck ? (
               <p className="field-error">Upload or choose a PowerPoint template, or select the simple blank template.</p>
             ) : null}
             <p>
               This creates an editable PowerPoint draft, saves the deck record to your workspace and stores the file when account storage is available.
             </p>
-            {requestMessage ? <p className="settings-message settings-message-success">{requestMessage}</p> : null}
+            {requestMessage ? <p role="status" className="settings-message settings-message-success">{requestMessage}</p> : null}
             {generatedDeckUrl ? (
               <a className="button button-secondary button-small" download={generatedDeckFilename} href={generatedDeckUrl}>
                 Download generated deck

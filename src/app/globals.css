@@ -7733,6 +7733,79 @@ p {
   cursor: not-allowed;
 }
 
+.template-layout-review {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f5faf8;
+}
+
+.template-layout-review h2 {
+  margin: 0;
+}
+
+.template-layout-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 195px), 1fr));
+  gap: 0.65rem;
+}
+
+.template-layout-review-item {
+  display: grid;
+  align-content: start;
+  gap: 0.38rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.template-layout-review-item .field {
+  min-width: 0;
+  margin: 0;
+}
+
+.template-layout-review-item select {
+  width: 100%;
+  text-overflow: ellipsis;
+}
+
+.template-layout-review-item small {
+  color: #6a4c14;
+}
+
+.template-layout-schematic {
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  border: 1px solid #c7d8d3;
+  border-radius: 4px;
+  background: #f1f7f5;
+  font-size: 0.65rem;
+}
+
+.template-layout-schematic span {
+  position: absolute;
+  overflow: hidden;
+  padding-inline: 3px;
+  border: 1px dashed #368476;
+  background: #e5f5ef;
+  color: #16453c;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.template-layout-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
 .saved-list {
   display: grid;
   gap: 0.65rem;

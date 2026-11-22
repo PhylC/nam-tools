@@ -9,7 +9,10 @@ const presentationPath = "ppt/presentation.xml";
 const contentTypesPath = "[Content_Types].xml";
 export const powerPointMimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
 
-type SlideContent = { title: string; lines: string[] };
+export const slidePurposes = ["title", "divider", "content"] as const;
+export type SlidePurpose = typeof slidePurposes[number];
+export type SlideContent = { title: string; lines: string[]; purpose: SlidePurpose };
+export type LayoutChoices = Record<SlidePurpose, string>;
 type SlideDesign = {
   backgroundColor: string;
   textColor: string;
@@ -18,6 +21,22 @@ type SlideDesign = {
 };
 type Relationship = { id: string; kind: string; target: string; external: boolean };
 type Box = [left: number, top: number, width: number, height: number];
+type SourceSlide = { path: string; layout: string; links: Relationship[]; document: Document | null };
+type TemplateLayout = { path: string; document: Document | null; master: Document | null };
+type Candidate = { id: string; label: string; source?: SourceSlide; layout: TemplateLayout; scores: Record<SlidePurpose, number> };
+export type LayoutPreview = {
+  id: string;
+  label: string;
+  background?: string;
+  title: Box;
+  body?: Box;
+};
+export type LayoutReview = {
+  options: Record<SlidePurpose, LayoutPreview[]>;
+  choices: LayoutChoices;
+  uncertain: SlidePurpose[];
+  aspectRatio: number;
+};
 
 function relationshipPath(part: string) {
   const slash = part.lastIndexOf("/");
@@ -113,25 +132,110 @@ function slideArtwork(document: Document | null) {
   return { background, logos };
 }
 
-function placeholderBox(documents: (Document | null)[], types: string[], width: number, height: number): Box | null {
+function shapes(document?: Document | null) {
+  return Array.from(document?.getElementsByTagNameNS(presentationNamespace, "sp") ?? []);
+}
+
+function placeholderType(shape: Element) {
+  const placeholder = shape.getElementsByTagNameNS(presentationNamespace, "ph")[0];
+  return placeholder ? placeholder.getAttribute("type") ?? "obj" : null;
+}
+
+function shapeBox(shape: Element, width: number, height: number): Box | undefined {
+  const transform = shape.getElementsByTagNameNS(drawingNamespace, "xfrm")[0];
+  const offset = transform?.getElementsByTagNameNS(drawingNamespace, "off")[0];
+  const extent = transform?.getElementsByTagNameNS(drawingNamespace, "ext")[0];
+  if (!offset || !extent) return;
+  const left = Number(offset.getAttribute("x")) / width;
+  const top = Number(offset.getAttribute("y")) / height;
+  const boxWidth = Number(extent.getAttribute("cx")) / width;
+  const boxHeight = Number(extent.getAttribute("cy")) / height;
+  if (left >= 0 && top >= 0 && boxWidth >= .15 && boxHeight >= .035 && left + boxWidth <= 1 && top + boxHeight <= 1) {
+    return [left, top, boxWidth, boxHeight];
+  }
+}
+
+function placeholderBox(documents: (Document | null | undefined)[], types: string[], width: number, height: number) {
   for (const document of documents) {
-    for (const shape of Array.from(document?.getElementsByTagNameNS(presentationNamespace, "sp") ?? [])) {
-      const placeholder = shape.getElementsByTagNameNS(presentationNamespace, "ph")[0];
-      if (!placeholder || !types.includes(placeholder.getAttribute("type") ?? "obj")) continue;
-      const transform = shape.getElementsByTagNameNS(drawingNamespace, "xfrm")[0];
-      const offset = transform?.getElementsByTagNameNS(drawingNamespace, "off")[0];
-      const extent = transform?.getElementsByTagNameNS(drawingNamespace, "ext")[0];
-      if (!offset || !extent) continue;
-      const left = Number(offset.getAttribute("x")) / width;
-      const top = Number(offset.getAttribute("y")) / height;
-      const boxWidth = Number(extent.getAttribute("cx")) / width;
-      const boxHeight = Number(extent.getAttribute("cy")) / height;
-      if (left >= 0 && top >= 0 && boxWidth >= .35 && boxHeight >= .08 && left + boxWidth <= 1 && top + boxHeight <= 1) {
-        return [left, top, boxWidth, boxHeight];
+    for (const type of types) {
+      for (const shape of shapes(document)) {
+        if (placeholderType(shape) !== type) continue;
+        const box = shapeBox(shape, width, height);
+        if (box) return box;
       }
     }
   }
-  return null;
+}
+
+function shapeText(shape: Element) {
+  return Array.from(shape.getElementsByTagNameNS(drawingNamespace, "t"), (element) => element.textContent ?? "").join(" ").trim();
+}
+
+function commonSlideName(document?: Document | null) {
+  return document?.getElementsByTagNameNS(presentationNamespace, "cSld")[0]?.getAttribute("name")?.trim() ?? "";
+}
+
+function namedPurpose(name: string): SlidePurpose | undefined {
+  const words = name.toLowerCase().replace(/[_-]+/g, " ");
+  if (/\b(?:(?:sub ?section|section|chapter) (?:header|heading|divider|break|title)|divider)\b/.test(words)) return "divider";
+  if (/^(?:cover|title)$|\b(?:cover (?:page|slide|layout)|title slide)\b/.test(words)) return "title";
+  if (/^(?:content|body)$|\b(?:title and content|content (?:slide|layout)|body (?:slide|layout))\b/.test(words)) return "content";
+}
+
+function scoreLayout(document: Document | null) {
+  const scores = { title: 0, divider: 0, content: 0 };
+  const purpose = namedPurpose(commonSlideName(document)) ?? namedPurpose(document?.documentElement.getAttribute("matchingName") ?? "");
+  const type = document?.documentElement.getAttribute("type");
+  const placeholders = new Set(shapes(document).map(placeholderType));
+  if (type === "title" || (placeholders.has("ctrTitle") && placeholders.has("subTitle"))) scores.title = 90;
+  if (type === "secHead") scores.divider = 90;
+  if (type === "obj" || type === "tx") scores.content = 90;
+  if (placeholders.has("title") && (placeholders.has("obj") || placeholders.has("body"))) scores.content ||= 62;
+  if (type === "titleOnly" || placeholders.has("ctrTitle")) scores.divider ||= 30;
+  if (purpose) scores[purpose] = 100;
+  return scores;
+}
+
+function sourceTextShapes(document?: Document | null) {
+  return shapes(document).filter((shape) => shapeText(shape) && !["dt", "ftr", "hdr", "sldNum"].includes(placeholderType(shape) ?? ""));
+}
+
+function solidBackground(...documents: (Document | null | undefined)[]) {
+  const design = documents.map((document) => slideArtwork(document ?? null).background).find(Boolean);
+  const color = design?.getElementsByTagNameNS(drawingNamespace, "solidFill")[0]
+    ?.getElementsByTagNameNS(drawingNamespace, "srgbClr")[0]?.getAttribute("val");
+  return color && /^[0-9a-f]{6}$/i.test(color) ? color : undefined;
+}
+
+function slideBoxes(candidate: Candidate, purpose: SlidePurpose, width: number, height: number) {
+  const { source, layout } = candidate;
+  const documents = [source?.document, layout.document];
+  const activePlaceholders = new Set(documents.flatMap(shapes).map(placeholderType));
+  const boundsFor = (types: string[]) => placeholderBox(documents, types, width, height)
+    ?? placeholderBox([layout.master], types.filter((type) => activePlaceholders.has(type)), width, height);
+  const title = boundsFor(["title", "ctrTitle"]);
+  const body = boundsFor(purpose === "title" ? ["subTitle", "body", "obj"] : ["body", "obj"]);
+  const examples = sourceTextShapes(source?.document).flatMap((shape) => {
+    const box = shapeBox(shape, width, height);
+    return box && box[1] < .85 ? [box] : [];
+  }).sort((a, b) => a[1] - b[1]);
+  // Example text boxes supply geometry when a deck was built on a blank layout.
+  const sampleTitle = examples.find((box) => box[2] >= .28 && box[3] >= .06);
+  const titleBounds = title ?? sampleTitle;
+  const minimumBodyHeight = purpose === "title" ? .10 : .23;
+  const bodyBounds = body ?? examples.find((box) => titleBounds && box[1] >= titleBounds[1] + titleBounds[3] - .005 && box[3] >= minimumBodyHeight);
+  if (purpose === "divider") {
+    return { title: titleBounds ?? [.10, .37, .80, .22] as Box, panel: false };
+  }
+  if (titleBounds && bodyBounds && bodyBounds[3] >= minimumBodyHeight
+    && titleBounds[1] + titleBounds[3] <= bodyBounds[1] + .005) {
+    return { title: titleBounds, body: bodyBounds, panel: false };
+  }
+  if (purpose === "title" && titleBounds) {
+    const below = titleBounds[1] + titleBounds[3] + .03;
+    if (below <= .79) return { title: titleBounds, body: [titleBounds[0], below, titleBounds[2], .93 - below] as Box, panel: false };
+  }
+  return { title: [.07, .19, .86, .14] as Box, body: [.07, .36, .86, .52] as Box, panel: true };
 }
 
 async function keepReferencedParts(zip: JSZip) {
@@ -158,10 +262,9 @@ async function keepReferencedParts(zip: JSZip) {
   return reachable;
 }
 
-export async function applyPowerPointTemplate(file: File, contents: SlideContent[], design: SlideDesign) {
+async function readTemplate(file: File) {
   const { default: JSZip } = await import("jszip");
   const zip = await JSZip.loadAsync(await file.arrayBuffer());
-  const serializer = new XMLSerializer();
   const [presentation, presentationRels, contentTypes] = await Promise.all([
     readXml(zip, presentationPath),
     readXml(zip, relationshipPath(presentationPath)),
@@ -184,26 +287,86 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
     const path = resolveTarget(presentationPath, link.target);
     const links = relationships(await readXml(zip, relationshipPath(path)));
     const layout = links.find((item) => isRelationship(item, "slideLayout"));
-    return layout ? { path, layout: resolveTarget(path, layout.target), links } : null;
+    return layout ? { path, layout: resolveTarget(path, layout.target), links, document: await readXml(zip, path) } : null;
   }));
   const masters = designLinks.filter((link) => isRelationship(link, "slideMaster"));
-  const masterDocuments = new Map<string, Document | null>();
   const layouts = (await Promise.all(masters.map(async (master) => {
     const path = resolveTarget(presentationPath, master.target);
     const [document, rels] = await Promise.all([readXml(zip, path), readXml(zip, relationshipPath(path))]);
     return Promise.all(relationships(rels).filter((link) => isRelationship(link, "slideLayout")).map(async (link) => {
       const layout = resolveTarget(path, link.target);
-      masterDocuments.set(layout, document);
-      return { path: layout, document: await readXml(zip, layout) };
+      return { path: layout, document: await readXml(zip, layout), master: document };
     }));
   }))).flat();
-  const layoutDocuments = new Map(layouts.map(({ path, document }) => [path, document]));
-  const brandedLayout = layouts.find(({ document }) => document?.getElementsByTagNameNS(presentationNamespace, "pic").length)
-    ?? layouts.find(({ document }) => slideArtwork(document).background);
-  const coverLayout = layouts.find(({ document }) => document?.documentElement.getAttribute("type") === "title") ?? brandedLayout ?? layouts[0];
-  const bodyLayout = layouts.find(({ document }) => ["obj", "tx"].includes(document?.documentElement.getAttribute("type") ?? "")) ?? brandedLayout ?? coverLayout;
-  if (!coverLayout || !bodyLayout) throw new Error("The template does not have a usable PowerPoint layout.");
+  if (!layouts.length) throw new Error("The template does not have a usable PowerPoint layout.");
 
+  const candidates = layouts.flatMap((layout, layoutIndex): Candidate[] => {
+    const scores = scoreLayout(layout.document);
+    const label = commonSlideName(layout.document) || layout.document?.documentElement.getAttribute("matchingName") || `Layout ${layoutIndex + 1}`;
+    const examples = sources.flatMap((source, sourceIndex) => {
+      if (!source || source.layout !== layout.path) return [];
+      const textShapes = sourceTextShapes(source.document);
+      const title = textShapes.find((shape) => ["title", "ctrTitle"].includes(placeholderType(shape) ?? "")) ?? textShapes[0];
+      const slideName = commonSlideName(source.document);
+      const name = slideName && !/^slide\s*\d*$/i.test(slideName) ? slideName : (title ? shapeText(title) : "");
+      const purpose = namedPurpose(name);
+      const sampleScores = { ...scores };
+      if (purpose) sampleScores[purpose] = Math.max(sampleScores[purpose], 104);
+      if (!Math.max(...Object.values(sampleScores))) {
+        const largeText = textShapes.some((shape) => (shapeBox(shape, width, height)?.[3] ?? 0) >= .27 && shapeText(shape).length >= 32);
+        if (textShapes.length >= 3 || largeText) sampleScores.content = 45;
+        else if (textShapes.length === 2) sampleScores.title = 42;
+        else if (textShapes.length === 1) sampleScores.divider = 40;
+      }
+      return [{
+        id: source.path, label: `Slide ${sourceIndex + 1} · ${name.slice(0, 65) || label}`, source, layout, scores: sampleScores,
+      }];
+    });
+    // A named master layout is one choice even when several slides use it. Retain a representative
+    // example for slide-specific branding, and keep separately named examples when they imply another role.
+    if (examples.length && Math.max(...Object.values(scores)) >= 60) {
+      const namedExamples = examples.filter((example) => slidePurposes.some((purpose) => example.scores[purpose] > 100 && scores[purpose] < 60));
+      const representative = examples.find((example) => !namedExamples.includes(example) && (
+        slideArtwork(example.source.document).background || slideArtwork(example.source.document).logos.length
+      )) ?? examples.find((example) => !namedExamples.includes(example));
+      return [{ id: layout.path, label, layout, source: representative?.source, scores: Object.fromEntries(
+        slidePurposes.map((purpose) => [purpose, scores[purpose] && scores[purpose] + (representative ? 5 : 0)]),
+      ) as Candidate["scores"] }, ...namedExamples];
+    }
+    return examples.length ? examples : [{ id: layout.path, label, scores, layout }];
+  });
+  return { zip, presentation, root, sourceList, contentTypes, size, width, height, designLinks, candidates };
+}
+
+export async function inspectPowerPointTemplate(file: File): Promise<LayoutReview> {
+  const { candidates, width, height } = await readTemplate(file);
+  const options = {} as LayoutReview["options"];
+  const choices = {} as LayoutChoices;
+  const uncertain: SlidePurpose[] = [];
+  for (const purpose of slidePurposes) {
+    const ranked = [...candidates].sort((a, b) => b.scores[purpose] - a.scores[purpose]);
+    const [best, second] = ranked;
+    const score = best.scores[purpose];
+    choices[purpose] = purpose === "divider" && score < 35 ? "" : best.id;
+    if (score < 85 || score - (second?.scores[purpose] ?? 0) < 10) uncertain.push(purpose);
+    options[purpose] = ranked.map((candidate) => {
+      const boxes = slideBoxes(candidate, purpose, width, height);
+      return {
+        id: candidate.id,
+        label: candidate.label,
+        background: solidBackground(candidate.source?.document, candidate.layout.document, candidate.layout.master),
+        title: boxes.title,
+        body: boxes.body,
+      };
+    });
+  }
+  return { options, choices, uncertain, aspectRatio: width / height };
+}
+
+export async function applyPowerPointTemplate(file: File, contents: SlideContent[], design: SlideDesign, choices: LayoutChoices) {
+  const { zip, presentation, root, sourceList, contentTypes, size, width, height, designLinks, candidates } = await readTemplate(file);
+  const serializer = new XMLSerializer();
+  const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
   // Export a new set of slides. Keep the original design parts reachable through their relationships.
   const slideList = presentation.createElementNS(presentationNamespace, "p:sldIdLst");
   if (sourceList) sourceList.replaceWith(slideList);
@@ -215,12 +378,14 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
   const slidePaths = contents.map((_, index) => `ppt/slides/aptGenerated${index + 1}.xml`);
   for (const [index, part] of slidePaths.entries()) {
     const content = contents[index];
-    const source = sources[index] ?? (index ? sources[1] ?? sources[0] : sources[0]);
-    const document = source ? await readXml(zip, source.path) : null;
-    const layout = source?.layout ?? (index ? bodyLayout.path : coverLayout.path);
-    const { background, logos } = slideArtwork(document);
+    const candidate = byId.get(choices[content.purpose]);
+    if (!candidate) throw new Error("Choose a valid template layout for each slide purpose.");
+    const { source, layout } = candidate;
+    // Artwork references are rewritten per generated slide, so use a fresh copy each time.
+    const document = source?.document?.cloneNode(true) as Document | undefined;
+    const { background, logos } = slideArtwork(document ?? null);
     const links: Relationship[] = [{
-      id: "rId1", kind: officeRelationshipNamespace + "/slideLayout", target: "/" + layout, external: false,
+      id: "rId1", kind: officeRelationshipNamespace + "/slideLayout", target: "/" + layout.path, external: false,
     }];
     // Only carry over slide-level artwork identified as a logo, plus the original background.
     const copyArtwork = (element: Element | undefined) => {
@@ -250,27 +415,18 @@ export async function applyPowerPointTemplate(file: File, contents: SlideContent
       logo.getElementsByTagNameNS(presentationNamespace, "cNvPr")[0]?.setAttribute("id", String(logoIndex + 10));
       return copyArtwork(logo);
     }).join("");
-    const layoutDocument = layoutDocuments.get(layout) ?? null;
-    const masterDocument = masterDocuments.get(layout) ?? null;
-    const designBackground = background ?? slideArtwork(layoutDocument).background ?? slideArtwork(masterDocument).background;
-    const solidFill = designBackground?.getElementsByTagNameNS(drawingNamespace, "solidFill")[0];
-    const sourceColor = solidFill?.getElementsByTagNameNS(drawingNamespace, "srgbClr")[0]?.getAttribute("val");
-    const backgroundColor = sourceColor && /^[0-9a-f]{6}$/i.test(sourceColor) ? sourceColor : design.backgroundColor;
+    const backgroundColor = solidBackground(document, layout.document, layout.master) ?? design.backgroundColor;
     const textColor = readableColor(backgroundColor, design.textColor);
     const textScale = Math.max(.4, Math.min(1, height / 6858000, width / 9144000));
     const title = textBody([content.title], design.headFontFace, textColor, Math.round(2900 * textScale), true);
     const body = textBody(content.lines, design.bodyFontFace, textColor, Math.round(1800 * textScale));
-    const layoutSources = [document, layoutDocument, masterDocument];
-    const titleBounds = placeholderBox(layoutSources, ["title", "ctrTitle"], width, height);
-    const bodyBounds = placeholderBox(layoutSources, index ? ["body", "obj"] : ["subTitle", "body", "obj"], width, height);
-    const usePlaceholders = titleBounds && bodyBounds && bodyBounds[3] >= (index ? .30 : .14)
-      && titleBounds[1] + titleBounds[3] <= bodyBounds[1];
-    const panel = usePlaceholders ? "" : drawingBox(2, "Content background", width, height, [.04, .15, .92, .77], backgroundColor, "");
-    const textFill = usePlaceholders ? backgroundColor : "";
-    const titleBox = drawingBox(3, "Title", width, height, usePlaceholders ? titleBounds : [.07, .19, .86, .14], textFill, title);
-    const bodyBox = drawingBox(4, "Content", width, height, usePlaceholders ? bodyBounds : [.07, .36, .86, .52], textFill, body);
+    const boxes = slideBoxes(candidate, content.purpose, width, height);
+    const panel = boxes.panel ? drawingBox(2, "Content background", width, height, [.04, .15, .92, .77], backgroundColor, "") : "";
+    const titleBox = drawingBox(3, "Title", width, height, boxes.title, "", title);
+    const bodyBox = boxes.body ? drawingBox(4, "Content", width, height, boxes.body, "", body) : "";
     const showMasterShapes = document?.documentElement.getAttribute("showMasterSp") === "0" ? ' showMasterSp="0"' : "";
-    zip.file(part, `<p:sld xmlns:p="${presentationNamespace}" xmlns:a="${drawingNamespace}"${showMasterShapes}><p:cSld>${retainedBackground}
+    const roleName = { title: "Title slide", divider: "Section divider", content: "Content slide" }[content.purpose];
+    zip.file(part, `<p:sld xmlns:p="${presentationNamespace}" xmlns:a="${drawingNamespace}"${showMasterShapes}><p:cSld name="${roleName}">${retainedBackground}
       <p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>
       ${retainedLogos}${panel}${titleBox}${bodyBox}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`);
     writeRelationships(zip, part, links);
