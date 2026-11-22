@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { retailMediaRoasPath } from "../../lib/retailMediaRoas";
 import { FaqSection } from "../components/FaqSection";
 import { Hero } from "../components/Shell";
 import { JsonLd } from "../components/JsonLd";
@@ -71,6 +73,7 @@ export default function RoiToolPage() {
             <li><strong>Promotion.</strong> 1,400 units at £3.50 bring in £4,900. Profit after a £200 fixed fee is £1,900.</li>
           </ul>
           <p>Revenue rises by £900 while profit falls by £100. At the same sales forecast, bringing the fee down to £100 restores baseline profit.</p>
+          <p>For a retailer’s paid media proposal, use the <Link href={retailMediaRoasPath}>retail media ROAS and profit calculator</Link>.</p>
         </article>
       </section>
       <div id="promotion-roi-faqs">

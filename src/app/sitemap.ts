@@ -1,10 +1,12 @@
 import type { MetadataRoute } from "next";
+import { retailMediaRoasPath } from "../lib/retailMediaRoas";
 import { quickCalculators } from "./data/quickCalculators";
 import { SITE_LAST_MODIFIED, SITE_URL } from "./seo";
 
 const routes: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }> = [
   { path: "", priority: 1, changeFrequency: "weekly" },
   { path: "/calculators", priority: 0.95, changeFrequency: "weekly" },
+  { path: retailMediaRoasPath, priority: 0.9, changeFrequency: "weekly" },
   { path: "/calculators/quick-calculators", priority: 0.9, changeFrequency: "weekly" },
   { path: "/roi-tool", priority: 0.95, changeFrequency: "weekly" },
   { path: "/international-account-planning-tools", priority: 0.9, changeFrequency: "monthly" },
@@ -46,10 +48,11 @@ const routeLastModified: Record<string, string> = {
   "/tools/account-plan-generator": "2026-11-21T00:00:00.000Z",
   "/presentation-templates": "2026-11-21T00:00:00.000Z",
   "/calculators/soa-support-percent-calculator": "2026-11-21T00:00:00.000Z",
-  "/calculators": "2026-11-21T00:00:00.000Z",
+  "/calculators": "2026-11-22T00:00:00.000Z",
+  [retailMediaRoasPath]: "2026-11-22T00:00:00.000Z",
   "/calculators/retail-selling-price-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators/actual-retailer-margin-calculator": "2026-11-21T00:00:00.000Z",
-  "/roi-tool": "2026-11-21T00:00:00.000Z",
+  "/roi-tool": "2026-11-22T00:00:00.000Z",
   "/calculators/markup-vs-margin-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators/invoice-price-calculator": "2026-11-21T00:00:00.000Z",
   "/calculators/promo-invoice-calculator": "2026-11-21T00:00:00.000Z",

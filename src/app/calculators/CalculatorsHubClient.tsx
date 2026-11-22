@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { retailMediaRoasName, retailMediaRoasPath } from "../../lib/retailMediaRoas";
 
 type TaskCard = {
   title: string;
@@ -88,7 +89,7 @@ const toolGroups: ToolGroup[] = [
   {
     id: "promotion-tools",
     title: "Promotion tools",
-    intro: "Use these for promo support, SOA, return, investment and deal mechanics.",
+    intro: "Use these for promotion support, retail media and trade investment.",
     tools: [
       {
         title: "Sales and Promotion ROI Planner",
@@ -97,6 +98,14 @@ const toolGroups: ToolGroup[] = [
         cta: "Model promotion sales",
         preview: "Spend £10k -> Return £14k -> ROI 1.4x",
         keywords: ["sales calculators", "sales calculator", "calculate sales", "roi", "promotion", "promo", "support", "scenario", "volume", "profit"],
+      },
+      {
+        title: retailMediaRoasName,
+        description: "Compare a retailer’s reported ROAS with supplier profit, fees and the incremental sales needed to break even.",
+        href: retailMediaRoasPath,
+        cta: "Calculate retail media ROAS",
+        preview: "Attributed retail sales, media spend and supplier margin",
+        keywords: ["retail media", "roas", "return on ad spend", "roi", "break even", "incrementality", "advertising"],
       },
       {
         title: "Promotion Support (Required SOA) Calculator",
