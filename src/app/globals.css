@@ -6727,6 +6727,8 @@ p {
 
 .workspace-deck-viewer-stage-zoomed {
   display: block;
+  justify-items: start;
+  align-content: start;
   min-width: 0;
   height: clamp(11rem, 47dvh, 30rem);
   overflow: auto;
