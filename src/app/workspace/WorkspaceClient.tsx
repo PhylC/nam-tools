@@ -175,8 +175,8 @@ function getItemDescription(item: SavedRecord, type: SavedItemType) {
   return getAnalysisDescription(item);
 }
 
-function getItemHref(item: SavedRecord, type: SavedItemType) {
-  const defaultPath = type === "Deck" ? "/presentation-templates" : type === "Analysis" ? "/calculators" : "/roi-tool";
+function getItemHref(item: SavedRecord, type: Exclude<SavedItemType, "Deck">) {
+  const defaultPath = type === "Analysis" ? "/calculators" : "/roi-tool";
   const sourcePath = getText(item.sourcePath, defaultPath);
   if (type === "Comparison" && item.id) return `${sourcePath}?comparison=${String(item.id)}`;
   if (type === "Scenario" && item.id) return `${sourcePath}?saved=${String(item.id)}`;
@@ -936,7 +936,7 @@ function SavedWorkRow({
   onToggleSelected?: (key: string) => void;
 }) {
   const title = getSavedItemTitle(item.record, item.type);
-  const href = getItemHref(item.record, item.type);
+  const href = item.type === "Deck" ? `/custom-deck?deck=${encodeURIComponent(item.id)}` : getItemHref(item.record, item.type);
   const generatedDeckFile = item.type === "Deck" ? getGeneratedDeckFile(item.record) : null;
 
   return (
@@ -964,7 +964,7 @@ function SavedWorkRow({
           <GeneralItemMenu
             id={item.id}
             type={item.type}
-            primaryHref={item.type === "Comparison" || item.type === "Scenario" ? href : item.type === "Deck" ? `/custom-deck?deck=${item.id}` : undefined}
+            primaryHref={item.type === "Analysis" ? undefined : href}
             primaryLabel={item.type === "Deck" ? "Create new from this" : "Edit"}
             downloadDisabled={item.type === "Deck" && !generatedDeckFile}
             onDownloadDeck={item.type === "Deck" ? onDownloadDeck : undefined}
