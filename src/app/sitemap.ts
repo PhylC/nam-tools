@@ -34,6 +34,7 @@ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataR
 ];
 
 const routeLastModified: Record<string, string> = {
+  [retailListingPackPath]: "2026-11-23T00:00:00.000Z",
   "/contact": "2026-11-21T00:00:00.000Z",
   "/pricing": "2026-11-21T00:00:00.000Z",
   "": "2026-11-21T00:00:00.000Z",

@@ -218,7 +218,7 @@ export default async function CalculatorPage({
             <article className="card related-card calculator-guide-card">
               <h2>Review the full retailer offer</h2>
               <p>See what’s left after delivery, rebates, promotions and listing fees with the Retail Listing Decision Pack.</p>
-              <Link href={retailListingPackPath}>View the £29 Excel workbook</Link>
+              <Link href={retailListingPackPath}>Retail listing profitability calculator for Excel</Link>
             </article>
           ) : null}
           {pricingExample ? (
