@@ -1,3 +1,4 @@
+import { getRetailListingPackCheckoutConfig, retailListingPackPath } from "../lib/retailListingPackConfig";
 import type { MetadataRoute } from "next";
 import { retailMediaRoasPath } from "../lib/retailMediaRoas";
 import { featuredTemplates } from "./data/presentationTemplates";
@@ -74,7 +75,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: "monthly" as const,
     priority: 0.75,
   }));
-  return [...routes, ...calculatorRoutes, ...templateRoutes].map((route) => ({
+  const packRoutes = getRetailListingPackCheckoutConfig()
+    ? [{ path: retailListingPackPath, priority: 0.75, changeFrequency: "monthly" as const }]
+    : [];
+
+  return [...routes, ...calculatorRoutes, ...templateRoutes, ...packRoutes].map((route) => ({
     url: `${SITE_URL}${route.path}`,
     lastModified: new Date(routeLastModified[route.path] ?? SITE_LAST_MODIFIED),
     changeFrequency: route.changeFrequency,

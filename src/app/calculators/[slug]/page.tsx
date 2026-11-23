@@ -1,3 +1,4 @@
+import { getRetailListingPackCheckoutConfig, retailListingPackPath } from "../../../lib/retailListingPackConfig";
 import { ResourceMethodology } from "../../components/ResourceMethodology";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -213,6 +214,13 @@ export default async function CalculatorPage({
             <QuickCommercialCalculators only={calculator.id} />
           </div>
           <ResourceMethodology reviewedOn="2026-11-22">Use the same unit and price basis across inputs. Check whether each price includes tax, and enter supplier support separately only when it is outside the invoice price. The worked example and formula show how to reproduce the result.</ResourceMethodology>
+          {isRetailSellingPrice && getRetailListingPackCheckoutConfig() ? (
+            <article className="card related-card calculator-guide-card">
+              <h2>Review the full retailer offer</h2>
+              <p>See what’s left after delivery, rebates, promotions and listing fees with the Retail Listing Decision Pack.</p>
+              <Link href={retailListingPackPath}>View the £29 Excel workbook</Link>
+            </article>
+          ) : null}
           {pricingExample ? (
             <article className="card related-card calculator-guide-card">
               <h2>{pricingExample.title}</h2>

@@ -7,6 +7,8 @@ import {
   upsertBillingRecord,
 } from "../../../../lib/stripeBilling";
 
+import { deliverRetailListingPack, isRetailListingPackOrder } from "../../../../lib/retailListingPackDelivery";
+
 export const dynamic = "force-dynamic";
 
 function getStringId(value: unknown) {
@@ -56,8 +58,15 @@ async function handleInvoiceEvent(invoice: Stripe.Invoice) {
 async function handleEvent(event: Stripe.Event) {
   switch (event.type) {
     case "checkout.session.completed":
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+    case "checkout.session.async_payment_succeeded": {
+      const session = event.data.object as Stripe.Checkout.Session;
+      if (isRetailListingPackOrder(session)) {
+        await deliverRetailListingPack(session);
+      } else if (event.type === "checkout.session.completed") {
+        await handleCheckoutCompleted(session);
+      }
       break;
+    }
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.deleted":

@@ -24,6 +24,7 @@ export default function Page() {
         "You must not misuse the service, attempt to interfere with its operation, bypass access controls, scrape the product, upload malicious content, or use the tools for unlawful or unauthorised purposes.",
         "APT content, tool structure, page copy and materials are owned by or licensed to Account Planning Tools. You may download, edit and use the free PowerPoint templates and your generated decks for your own internal business planning and customer presentations. Check the content and replace fictional examples with your own information before sharing a deck. You may link to the template pages. Reselling or republishing the standalone template files requires permission from Account Planning Tools.",
         "We may change, suspend, remove or improve pages, tools, formulas, features and content as the product develops. We do not guarantee uninterrupted availability.",
+        "A Retail Listing Decision Pack purchase grants your business permission to use and adapt the Excel workbook for its own planning. Resale and redistribution require our permission. The price and file format are shown before payment, and we send the workbook by email after payment.",
         "Paid Pro subscription, billing, cancellation and refund terms are not fully set out here because live payment functionality is still being prepared. Those terms should be added before paid checkout launches.",
       ]}
     />

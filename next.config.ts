@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  outputFileTracingIncludes: {
+    "/api/stripe/webhook": ["./src/products/retail-listing-pack.xlsx"],
+  },
   async redirects() {
     return [
       {
