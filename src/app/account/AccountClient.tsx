@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { trackEvent } from "../../lib/analytics";
 import { getSupabaseBrowserClient } from "../../lib/supabaseClient";
@@ -137,12 +137,9 @@ function getBillingDisplay(billing: BillingState, actualPlan: string) {
 export function AccountClient() {
   const { user, isSignedIn, isLoadingAuth, signOut, actualPlan } = useAuth();
   const router = useRouter();
-  const [message, setMessage] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("checkout") === "success"
-      ? "Payment received. We're confirming your Pro subscription."
-      : "";
-  });
+  const returnedFromCheckout = useSearchParams().get("checkout") === "success";
+  const [checkoutSyncTimedOut, setCheckoutSyncTimedOut] = useState(false);
+  const [message, setMessage] = useState("");
   const [billing, setBilling] = useState<BillingState>(null);
   const [isLoadingBilling, setIsLoadingBilling] = useState(false);
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
@@ -153,38 +150,66 @@ export function AccountClient() {
     return data.session?.access_token ?? "";
   }
 
-  const refreshBilling = useCallback(async () => {
+  const refreshBilling = useCallback(async (signal: AbortSignal) => {
     if (!isSignedIn) return;
     setIsLoadingBilling(true);
     try {
       const token = await getAccessToken();
       if (!token) return;
       const response = await fetch("/api/account/billing", {
+        signal,
         headers: {
           "Authorization": `Bearer ${token}`,
         },
       });
       const result = (await response.json().catch(() => null)) as { ok?: boolean; billing?: BillingState } | null;
-      if (response.ok && result?.ok) {
-        setBilling(result.billing ?? null);
+      if (!signal.aborted && response.ok && result?.ok) {
+        const currentBilling = result.billing ?? null;
+        setBilling(currentBilling);
+        return currentBilling;
       }
+    } catch {
+      // A temporary failure can be retried while checkout is syncing.
     } finally {
-      setIsLoadingBilling(false);
+      if (!signal.aborted) setIsLoadingBilling(false);
     }
   }, [isSignedIn]);
 
   useEffect(() => {
     if (!isSignedIn) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      trackEvent("checkout_completed");
-      getSupabaseBrowserClient()?.auth.refreshSession();
+
+    if (returnedFromCheckout) trackEvent("checkout_completed");
+
+    const controller = new AbortController();
+    let timer: number;
+    let attempts = 0;
+
+    async function syncBilling() {
+      const currentBilling = await refreshBilling(controller.signal);
+      if (controller.signal.aborted || !returnedFromCheckout) return;
+
+      if (isEntitledStatus(currentBilling?.stripe_subscription_status)) {
+        const result = await getSupabaseBrowserClient()?.auth.refreshSession().catch(() => null);
+        if (controller.signal.aborted || result?.data.session?.user.app_metadata?.plan === "pro") return;
+      }
+
+      attempts += 1;
+      if (attempts < 10) {
+        timer = window.setTimeout(syncBilling, 1_500);
+      } else {
+        setCheckoutSyncTimedOut(true);
+      }
     }
-    const timer = window.setTimeout(() => {
-      refreshBilling();
+
+    timer = window.setTimeout(() => {
+      if (returnedFromCheckout) setCheckoutSyncTimedOut(false);
+      void syncBilling();
     }, 0);
-    return () => window.clearTimeout(timer);
-  }, [isSignedIn, refreshBilling]);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [isSignedIn, refreshBilling, returnedFromCheckout]);
 
   async function handleSignOut() {
     const result = await signOut();
@@ -250,6 +275,7 @@ export function AccountClient() {
   }
 
   const billingDisplay = getBillingDisplay(billing, actualPlan);
+  const checkoutConfirmed = actualPlan === "pro" && isEntitledStatus(billing?.stripe_subscription_status);
   const planLabel = formatUserPlan(actualPlan);
   const planBadgeClass = actualPlan === "free" ? "account-plan-badge" : "account-plan-badge account-plan-badge-pro";
   const statusBadgeClass = billingDisplay.statusLabel
@@ -314,13 +340,22 @@ export function AccountClient() {
                 {billingDisplay.message}
               </p>
             ) : null}
-            {actualPlan !== "free" && !billingDisplay.message ? (
+            {actualPlan !== "free" && !billingDisplay.message && !(returnedFromCheckout && checkoutConfirmed) ? (
               <p className="account-status-note account-status-note-success">Your Pro tools are available.</p>
             ) : null}
             {isLoadingBilling ? <p className="settings-message settings-message-info">Checking billing status...</p> : null}
           </div>
 
           {message ? <p className="settings-message settings-message-success">{message}</p> : null}
+          {!message && returnedFromCheckout ? (
+            <p role="status" className={`settings-message settings-message-${checkoutConfirmed ? "success" : "info"}`}>
+              {checkoutConfirmed
+                ? "Your Pro subscription is active."
+                : checkoutSyncTimedOut
+                  ? "Your subscription is still syncing. Refresh this page in a moment."
+                  : "Confirming your Pro subscription…"}
+            </p>
+          ) : null}
         </article>
         <AccountMenu
           active="account"

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AccountClient } from "./AccountClient";
 import { Hero } from "../components/Shell";
 import { privateMetadata } from "../seo";
@@ -13,7 +14,9 @@ export default function AccountPage() {
       <Hero title="Account">
         <p>Manage your sign-in, plan status, settings and workspace links.</p>
       </Hero>
-      <AccountClient />
+      <Suspense fallback={<p className="shell section">Loading account...</p>}>
+        <AccountClient />
+      </Suspense>
     </div>
   );
 }
