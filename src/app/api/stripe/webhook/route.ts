@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import { deliverGardenerPlanner, isGardenerPlannerOrder } from "../../../../lib/gardenersYearPlanner";
 import {
   getBillingByCustomerId,
   getSessionMetadataUserId,
@@ -62,6 +63,8 @@ async function handleEvent(event: Stripe.Event) {
       const session = event.data.object as Stripe.Checkout.Session;
       if (isRetailListingPackOrder(session)) {
         await deliverRetailListingPack(session);
+      } else if (isGardenerPlannerOrder(session)) {
+        await deliverGardenerPlanner(session);
       } else if (event.type === "checkout.session.completed") {
         await handleCheckoutCompleted(session);
       }

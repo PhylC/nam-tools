@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
-    "/api/stripe/webhook": ["./src/products/retail-listing-pack.xlsx"],
+    "/api/stripe/webhook": ["./src/products/retail-listing-pack.xlsx", "./src/products/gardeners-year-vegetable-plot-planner.pdf"],
   },
   async redirects() {
     return [
