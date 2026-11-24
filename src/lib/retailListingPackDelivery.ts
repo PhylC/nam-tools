@@ -35,7 +35,7 @@ export async function deliverRetailListingPack(session: Stripe.Checkout.Session)
       text: [
         "Thank you for your order. Your Excel workbook is attached.",
         "Order: Retail Listing Decision Pack. Total paid: £29.00.",
-        "The workbook includes the deal calculator, a fictional worked example and buyer questions.",
+        "The workbook includes the deal calculator, negotiation targets, a downside case, a fictional worked example and buyer questions.",
         "You confirmed this is a UK business purchase and requested digital delivery immediately after payment.",
         "Open the workbook in Microsoft Excel and complete the amber cells on the Deal calculator tab.",
         "Your business may use and adapt the workbook for its own planning. Contact us for permission to resell or redistribute the pack.",

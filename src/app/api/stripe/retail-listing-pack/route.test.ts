@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as startCheckout } from "./route";
 import { POST as webhook } from "../webhook/route";
@@ -126,7 +127,7 @@ describe("retail pack checkout", () => {
 });
 
 describe("retail pack delivery", () => {
-  it("attaches the actual workbook and uses a stable retry key", async () => {
+  it("attaches the upgraded workbook and uses a stable retry key", async () => {
     expect((await payment("paid")).status).toBe(200);
     expect(stripe.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -136,7 +137,13 @@ describe("retail pack delivery", () => {
       { idempotencyKey: "apt-retail-listing-pack/cs_test_fixture" },
     );
     const [{ attachments }] = stripe.sendEmail.mock.calls[0];
-    expect(attachments[0].content.subarray(0, 2).toString()).toBe("PK");
+    const workbook = await JSZip.loadAsync(attachments[0].content);
+    const calculator = await workbook.file("xl/worksheets/sheet1.xml")?.async("string");
+    const sharedStrings = await workbook.file("xl/sharedStrings.xml")?.async("string");
+    expect(calculator).toBeDefined();
+    const workbookText = `${calculator}${sharedStrings ?? ""}`;
+    expect(workbookText).toContain("Negotiation targets");
+    expect(workbookText).toContain("Downside case");
     expect(stripe.syncSubscription).not.toHaveBeenCalled();
   });
 

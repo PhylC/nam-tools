@@ -14,15 +14,16 @@ import { breadcrumbJsonLd, MERCHANT_RETURN_POLICY_ID, REFUND_POLICY_PATH, seoMet
 
 export const dynamic = "force-dynamic";
 
-const preview = "/images/retail-listing-workbook.webp";
-const description = "Check whether a UK retail listing will pay for itself. Use this Excel calculator to estimate contribution and break-even after promotions, rebates, delivery and fees.";
+const preview = "/images/retail-listing-workbook-negotiation.webp";
+const previewAlt = "Excel workbook showing invoice price, promotion funding, volume and listing fee targets, with editable downside inputs";
+const description = "Check whether a UK retail listing will pay for itself. Calculate what to negotiate and test the impact of lower sales or heavier promotions in Excel.";
 
 export function generateMetadata(): Metadata {
   return {
     ...seoMetadata({
       title: "Retail Listing Profitability Calculator for Excel",
       description,
-      socialImage: { url: preview, alt: "Worked example from the Retail Listing Decision Pack" },
+      socialImage: { url: preview, alt: previewAlt },
       path: retailListingPackPath,
     }),
     ...(getRetailListingPackCheckoutConfig() ? {} : { robots: { index: false, follow: true } }),
@@ -69,7 +70,7 @@ export default async function RetailListingPackPage({ searchParams }: {
         },
       ]} />}
       <Hero title={retailListingPackTitle}>
-        <p>Work out what a retail listing could contribute after promotions, rebates, delivery and fees. An Excel workbook for independent UK food and drink brands reviewing an offer.</p>
+        <p>Work out what a retail listing could earn, which terms to negotiate and how the deal holds up if sales fall short. An Excel workbook for independent UK food and drink brands reviewing one product with one retailer.</p>
       </Hero>
 
       <section className="shell tool-layout" aria-label="Pack details">
@@ -78,22 +79,25 @@ export default async function RetailListingPackPage({ searchParams }: {
             <h2>What’s in the workbook</h2>
             <ul className="compact-list">
               <li><strong>Deal calculator.</strong> Enter the retailer’s terms and your costs. See contribution, margin and break-even volume.</li>
-              <li><strong>Worked example.</strong> Follow a fictional snack brand’s offer from £16,800 of invoice sales to £2,728 of contribution after deal costs.</li>
+              <li><strong>Negotiation targets.</strong> Find the minimum invoice price and sales volume you need, plus the most you can afford to spend on promotional funding and listing fees.</li>
+              <li><strong>Downside case.</strong> Test what happens to contribution if you sell fewer units or fund promotions on a larger share of sales.</li>
               <li><strong>Buyer questions.</strong> Confirm who funds promotions, what gets deducted and when the retailer pays.</li>
             </ul>
           </article>
 
           <article className="card related-card">
             <h2>Worked example for a UK snack brand</h2>
-            <p>At 12,000 units, the example earns £2,728 after deal costs. That falls £272 short of the brand’s £3,000 target. Try different volume or promotion assumptions before going back to the buyer.</p>
+            <p>At 12,000 units, the offer falls £272 short of the brand’s £3,000 target. The workbook shows what would close the gap, such as raising the invoice price to £1.43 per unit or capping listing and launch fees at £1,228, with other terms held constant.</p>
+            <p>At 9,000 units with 40% on promotion, estimated contribution drops from £2,728 to £1,146.</p>
             <Image
               src={preview}
-              alt="Excel worked example showing £2,728 contribution after fixed deal costs and a break-even volume of 5,424 units"
-              width={616}
-              height={610}
-              sizes="(max-width: 700px) 100vw, 616px"
+              alt={previewAlt}
+              width={1230}
+              height={781}
+              sizes="(max-width: 700px) 100vw, 760px"
               style={{ display: "block", maxWidth: "100%", height: "auto", border: "1px solid #d6e2e5" }}
             />
+            <p><Link href={preview}>Open the full-size workbook preview</Link></p>
           </article>
         </div>
 
