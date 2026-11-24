@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const SITE_URL = "https://accountplanningtools.com";
 export const SITE_NAME = "Account Planning Tools";
+export const REFUND_POLICY_PATH = "/refund-policy";
+export const MERCHANT_RETURN_POLICY_ID = `${SITE_URL}${REFUND_POLICY_PATH}#merchant-return-policy`;
 export const OG_IMAGE = "/images/branding/og-image.png";
 export const SITE_LAST_MODIFIED = "2026-08-12T00:00:00.000Z";
 

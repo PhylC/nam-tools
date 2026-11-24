@@ -1,11 +1,11 @@
 import { LegalPage } from "../legal";
-import { seoMetadata } from "../seo";
+import { REFUND_POLICY_PATH, seoMetadata } from "../seo";
 
 export const metadata = seoMetadata({
   title: "Refund Policy",
   description:
     "Refund policy for Account Planning Tools digital products and subscriptions.",
-  path: "/refund-policy",
+  path: REFUND_POLICY_PATH,
 });
 
 export default function Page() {

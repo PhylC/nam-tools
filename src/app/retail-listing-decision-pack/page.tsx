@@ -10,7 +10,7 @@ import {
 } from "../../lib/retailListingPackConfig";
 import { JsonLd } from "../components/JsonLd";
 import { Hero } from "../components/Shell";
-import { breadcrumbJsonLd, seoMetadata, SITE_NAME, SITE_URL } from "../seo";
+import { breadcrumbJsonLd, MERCHANT_RETURN_POLICY_ID, REFUND_POLICY_PATH, seoMetadata, SITE_NAME, SITE_URL } from "../seo";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,7 @@ export default async function RetailListingPackPage({ searchParams }: {
             price: (retailListingPackAmount / 100).toFixed(2),
             priceCurrency: "GBP",
             availability: "https://schema.org/InStock",
+            hasMerchantReturnPolicy: { "@id": MERCHANT_RETURN_POLICY_ID },
           },
         },
       ]} />}
@@ -106,7 +107,7 @@ export default async function RetailListingPackPage({ searchParams }: {
               <p><button className="button" type="submit">Buy the workbook for £29</button></p>
             </form>
           ) : !available ? <p>Checkout is currently closed.</p> : null}
-          <p><Link href="/terms">Terms</Link> · <Link href="/refund-policy">Refund policy</Link> · <Link href="/contact">Order help</Link></p>
+          <p><Link href="/terms">Terms</Link> · <Link href={REFUND_POLICY_PATH}>Refund policy</Link> · <Link href="/contact">Order help</Link></p>
         </aside>
       </section>
     </div>

@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JsonLd } from "./components/JsonLd";
 import { SiteShell } from "./components/Shell";
-import { OG_IMAGE, SITE_NAME, SITE_URL, webApplicationJsonLd } from "./seo";
+import { MERCHANT_RETURN_POLICY_ID, OG_IMAGE, REFUND_POLICY_PATH, SITE_NAME, SITE_URL, webApplicationJsonLd } from "./seo";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -88,6 +88,11 @@ const structuredData = {
       name: SITE_NAME,
       url: SITE_URL,
       logo: `${SITE_URL}/images/branding/logo-full.png`,
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        "@id": MERCHANT_RETURN_POLICY_ID,
+        merchantReturnLink: `${SITE_URL}${REFUND_POLICY_PATH}`,
+      },
     },
     {
       "@type": "WebSite",
