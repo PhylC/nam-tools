@@ -2339,6 +2339,7 @@ function QuickCalculatorCard({
   inputs,
   results,
   explanation,
+  resultAction,
   isReady,
   onLoadExample,
   exampleMessage,
@@ -2354,6 +2355,7 @@ function QuickCalculatorCard({
   inputs?: CsvRow[];
   results: { label: string; value: string; tone?: "good" | "bad" | "neutral" }[];
   explanation?: React.ReactNode;
+  resultAction?: React.ReactNode;
   isReady: boolean;
   onLoadExample?: () => void;
   exampleMessage?: string;
@@ -2436,6 +2438,7 @@ function QuickCalculatorCard({
               {defaultExplanation}
             </section>
             <ResultGrid items={results} />
+            {resultAction}
             <LockedProActions />
           </>
         ) : (
@@ -2448,15 +2451,22 @@ function QuickCalculatorCard({
   );
 }
 
-export function QuickCommercialCalculators({ only }: { only?: QuickCalculatorId } = {}) {
+export function QuickCommercialCalculators({ only, resultAction }: {
+  only?: QuickCalculatorId;
+  resultAction?: React.ReactNode;
+} = {}) {
   return (
     <RestoreCalculator calculatorId={only}>
-      {(values) => <QuickCalculatorsForm only={only} lastUsed={values} />}
+      {(values) => <QuickCalculatorsForm only={only} lastUsed={values} resultAction={resultAction} />}
     </RestoreCalculator>
   );
 }
 
-function QuickCalculatorsForm({ only, lastUsed = {} }: { only?: QuickCalculatorId; lastUsed?: Record<string, string> }) {
+function QuickCalculatorsForm({ only, lastUsed = {}, resultAction }: {
+  only?: QuickCalculatorId;
+  lastUsed?: Record<string, string>;
+  resultAction?: React.ReactNode;
+}) {
   const restored = Object.keys(lastUsed).length > 0;
   const savedDefaults = readCalculatorDefaults();
   const toolDefaults = readToolDefaults();
@@ -2809,6 +2819,7 @@ function QuickCalculatorsForm({ only, lastUsed = {} }: { only?: QuickCalculatorI
         calculatorState={calculatorState}
         id="retail-selling-price-calculator"
         isReady={ready.retailFromInvoice}
+        resultAction={resultAction}
         validationError={invalidTargetMargin ? "Enter a target retailer margin from 0% up to, but below, 100%." : undefined}
         title="Retail Selling Price from Invoice + Margin"
         question="Estimate retail/sale price from invoice price and target retailer margin."

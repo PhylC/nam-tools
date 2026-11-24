@@ -1,4 +1,9 @@
-import { getRetailListingPackCheckoutConfig, retailListingPackPath } from "../../../lib/retailListingPackConfig";
+import {
+  getRetailListingPackCheckoutConfig,
+  retailListingPackAmount,
+  retailListingPackPath,
+  retailListingPackTitle,
+} from "../../../lib/retailListingPackConfig";
 import { ResourceMethodology } from "../../components/ResourceMethodology";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -211,16 +216,19 @@ export default async function CalculatorPage({
       <section className="shell tool-layout">
         <div className="tool-main">
           <div id="calculator">
-            <QuickCommercialCalculators only={calculator.id} />
+            <QuickCommercialCalculators
+              only={calculator.id}
+              resultAction={isRetailSellingPrice && getRetailListingPackCheckoutConfig() ? (
+                <div>
+                  <p className="tab-summary">Check what the listing could earn after promotions, rebates, delivery and fees.</p>
+                  <Link className="button" href={retailListingPackPath}>
+                    Get the {retailListingPackTitle} · £{retailListingPackAmount / 100}
+                  </Link>
+                </div>
+              ) : null}
+            />
           </div>
           <ResourceMethodology reviewedOn="2026-11-22">Use the same unit and price basis across inputs. Check whether each price includes tax, and enter supplier support separately only when it is outside the invoice price. The worked example and formula show how to reproduce the result.</ResourceMethodology>
-          {isRetailSellingPrice && getRetailListingPackCheckoutConfig() ? (
-            <article className="card related-card calculator-guide-card">
-              <h2>Review the full retailer offer</h2>
-              <p>See what’s left after delivery, rebates, promotions and listing fees with the Retail Listing Decision Pack.</p>
-              <Link href={retailListingPackPath}>Retail listing profitability calculator for Excel</Link>
-            </article>
-          ) : null}
           {pricingExample ? (
             <article className="card related-card calculator-guide-card">
               <h2>{pricingExample.title}</h2>
