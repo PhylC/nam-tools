@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  getRetailListingPackCheckoutConfig,
+  retailListingPackPath,
+  retailListingPackTitle,
+} from "../../lib/retailListingPackConfig";
 import { FaqSection } from "../components/FaqSection";
 import { Hero } from "../components/Shell";
 import { JsonLd } from "../components/JsonLd";
@@ -89,6 +94,17 @@ export default function CalculatorsPage() {
         </p>
       </Hero>
 
+      {getRetailListingPackCheckoutConfig() && (
+        <section className="shell" aria-labelledby="excel-workbooks">
+          <article className="card related-card calculator-guide-card">
+            <h2 id="excel-workbooks">Excel workbooks</h2>
+            <p>Review an offer for a UK retail listing. Estimate your contribution and break-even volume after rebates, promotions, delivery and listing fees.</p>
+            <Link className="hero-text-link" href={retailListingPackPath}>
+              {retailListingPackTitle} (£29 one-off)
+            </Link>
+          </article>
+        </section>
+      )}
       <CalculatorsHubClient />
       <FaqSection title="Commercial calculator FAQs." faqs={calculatorFaqs} />
     </div>

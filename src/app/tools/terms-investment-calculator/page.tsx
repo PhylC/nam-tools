@@ -1,3 +1,9 @@
+import Link from "next/link";
+import {
+  getRetailListingPackCheckoutConfig,
+  retailListingPackPath,
+  retailListingPackTitle,
+} from "../../../lib/retailListingPackConfig";
 import { ToolPage } from "../../components/Shell";
 import { CommercialDealCalculator } from "../../components/ToolWidgets";
 import { seoMetadata } from "../../seo";
@@ -16,6 +22,14 @@ export default function Page() {
       interpretation={<p>Use the recommendation to decide whether to support, negotiate or reject the ask. A sensible investment should pay back within the contract period and be tied to measurable customer delivery.</p>}
     >
       <CommercialDealCalculator defaultTab="investment" />
+
+      {getRetailListingPackCheckoutConfig() && (
+        <article className="card related-card calculator-guide-card">
+          <h2>Review a new retail listing</h2>
+          <p>Include listing fees, delivery, rebates and promotions when you estimate what the deal will contribute.</p>
+          <Link href={retailListingPackPath}>{retailListingPackTitle} (£29 Excel workbook)</Link>
+        </article>
+      )}
 
       <article className="card related-card calculator-guide-card">
         <h2>How much extra revenue covers a fixed investment ask?</h2>
